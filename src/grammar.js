@@ -1,10 +1,10 @@
 const replacements = {
-  ASCIIPunctuation: '[!"#$%&\'()*+,\\-./:;<=>?@\\[\\]^_`{|}~]',
-  
+  ASCIIPunctuation: '!"#$%&\'()*+,\\-./:;<=>?@\\[\\]^_`{|}~',
+  TriggerChars: '`_\*\[\]\(\)',
 
 }
 
-export const inlineTriggerChars = /[`_\*\[\]\(\)]/;
+export const inlineTriggerChars = new RegExp(`[${replacements.TriggerChars}]`);
 
 export const lineTypeRegExp = {
   TMH1: /^ {0,3}# +/,
@@ -37,7 +37,7 @@ export const lineTypeRegExp = {
 var inlineGrammar = {
   escape : {
     regexpUncompiled : [
-      '^(\\\\ASCIIPunctuation)'
+      '^(\\\\[ASCIIPunctuation])'
     ],
     replacement : '\\$1'
   },
@@ -61,7 +61,7 @@ var inlineGrammar = {
   },
   default : {
     regexpUncompiled : [
-      '(.)'
+      '(.|(?:[^TriggerChars]+))'
     ],
     replacement: '$1'
   }

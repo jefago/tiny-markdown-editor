@@ -65,6 +65,7 @@ class TinyMDE {
     this.e.addEventListener("input", (e) => this.handleInputEvent(e));
     // this.e.addEventListener("keydown", (e) => this.handleKeydownEvent(e));
     document.addEventListener("selectionchange", (e) => this.handleSelectionChangeEvent(e));
+    this.e.addEventListener("paste", (e) => { return this.handlePaste(e) });
   }
 
   setContent(content) {
@@ -196,6 +197,19 @@ class TinyMDE {
 
   handleSelectionChangeEvent(event) {
     // this.log(`SELECTIONCHANGE`, `EVENT\n${stringifyEvent(event)}\n\nSELECTION\n${stringifyEvent(document.getSelection())}\n`);
+  }
+
+  handlePaste(event) {
+    event.preventDefault();
+  
+    // get text representation of clipboard
+    let text = (event.originalEvent || event).clipboardData.getData('text/plain');
+
+    // insert text manually
+    document.execCommand("insertText", false, text);
+  
+    // Prevent regular paste
+    return false;
   }
 
   // handleKeydownEvent(event) {
