@@ -5,37 +5,34 @@ const size = require('gulp-size');
 const babel = require('rollup-plugin-babel');
 const postcss = require('gulp-postcss');
 const cssnano = require('cssnano');
-const terser = require('terser');
+const terser = require('gulp-terser');
 const rename = require('gulp-rename');
 
 
-const rollupConfig = minimize => ({
-  // rollup: Rollup,
-  input: './src/tiny-mde.js',
-  // moduleName: 'pell',
+const rollupConfig = {
+  input: './src/TinyMDE.js',
   output : {
     format: 'umd',
     name: 'TinyMDE',
   },
-  // exports: 'named',
-  plugins: [babel({ exclude: 'node_modules/**' })].concat(
-    minimize
-      ? [
-        // uglify({
-        //   compress: { warnings: false },
-        //   mangle: true,
-        //   sourceMap: false
-        // })
-        terser()
-      ]
-      : []
-  )
-})
+  plugins: [babel()]
+};
 
-const js = () => gulp.src('./src/tiny-mde.js')
-.pipe(rollup(rollupConfig(false)))
-.pipe(size({ showFiles: true }))
-.pipe(gulp.dest('./dist'));
+const jsMax = () => gulp.src('./src/*.js')
+  .pipe(rollup(rollupConfig))
+  .pipe(rename('tiny-mde.js'))
+  .pipe(size({ showFiles: true }))
+  .pipe(gulp.dest('./dist'));
+
+
+const jsMin = () => gulp.src('./src/*.js')
+  .pipe(rollup(rollupConfig))
+  .pipe(terser())
+  .pipe(rename('tiny-mde.min.js'))
+  .pipe(size({ showFiles: true }))
+  .pipe(gulp.dest('./dist'));
+
+const js = gulp.series(jsMax, jsMin);
 /*
   gulp.series(
     () => 
@@ -55,5 +52,16 @@ const css = () =>
 
 const build = gulp.series(js, css);
 
+const watch = () =>{
+  gulp.watch('./src/*.js', js);
+  gulp.watch('./src/*.css', css);
+}
+
+const dev = gulp.series(
+  js, css, watch
+);
+  
+  
 
 exports.default = build;
+exports.dev = dev;

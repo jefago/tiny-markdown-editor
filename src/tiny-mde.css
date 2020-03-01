@@ -1,4 +1,41 @@
 .TinyMDE {
   background-color:#fff;
   color:#000;
+  font-size:16px;
+  line-height:24px;
+}
+
+.TMBlankLine {
+  height:32px;
+}
+
+.TMH1, .TMSetextH1 {
+  font-size:22px;
+  line-height:32px;
+  font-weight:bold;
+  margin-bottom:8px;
+}
+
+.TMSetextH1 {
+  margin-bottom:0px;
+}
+
+.TMSetextH1Marker {
+  margin-bottom:8px;
+}
+
+.TMH2, .TMSetextH2 {
+  font-size:20px;
+  line-height:28px;
+  font-weight:bold;
+  margin-bottom:4px;
+}
+
+.TMFencedCodeBacktick, .TMFencedCodeTilde, .TMIndentedCode {
+  white-space: pre;
+  font-family:monospace;
+}
+
+.TMBlockquote {
+  font-style: italic;
 }
