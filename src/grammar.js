@@ -41,6 +41,13 @@ var inlineGrammar = {
     ],
     replacement : '\\$1'
   },
+  code : {
+    regexpUncompiled : [
+      '^(`+)([^`])(\\1)', // Single character, not backtick
+      '^(`+)([^`].*?[^`])(\\1)' // Multiple characters, starting and ending in not backtick
+    ],
+    replacement : '$1<code>$2</code>$3' // No recursive application of rules
+  },
   strong: {
     regexpUncompiled : [
       '^(__)([^\\s_])(__)(?!_)',
@@ -91,7 +98,7 @@ export function processInlineStyles(string) {
         if (cap) {
           string = string.substr(cap[0].length);
           processed += inlineGrammar[rule].replacement
-            .replace(/\$\$([1-9])/g, (str, p1) => cap[p1]) // todo recursive calling
+            .replace(/\$\$([1-9])/g, (str, p1) => processInlineStyles(cap[p1])) // todo recursive calling
             .replace(/\$([1-9])/g, (str, p1) => cap[p1]);
           continue outer;
         

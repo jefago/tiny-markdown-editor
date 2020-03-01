@@ -40,3 +40,7 @@
 .TMBlockquote {
   font-style: italic;
 }
+
+.TinyMDE code {
+  background-color:#c0c0c0;
+}
