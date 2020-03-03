@@ -96,9 +96,6 @@ class TinyMDE {
     for (let l = 0; l < this.lines.length; l++) {
       this.calculateLineType(l);
     }
-    for (let l = 0; l < this.lines.length; l++) {
-      this.lineElements[l].className = this.lineTypes[l];
-    }
   }
 
   calculateLineType(lineNum, apply = true) {
@@ -196,7 +193,32 @@ class TinyMDE {
   }
 
   handleSelectionChangeEvent(event) {
-    // this.log(`SELECTIONCHANGE`, `EVENT\n${stringifyEvent(event)}\n\nSELECTION\n${stringifyEvent(document.getSelection())}\n`);
+    const selection = window.getSelection();
+    let node = selection.focusNode;
+    if (node.nodeType != Node.TEXT_NODE) {
+      // No text node selected
+      this.log('SELECTIONCHANGE: NO TEXT', ``)
+      return;
+    }
+    let column = selection.focusOffset;
+    while (node && node.parentNode != this.e) {
+      if (node.previousSibling) {
+        node = node.previousSibling;
+        column += node.textContent.length;
+      } else {
+        node = node.parentNode;
+      }
+    }
+    let row = 0;
+    while (node.previousSibling) {
+      row++;
+      node = node.previousSibling;
+    }
+
+
+    this.log(`SELECTIONCHANGE: ${row}:${column}`, `EVENT\n${stringifyEvent(event)}\n\nSELECTION\n${stringifyEvent(document.getSelection())}\n`);
+    // Get / set selection: https://stackoverflow.com/questions/6249095/how-to-set-caretcursor-position-in-contenteditable-element-div
+
   }
 
   handlePaste(event) {
