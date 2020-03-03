@@ -9,24 +9,25 @@ const terser = require('gulp-terser');
 const rename = require('gulp-rename');
 
 
-const rollupConfig = {
+const rollupConfig = (production) => { return {
   input: './src/TinyMDE.js',
   output : {
     format: 'umd',
     name: 'TinyMDE',
+    sourcemap: production ? false : 'inline', // TODO this doesn't work yet
   },
   plugins: [babel()]
-};
+}};
 
 const jsMax = () => gulp.src('./src/*.js')
-  .pipe(rollup(rollupConfig))
+  .pipe(rollup(rollupConfig(false)))
   .pipe(rename('tiny-mde.js'))
   .pipe(size({ showFiles: true }))
   .pipe(gulp.dest('./dist'));
 
 
 const jsMin = () => gulp.src('./src/*.js')
-  .pipe(rollup(rollupConfig))
+  .pipe(rollup(rollupConfig(true)))
   .pipe(terser())
   .pipe(rename('tiny-mde.min.js'))
   .pipe(size({ showFiles: true }))

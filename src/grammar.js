@@ -115,7 +115,7 @@ for (let rule of Object.keys(inlineGrammar)) {
 
 export function processInlineStyles(originalString) {
   let processed = '';
-  let stack = []; // Stack is an array of objects of the format: {delimiter, count, output}
+  let stack = []; // Stack is an array of objects of the format: {delimiter, delimString, count, output}
   let offset = 0;
   let string = originalString;
 
@@ -129,7 +129,7 @@ export function processInlineStyles(originalString) {
           string = string.substr(cap[0].length);
           offset += cap[0].length;
           processed += inlineGrammar[rule].replacement
-            .replace(/\$\$([1-9])/g, (str, p1) => processInlineStyles(cap[p1])) // todo recursive calling
+            // .replace(/\$\$([1-9])/g, (str, p1) => processInlineStyles(cap[p1])) // todo recursive calling
             .replace(/\$([1-9])/g, (str, p1) => cap[p1]);
           continue outer; 
         }
@@ -139,6 +139,7 @@ export function processInlineStyles(originalString) {
     let cap = /(^\*+)|(^_+)/.exec(string);
     if (cap) {
       let delimCount = cap[0].length;
+      const delimString = cap[0];
       const currentDelimiter = cap[0][0]; // This should be * or _
 
       string = string.substr(cap[0].length);
@@ -154,20 +155,14 @@ export function processInlineStyles(originalString) {
       const whitespacePrecedes = preceding.match(/\s$/);
 
       // These are the rules for right-flanking and left-flanking delimiter runs as per CommonMark spec
-      let canOpen = !whitespaceFollows && (!punctuationFollows || whitespacePrecedes || punctuationPrecedes);
-      let canClose = !whitespacePrecedes && (!punctuationPrecedes || whitespacePrecedes || punctuationFollows);
+      let canOpen = !whitespaceFollows && (!punctuationFollows || !!whitespacePrecedes || !!punctuationPrecedes);
+      let canClose = !whitespacePrecedes && (!punctuationPrecedes || !!whitespaceFollows || !!punctuationFollows);
 
       // Underscores have more detailed rules than just being part of left- or right-flanking run:
       if (currentDelimiter == '_' && canOpen && canClose) {
         canOpen = punctuationPrecedes;
         canClose = punctuationFollows;
       }
-
-      // let canOpen = following.match(/^\S/) 
-      //   && (!following.match(punctuationLeading) || preceding.match(/\s$/) || preceding.match(punctuationTrailing));
-
-      // let canClose = preceding.match(/\S$/)
-      //   && (!preceding.match(punctuationTrailing) || following.match(/^\s/) || following.match(punctuationLeading));
 
       // If the delimiter can close, check the stack if there's something it can close
       if (canClose) {
@@ -179,12 +174,8 @@ export function processInlineStyles(originalString) {
 
             // Firstly, if we skipped any stack levels, pop them immediately (non-matching delimiters)
             while (stackPointer < stack.length - 1) {
-              let entry = stack.pop();
-              let delimRun = '';
-              for (let i = 0; i < entry.count; i++) {
-                delimRun += entry.delimiter; 
-              }
-              processed = `${entry.output}${delimRun}${processed}`;
+              const entry = stack.pop();
+              processed = `${entry.output}${entry.delimString.substr(0, entry.count)}${processed}`;
             }
 
             // Then, format the string
@@ -208,16 +199,17 @@ export function processInlineStyles(originalString) {
             }
 
           } else {
+            // This stack level's delimiter type doesn't match the current delimiter type
             // Go down one level in the stack
             stackPointer--;
           }
         }
-
       }
       // If there are still delimiters left, and the delimiter run can open, push it on the stack
       if (delimCount && canOpen) {
         stack.push({
           delimiter: currentDelimiter,
+          delimString: delimString,
           count: delimCount,
           output: processed
         });
@@ -226,35 +218,21 @@ export function processInlineStyles(originalString) {
       }
 
       // Any delimiters that are left (closing unmatched) are appended to the output.
-      while (delimCount) {
-        processed = `${processed}${currentDelimiter}`;
-        delimCount--;
+      if (delimCount) {
+        processed = `${processed}${delimString.substr(0,delimCount)}`;
       }
 
       offset += cap[0].length;
       continue outer;
     }
-  
 
-    cap = /^_+/.exec(string);
-    if (cap) {
-      // let delimCount = cap[0].length;
-      string = string.substr(cap[0].length);
-
-      processed += cap[0];
-
-      offset += cap[0].length;
-      continue outer;
-    }
-
-
-    // Proces 'default' rule
+    // Process 'default' rule
     cap = inlineGrammar.default.regexp[0].exec(string);
     if (cap) {
       string = string.substr(cap[0].length);
       offset += cap[0].length;
       processed += inlineGrammar.default.replacement
-        .replace(/\$\$([1-9])/g, (str, p1) => processInlineStyles(cap[p1])) // todo recursive calling
+        // .replace(/\$\$([1-9])/g, (str, p1) => processInlineStyles(cap[p1])) // todo recursive calling
         .replace(/\$([1-9])/g, (str, p1) => cap[p1]);
       continue outer; 
     }
@@ -263,14 +241,9 @@ export function processInlineStyles(originalString) {
 
   // Empty the stack, any opening delimiters are unused
   while (stack.length) {
-    let entry = stack.pop();
-    let delimRun = '';
-    for (let i = 0; i < entry.count; i++) {
-      delimRun += entry.delimiter; 
-    }
-    processed = `${entry.output}${delimRun}${processed}`;
+    const entry = stack.pop();
+    processed = `${entry.output}${entry.delimString.substr(0, entry.count)}${processed}`;
   }
 
   return processed;
-
 }
