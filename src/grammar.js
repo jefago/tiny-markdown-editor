@@ -35,10 +35,6 @@ export const lineTypeRegExp = {
 // Structure of the following object:
 // Top level entries are rules, each consisting of an array of regular expressions (in string format) as well as a replacement.
 // In the regular expressions, replacements from the object 'replacements' will be processed before compiling.
-// The replacement can be a regular string as used in 'String.replace()', a function, or alternatively it can contain processed placeholders.
-// Processed placeholders look like regular placeholders ($1) but with two dollar symbols ($$1). For these, the formatting function is called 
-// recursively before replacing.
-
 var inlineGrammar = {
   escape : {
     regexpUncompiled : [
