@@ -139,22 +139,35 @@ export function processInlineStyles(originalString) {
     let cap = /(^\*+)|(^_+)/.exec(string);
     if (cap) {
       let delimCount = cap[0].length;
-      let currentDelimiter = cap[0][0]; // This should be * or _
+      const currentDelimiter = cap[0][0]; // This should be * or _
 
       string = string.substr(cap[0].length);
     
       // We have a delimiter run. Let's check if it can open or close an emphasis.
       
-      let preceding = (offset > 0) ? originalString.substr(0, offset) : ' '; // beginning and end of line count as whitespace
-      let following = (offset + cap[0].length < originalString.length) ? string : ' ';
+      const preceding = (offset > 0) ? originalString.substr(0, offset) : ' '; // beginning and end of line count as whitespace
+      const following = (offset + cap[0].length < originalString.length) ? string : ' ';
 
-      // TODO need to differentiate by asterisk and underscore
-      // Asterisk can open emphasis only if it's part of a left-flanking delimter run (cf CommonMark spec)
-      let canOpen = following.match(/^\S/) 
-        && (!following.match(punctuationLeading) || preceding.match(/\s$/) || preceding.match(punctuationTrailing));
+      const punctuationFollows = following.match(punctuationLeading);
+      const punctuationPrecedes = preceding.match(punctuationTrailing);
+      const whitespaceFollows = following.match(/^\s/);
+      const whitespacePrecedes = preceding.match(/\s$/);
 
-      let canClose = preceding.match(/\S$/)
-        && (!preceding.match(punctuationTrailing) || following.match(/^\s/) || following.match(punctuationLeading));
+      // These are the rules for right-flanking and left-flanking delimiter runs as per CommonMark spec
+      let canOpen = !whitespaceFollows && (!punctuationFollows || whitespacePrecedes || punctuationPrecedes);
+      let canClose = !whitespacePrecedes && (!punctuationPrecedes || whitespacePrecedes || punctuationFollows);
+
+      // Underscores have more detailed rules than just being part of left- or right-flanking run:
+      if (currentDelimiter == '_' && canOpen && canClose) {
+        canOpen = punctuationPrecedes;
+        canClose = punctuationFollows;
+      }
+
+      // let canOpen = following.match(/^\S/) 
+      //   && (!following.match(punctuationLeading) || preceding.match(/\s$/) || preceding.match(punctuationTrailing));
+
+      // let canClose = preceding.match(/\S$/)
+      //   && (!preceding.match(punctuationTrailing) || following.match(/^\s/) || following.match(punctuationLeading));
 
       // If the delimiter can close, check the stack if there's something it can close
       if (canClose) {
