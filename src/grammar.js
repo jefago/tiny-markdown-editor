@@ -136,7 +136,7 @@ export function processInlineStyles(originalString) {
       }
     }
     // Check for delimiters
-    let cap = /^(\*+)|(_+)/.exec(string);
+    let cap = /(^\*+)|(^_+)/.exec(string);
     if (cap) {
       let delimCount = cap[0].length;
       let currentDelimiter = cap[0][0]; // This should be * or _
