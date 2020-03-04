@@ -1,6 +1,6 @@
 import { lineTypeRegExp, inlineTriggerChars, processInlineStyles, lineGrammar } from "./grammar";
 
-function stringifyEvent(event) {
+function stringifyObject(event) {
   let keys = [];
   let obj = event;
 
@@ -235,7 +235,7 @@ class TinyMDE {
     if (typesDirty) {
       this.updateFormatting();
       return true;
-      this.log(`STYLES RECALCULATED`, stringifyEvent(this.lines));
+      this.log(`STYLES RECALCULATED`, stringifyObject(this.lines));
     }
     return false; // No recalculation done
   }
@@ -247,12 +247,7 @@ class TinyMDE {
   getSelection() {
     const selection = window.getSelection();
     let node = selection.focusNode;
-    if (node.nodeType != Node.TEXT_NODE) {
-      // No text node selected
-      this.log('SELECTIONCHANGE: NO TEXT', ``)
-      return null;
-    }
-    let col = selection.focusOffset;
+    let col = node.nodeType === Node.TEXT_NODE ? selection.focusOffset : 0;
     while (node && node.parentNode != this.e) {
       if (node.previousSibling) {
         node = node.previousSibling;
@@ -287,7 +282,7 @@ class TinyMDE {
     while (node != parentNode) {
       if (!childrenComplete && node.nodeType === Node.TEXT_NODE) {
         if (node.nodeValue.length >= col) {
-          this.log(`Selection at node, offset ${col}`, stringifyEvent(node));
+          this.log(`Selection at node, offset ${col}`, stringifyObject(node));
           range.selectNode(node);
           range.setStart(node, col);
           range.setEnd(node, col);
@@ -318,7 +313,7 @@ class TinyMDE {
   handleInputEvent(event) {
     
     let sel = this.getSelection();
-    this.log(`INPUT at ${sel ? sel.row : '-'}:${sel ? sel.col : '-'}`, `EVENT\n${stringifyEvent(event)}\n`);
+    this.log(`INPUT at ${sel ? sel.row : '-'}:${sel ? sel.col : '-'}`, `EVENT\n${stringifyObject(event)}\n`);
     // this.updateFormatting();
     this.updateLineContentsAndTypes();
     if (sel) this.setSelection(sel);
@@ -345,7 +340,7 @@ class TinyMDE {
     if (sel) this.setSelection(sel);
   
     // Prevent regular paste
-    return false;
+    // return false;
   }
 
   // handleKeydownEvent(event) {
