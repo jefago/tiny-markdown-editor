@@ -250,7 +250,7 @@ class TinyMDE {
     if (node.nodeType != Node.TEXT_NODE) {
       // No text node selected
       this.log('SELECTIONCHANGE: NO TEXT', ``)
-      return;
+      return null;
     }
     let col = selection.focusOffset;
     while (node && node.parentNode != this.e) {
@@ -318,10 +318,10 @@ class TinyMDE {
   handleInputEvent(event) {
     
     let sel = this.getSelection();
-    this.log(`INPUT at ${sel.row}:${sel.col}`, `EVENT\n${stringifyEvent(event)}\n`);
+    this.log(`INPUT at ${sel ? sel.row : '-'}:${sel ? sel.col : '-'}`, `EVENT\n${stringifyEvent(event)}\n`);
     // this.updateFormatting();
     this.updateLineContentsAndTypes();
-    this.setSelection(sel);
+    if (sel) this.setSelection(sel);
 
     
     // this.log(`INPUT`, JSON.stringify(event.data));
@@ -339,6 +339,10 @@ class TinyMDE {
 
     // insert text manually
     document.execCommand("insertText", false, text);
+    let sel = this.getSelection();
+    // this.updateFormatting();
+    this.updateLineContentsAndTypes();
+    if (sel) this.setSelection(sel);
   
     // Prevent regular paste
     return false;

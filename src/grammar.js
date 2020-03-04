@@ -56,25 +56,46 @@ export const lineGrammar = {
     regex: /^( {0,3}######)((?:\s+)(?:.*?))((?:######\s*)?)$/, 
     replacement: '<span class="TMMark TMMark_TMH6">$1</span>$$2<span class="TMMark TMMark_TMH6">$3</span>'
   },
-
-  // TMH2: { regex: /^ {0,3}## +/, replacement: '$$0'},
-  // TMH3: { regex: /^ {0,3}### +/, replacement: '$$0'},
-  // TMH4: { regex: /^ {0,3}#### +/, replacement: '$$0'},
-  // TMH5: { regex: /^ {0,3}##### +/, replacement: '$$0'},
-  // TMH6: { regex: /^ {0,3}###### +/, replacement: '$$0'},
   TMBlockquote: { 
     regex: /^( {0,3}>)( +.*)$/, 
     replacement: '<span class="TMMark TMMark_TMBlockquote">$1</span>$$2'
   },
-  TMCodeFenceBacktickOpen: { regex: /^ {0,3}(```)/, replacement: '$$0'},
-  TMCodeFenceTildeOpen: { regex: /^ {0,3}(~~~)/, replacement: '$$0'},
-  TMBlankLine: { regex: /^[ \t]*$/, replacement: '$$0'},
-  TMSetextH1Marker: { regex: /^ {0,3}=+\s*$/, replacement: '$$0'},
-  TMSetextH2Marker: { regex: /^ {0,3}-+\s*$/, replacement: '$$0'},
-  TMHR: { regex: /^ {0,3}((\*[ \t]*\*[ \t]*\*[ \t\*]*)|(-[ \t]*-[ \t]*-[ \t-]*)|(_[ \t]*_[ \t]*_[ \t_]*))$/, replacement: '$$0'},
-  TMUL: { regex: /^ {0,3}[+*-] +/, replacement: '$$0'},
-  TMOL: { regex: /^ {0,3}\d{1,9}[.)] +/, replacement: '$$0'},
-  TMIndentedCode: { regex: /^(    |\t)/, replacement: '$$0'},
+  TMCodeFenceBacktickOpen: { 
+    regex: /^ {0,3}(```).*$/, 
+    replacement: '<span class="TMMark TMMark_TMCodeFenceBacktick">$0</span>'
+  },
+  TMCodeFenceTildeOpen: { 
+    regex: /^ {0,3}(~~~).*$/, 
+    replacement: '<span class="TMMark TMMark_TMCodeFenceTilde">$0</span>'
+  },
+  TMBlankLine: { 
+    regex: /^([ \t]*)$/, 
+    replacement: '$0<br>'
+  },
+  TMSetextH1Marker: { 
+    regex: /^ {0,3}=+\s*$/, 
+    replacement: '<span class="TMMark TMMark_TMSetextH1Marker">$0</span>'
+  },
+  TMSetextH2Marker: { 
+    regex: /^ {0,3}-+\s*$/, 
+    replacement: '<span class="TMMark TMMark_TMSetextH1Marker">$0</span>'
+  },
+  TMHR: { 
+    regex: /^ {0,3}((\*[ \t]*\*[ \t]*\*[ \t\*]*)|(-[ \t]*-[ \t]*-[ \t-]*)|(_[ \t]*_[ \t]*_[ \t_]*))$/, 
+    replacement: '<span class="TMMark TMMark_TMHR">$0</span>'
+  },
+  TMUL: { 
+    regex: /^( {0,3}[+*-] )(.*)$/, 
+    replacement: '<span class="TMMark TMMark_TMUL">$1</span>$$2'
+  },
+  TMOL: { 
+    regex: /^( {0,3}\d{1,9}[.)] )(.*)$/, 
+    replacement: '<span class="TMMark TMMark_TMOL">$1</span>$$2'
+  },
+  TMIndentedCode: { 
+    regex: /^(    |\t)(.*)$/, 
+    replacement: '<span class="TMMark TMMark_TMIndentedCode">$1</span>$2'
+  },
 };
 
 
