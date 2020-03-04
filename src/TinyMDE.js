@@ -226,9 +226,10 @@ class TinyMDE {
         // Line changed, update it
         this.lines[line] = ct;
         // Check whether line style has changed
-        if (!typesDirty && this.calculateLineType(line, false) != this.lineTypes[line]) {
-          typesDirty = true;
-        }
+        // if (!typesDirty && this.calculateLineType(line, false) != this.lineTypes[line]) {
+        //   typesDirty = true;
+        // }
+        typesDirty = true;
       }
     }
     if (typesDirty) {
@@ -272,10 +273,10 @@ class TinyMDE {
     if (row >= this.lineElements.length) {
       // Selection past the end of text, set selection to end of text
       row = this.lineElements.length - 1;
-      col = this.lines[row].length - 1;
+      col = this.lines[row].length;
     } 
-    if (col >= this.lines[row].length) {
-      col = this.lines[row].length - 1;
+    if (col > this.lines[row].length) {
+      col = this.lines[row].length;
     }
     const parentNode = this.lineElements[row];
     let node = parentNode.firstChild;
@@ -284,8 +285,9 @@ class TinyMDE {
     let childrenComplete = false;
 
     while (node != parentNode) {
-      if (!childrenComplete && node.type === Node.TEXT_NODE) {
-        if (node.text.length <= col) {
+      if (!childrenComplete && node.nodeType === Node.TEXT_NODE) {
+        if (node.nodeValue.length >= col) {
+          this.log(`Selection at node, offset ${col}`, stringifyEvent(node));
           range.selectNode(node);
           range.setStart(node, col);
           range.setEnd(node, col);
@@ -295,7 +297,7 @@ class TinyMDE {
           selection.addRange(range);
           return;
         } else {
-          col -= node.text.length;
+          col -= node.nodeValue.length;
         }
       } 
       if (!childrenComplete && node.firstChild) {
@@ -314,12 +316,14 @@ class TinyMDE {
   }
 
   handleInputEvent(event) {
-    this.log(`INPUT`, `EVENT\n${stringifyEvent(event)}\n`);
+    
     let sel = this.getSelection();
-    this.updateFormatting();
+    this.log(`INPUT at ${sel.row}:${sel.col}`, `EVENT\n${stringifyEvent(event)}\n`);
+    // this.updateFormatting();
+    this.updateLineContentsAndTypes();
     this.setSelection(sel);
 
-    // this.updateLineContentsAndTypes();
+    
     // this.log(`INPUT`, JSON.stringify(event.data));
   }
 

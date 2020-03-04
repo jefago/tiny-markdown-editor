@@ -7,7 +7,7 @@
 }
 
 .TMBlankLine {
-  height:32px;
+  height:24px;
 }
 
 .TMH1, .TMSetextH1 {
@@ -46,5 +46,9 @@
 }
 
 .TMMark {
-  color:#808080;
+  color:#a0a0a0;
+}
+
+.TMMark_TMH1, .TMMark_TMH2 {
+  color:#ff8080;
 }

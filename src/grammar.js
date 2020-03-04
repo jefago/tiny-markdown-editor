@@ -32,13 +32,40 @@ export const lineTypeRegExp = {
 
 // This is CommonMark's block grammar, but we're ignoring nested blocks here.
 export const lineGrammar = { 
-  TMH1: { regex: /^( {0,3})(#)(\s+)(.*)(\2?\s+)/, replacement: '<span class="TMMark TMH1">$1$2</span>$3$$4<span class="TMMark TMH1">$5</span>'},
-  TMH2: { regex: /^ {0,3}## +/, replacement: '$$0'},
-  TMH3: { regex: /^ {0,3}### +/, replacement: '$$0'},
-  TMH4: { regex: /^ {0,3}#### +/, replacement: '$$0'},
-  TMH5: { regex: /^ {0,3}##### +/, replacement: '$$0'},
-  TMH6: { regex: /^ {0,3}###### +/, replacement: '$$0'},
-  TMBlockquote: { regex: /^ {0,3}> +/, replacement: '$$0'},
+  TMH1: { 
+    regex: /^( {0,3}#)((?:\s+)(?:.*?))((?:#\s*)?)$/, 
+    replacement: '<span class="TMMark TMMark_TMH1">$1</span>$$2<span class="TMMark TMMark_TMH1">$3</span>'
+  },
+  TMH2: { 
+    regex: /^( {0,3}##)((?:\s+)(?:.*?))((?:##\s*)?)$/, 
+    replacement: '<span class="TMMark TMMark_TMH2">$1</span>$$2<span class="TMMark TMMark_TMH2">$3</span>'
+  },
+  TMH3: { 
+    regex: /^( {0,3}###)((?:\s+)(?:.*?))((?:###\s*)?)$/, 
+    replacement: '<span class="TMMark TMMark_TMH3">$1</span>$$2<span class="TMMark TMMark_TMH3">$3</span>'
+  },
+  TMH4: { 
+    regex: /^( {0,3}####)((?:\s+)(?:.*?))((?:####\s*)?)$/, 
+    replacement: '<span class="TMMark TMMark_TMH4">$1</span>$$2<span class="TMMark TMMark_TMH4">$3</span>'
+  },
+  TMH5: { 
+    regex: /^( {0,3}#####)((?:\s+)(?:.*?))((?:#####\s*)?)$/, 
+    replacement: '<span class="TMMark TMMark_TMH5">$1</span>$$2<span class="TMMark TMMark_TMH5">$3</span>'
+  },
+  TMH6: { 
+    regex: /^( {0,3}######)((?:\s+)(?:.*?))((?:######\s*)?)$/, 
+    replacement: '<span class="TMMark TMMark_TMH6">$1</span>$$2<span class="TMMark TMMark_TMH6">$3</span>'
+  },
+
+  // TMH2: { regex: /^ {0,3}## +/, replacement: '$$0'},
+  // TMH3: { regex: /^ {0,3}### +/, replacement: '$$0'},
+  // TMH4: { regex: /^ {0,3}#### +/, replacement: '$$0'},
+  // TMH5: { regex: /^ {0,3}##### +/, replacement: '$$0'},
+  // TMH6: { regex: /^ {0,3}###### +/, replacement: '$$0'},
+  TMBlockquote: { 
+    regex: /^( {0,3}>)( +.*)$/, 
+    replacement: '<span class="TMMark TMMark_TMBlockquote">$1</span>$$2'
+  },
   TMCodeFenceBacktickOpen: { regex: /^ {0,3}(```)/, replacement: '$$0'},
   TMCodeFenceTildeOpen: { regex: /^ {0,3}(~~~)/, replacement: '$$0'},
   TMBlankLine: { regex: /^[ \t]*$/, replacement: '$$0'},
