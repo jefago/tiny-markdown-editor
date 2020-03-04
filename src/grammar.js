@@ -30,6 +30,26 @@ export const lineTypeRegExp = {
   TMIndentedCode: /^(    |\t)/,
 };
 
+// This is CommonMark's block grammar, but we're ignoring nested blocks here.
+export const lineGrammar = { 
+  TMH1: { regex: /^( {0,3})(#)(\s+)(.*)(\2?\s+)/, replacement: '<span class="TMMark TMH1">$1$2</span>$3$$4<span class="TMMark TMH1">$5</span>'},
+  TMH2: { regex: /^ {0,3}## +/, replacement: '$$0'},
+  TMH3: { regex: /^ {0,3}### +/, replacement: '$$0'},
+  TMH4: { regex: /^ {0,3}#### +/, replacement: '$$0'},
+  TMH5: { regex: /^ {0,3}##### +/, replacement: '$$0'},
+  TMH6: { regex: /^ {0,3}###### +/, replacement: '$$0'},
+  TMBlockquote: { regex: /^ {0,3}> +/, replacement: '$$0'},
+  TMCodeFenceBacktickOpen: { regex: /^ {0,3}(```)/, replacement: '$$0'},
+  TMCodeFenceTildeOpen: { regex: /^ {0,3}(~~~)/, replacement: '$$0'},
+  TMBlankLine: { regex: /^[ \t]*$/, replacement: '$$0'},
+  TMSetextH1Marker: { regex: /^ {0,3}=+\s*$/, replacement: '$$0'},
+  TMSetextH2Marker: { regex: /^ {0,3}-+\s*$/, replacement: '$$0'},
+  TMHR: { regex: /^ {0,3}((\*[ \t]*\*[ \t]*\*[ \t\*]*)|(-[ \t]*-[ \t]*-[ \t-]*)|(_[ \t]*_[ \t]*_[ \t_]*))$/, replacement: '$$0'},
+  TMUL: { regex: /^ {0,3}[+*-] +/, replacement: '$$0'},
+  TMOL: { regex: /^ {0,3}\d{1,9}[.)] +/, replacement: '$$0'},
+  TMIndentedCode: { regex: /^(    |\t)/, replacement: '$$0'},
+};
+
 
 
 // Structure of the following object:
@@ -40,14 +60,14 @@ var inlineGrammar = {
     regexpUncompiled : [
       '^(\\\\[ASCIIPunctuation])'
     ],
-    replacement : '\\$1'
+    replacement : '<span class="TMMark">\\</span>$1'
   },
   code : {
     regexpUncompiled : [
       '^(`+)([^`])(\\1)', // Single character, not backtick
       '^(`+)([^`].*?[^`])(\\1)' // Multiple characters, starting and ending in not backtick
     ],
-    replacement : '$1<code>$2</code>$3' // No recursive application of rules
+    replacement : '<span class="TMMark">$1</span><code>$2</code><span class="TMMark">$3</span>' // No recursive application of rules
   },
   // strong: {
   //   regexpUncompiled : [
@@ -177,12 +197,12 @@ export function processInlineStyles(originalString) {
             // Then, format the string
             if (delimCount >= 2 && stack[stackPointer].count >= 2) {
               // Strong
-              processed = `${currentDelimiter}${currentDelimiter}<strong>${processed}</strong>${currentDelimiter}${currentDelimiter}`;
+              processed = `<span class="TMMark">${currentDelimiter}${currentDelimiter}</span><strong>${processed}</strong><span class="TMMark">${currentDelimiter}${currentDelimiter}</span>`;
               delimCount -= 2;
               stack[stackPointer].count -= 2;
             } else {
               // Em
-              processed = `${currentDelimiter}<em>${processed}</em>${currentDelimiter}`;
+              processed = `<span class="TMMark">${currentDelimiter}</span><em>${processed}</em><span class="TMMark">${currentDelimiter}</span>`;
               delimCount -= 1;
               stack[stackPointer].count -= 1;
             }

@@ -1,4 +1,4 @@
-import { lineTypeRegExp, inlineTriggerChars, processInlineStyles } from "./grammar";
+import { lineTypeRegExp, inlineTriggerChars, processInlineStyles, lineGrammar } from "./grammar";
 
 function stringifyEvent(event) {
   let keys = [];
@@ -82,71 +82,128 @@ class TinyMDE {
       this.lineTypes.push(le.className);
       this.e.appendChild(le);
       this.lineElements.push(le);
-      this.updateInlineStyles(lineNum);
+      // this.updateInlineStyles(lineNum);
       // let te = document.createTextNode(l); // TODO inline parsing
       // le.appendChild(te);
 
     }
 
 
-    this.recalculateAndApplyLineTypes();
+    this.updateFormatting();
   }
 
-  recalculateAndApplyLineTypes() {
+  updateFormatting() {
     for (let l = 0; l < this.lines.length; l++) {
       this.calculateLineType(l);
     }
   }
 
+  replace(replacement, capture) {
+    return replacement
+      .replace(/\$\$([0-9])/g, (str, p1) => processInlineStyles(capture[p1])) 
+      .replace(/\$([0-9])/g, (str, p1) => capture[p1]);
+  }
+
+  applyLineType(lineNum, lineType, lineReplacement, lineCapture) {
+    this.lineTypes[lineNum] = lineType;
+    this.lineElements[lineNum].className = lineType;
+    this.lineElements[lineNum].innerHTML = this.replace(lineReplacement, lineCapture);
+  }
+
   calculateLineType(lineNum, apply = true) {
 
-    let lineType = 'TMPara';
-
     if (lineNum < 0 || lineNum >= this.lines.length) throw 'array out of bounds';
+
+    let lineType = 'TMPara';
+    let lineCapture = [this.lines[lineNum]];
+    let lineReplacement = '$$0'; // Default replacement for paragraph: Inline format the entire line
+
+
     // Check ongoing code blocks
     if (lineNum > 0 && (this.lineTypes[lineNum - 1] == 'TMCodeFenceBacktickOpen' || this.lineTypes[lineNum - 1] == 'TMFencedCodeBacktick')) {
-      // We're in a backtick-fenced code block
-      if (this.lines[lineNum].match(lineTypeRegExp.TMCodeFenceBacktickOpen)) lineType = 'TMCodeFenceBacktickClose';
-      else  lineType = 'TMFencedCodeBacktick';
+      // We're in a backtick-fenced code block, check if the current line closes it
+      let capture = lineGrammar.TMCodeFenceBacktickOpen.regex.exec(this.lines[lineNum]);
+      if (capture) {
+        lineType = 'TMCodeFenceBacktickClose';
+        lineReplacement = lineGrammar.TMCodeFenceBacktickOpen.replacement;
+        lineCapture = capture;
+      } else {
+        lineType = 'TMFencedCodeBacktick';
+        lineReplacement = '$0';
+        lineCapture = [this.lines[lineNum]];
+      }
+      
     }
     if (lineNum > 0 && (this.lineTypes[lineNum - 1] == 'TMCodeFenceTildeOpen' || this.lineTypes[lineNum - 1] == 'TMFencedCodeTilde')) {
       // We're in a tilde-fenced code block
-      if (this.lines[lineNum].match(lineTypeRegExp.TMCodeFenceTildeOpen))  lineType = 'TMCodeFenceTildeClose';
-      else  lineType = 'TMFencedCodeTilde';
+      let capture = lineGrammar.TMCodeFenceTildeOpen.regex.exec(this.lines[lineNum]);
+      if (capture)  {
+        lineType = 'TMCodeFenceTildeClose';
+        lineReplacement = lineGrammar.TMCodeFenceTildeOpen.replacement;
+        lineCapture = capture;
+      }
+      else {
+        lineType = 'TMFencedCodeTilde';
+        lineReplacement = '$0';
+        lineCapture = [this.lines[lineNum]];
+      } 
     }
 
     // Check all regexps if we haven't applied one of the code block types
     if (lineType == 'TMPara') {
-      for (let type of Object.keys(lineTypeRegExp)) {
-        if (this.lines[lineNum].match(lineTypeRegExp[type])) {
+      for (let type of Object.keys(lineGrammar)) {
+        let capture = lineGrammar[type].regex.exec(this.lines[lineNum]);
+        if (capture) {
           lineType = type;
+          lineReplacement = lineGrammar[type].replacement;
+          lineCapture = capture;
           break;
         }
       }
     }
 
     // Setext H2 markers that can also be interpreted as an empty list item should be regarded as such (as per CommonMark spec)
-    if (lineType == 'TMSetextH2Marker' && this.lines[lineNum].match(lineTypeRegExp.TMUL)) {
-      lineType = 'TMUL';
+    if (lineType == 'TMSetextH2Marker') {
+      let capture = lineGrammar.TMUL.regex.exec(this.lines[lineNum]);
+      if (capture) {
+        lineType = 'TMUL';
+        lineReplacement = lineGrammar.TMUL.replacement;
+        lineCapture = capture;
+      }      
     }
 
     // Setext headings are only valid if preceded by a paragraph (and if so, they change the type of the previous paragraph)
     if (lineType == 'TMSetextH1Marker' || lineType == 'TMSetextH2Marker') {
       if (lineNum == 0 || this.lineTypes[lineNum - 1] != 'TMPara') {
         // Setext marker is invalid. However, a H2 marker might still be a valid HR, so let's check that
-        lineType = this.lines[lineNum].match(lineTypeRegExp.TMHR) ? 'TMHR' : 'TMPara';
+        // TODO Here need to update capture and replacement
+        let capture = lineGrammar.TMHR.regex.exec(this.lines[lineNum]);
+        if (capture) {
+          // Valid HR
+          lineType = 'TMHR';
+          lineCapture = capture;
+          lineReplacement = lineGrammar.TMHR.replacement;
+        } else {
+          // Not valid HR, format as TMPara
+          lineType = 'TMPara';
+          lineCapture = [this.lines[lineNum]];
+          lineReplacement = '$$0';
+        }
       } else {
-        // Valid setext marker. Change types of para lines
+        // Valid setext marker. Change types of para lines if apply flag is set
         if (apply) {
           let headingLine = lineNum - 1;
           do {
-            this.lineTypes[headingLine] = (lineType == 'TMSetextH1Marker' ? 'TMSetextH1' : 'TMSetextH2');
+            this.applyLineType(headingLine, (lineType == 'TMSetextH1Marker' ? 'TMSetextH1' : 'TMSetextH2'), '$$0', [this.lines[headingLine]]);
             headingLine--;
           } while(headingLine > 0 && this.lineTypes[headingLine] == 'TMPara');
         }
       }
     }
-    if (apply) this.lineTypes[lineNum] = lineType;
+    if (apply) {
+      this.applyLineType(lineNum, lineType, lineReplacement, lineCapture);
+      // this.lineTypes[lineNum] = lineType;
+    }
     return lineType;
     
   }
@@ -175,24 +232,18 @@ class TinyMDE {
       }
     }
     if (typesDirty) {
-      this.recalculateAndApplyLineTypes();
+      this.updateFormatting();
       return true;
       this.log(`STYLES RECALCULATED`, stringifyEvent(this.lines));
     }
     return false; // No recalculation done
   }
 
-  updateInlineStyles(lineNum) {
-    this.lineElements[lineNum].innerHTML = processInlineStyles(this.lines[lineNum]);
-  }
+  // updateInlineStyles(lineNum) {
+  //   this.lineElements[lineNum].innerHTML = processInlineStyles(this.lines[lineNum]);
+  // }
 
-  handleInputEvent(event) {
-    this.log(`INPUT`, `EVENT\n${stringifyEvent(event)}\n`);
-    this.updateLineContentsAndTypes();
-    // this.log(`INPUT`, JSON.stringify(event.data));
-  }
-
-  handleSelectionChangeEvent(event) {
+  getSelection() {
     const selection = window.getSelection();
     let node = selection.focusNode;
     if (node.nodeType != Node.TEXT_NODE) {
@@ -200,11 +251,11 @@ class TinyMDE {
       this.log('SELECTIONCHANGE: NO TEXT', ``)
       return;
     }
-    let column = selection.focusOffset;
+    let col = selection.focusOffset;
     while (node && node.parentNode != this.e) {
       if (node.previousSibling) {
         node = node.previousSibling;
-        column += node.textContent.length;
+        col += node.textContent.length;
       } else {
         node = node.parentNode;
       }
@@ -214,11 +265,66 @@ class TinyMDE {
       row++;
       node = node.previousSibling;
     }
+    return {row: row, col: col};
+  }
+
+  setSelection({row, col}) {
+    if (row >= this.lineElements.length) {
+      // Selection past the end of text, set selection to end of text
+      row = this.lineElements.length - 1;
+      col = this.lines[row].length - 1;
+    } 
+    if (col >= this.lines[row].length) {
+      col = this.lines[row].length - 1;
+    }
+    const parentNode = this.lineElements[row];
+    let node = parentNode.firstChild;
+
+    let range = document.createRange();
+    let childrenComplete = false;
+
+    while (node != parentNode) {
+      if (!childrenComplete && node.type === Node.TEXT_NODE) {
+        if (node.text.length <= col) {
+          range.selectNode(node);
+          range.setStart(node, col);
+          range.setEnd(node, col);
+          range.collapse(false); // TODO do we need this with a simple selection?
+          let selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+          return;
+        } else {
+          col -= node.text.length;
+        }
+      } 
+      if (!childrenComplete && node.firstChild) {
+        node = node.firstChild;
+      } else if (node.nextSibling) {
+        childrenComplete = false;
+        node = node.nextSibling;
+      } else {
+        childrenComplete = true;
+        node = node.parentNode;
+      }
+    }
+    // Selection past the end of the line, just keep it at the end of the line
 
 
-    this.log(`SELECTIONCHANGE: ${row}:${column}`, `EVENT\n${stringifyEvent(event)}\n\nSELECTION\n${stringifyEvent(document.getSelection())}\n`);
-    // Get / set selection: https://stackoverflow.com/questions/6249095/how-to-set-caretcursor-position-in-contenteditable-element-div
+  }
 
+  handleInputEvent(event) {
+    this.log(`INPUT`, `EVENT\n${stringifyEvent(event)}\n`);
+    let sel = this.getSelection();
+    this.updateFormatting();
+    this.setSelection(sel);
+
+    // this.updateLineContentsAndTypes();
+    // this.log(`INPUT`, JSON.stringify(event.data));
+  }
+
+  handleSelectionChangeEvent(event) {
+    // this.log(`SELECTIONCHANGE`, `EVENT\n${stringifyEvent(event)}\n\nSELECTION\n${stringifyEvent(document.getSelection())}\n`);
   }
 
   handlePaste(event) {
