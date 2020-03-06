@@ -7,6 +7,7 @@ const postcss = require('gulp-postcss');
 const cssnano = require('cssnano');
 const terser = require('gulp-terser');
 const rename = require('gulp-rename');
+const sourcemaps = require('gulp-sourcemaps');
 
 
 const rollupConfig = (production) => { return {
@@ -14,13 +15,15 @@ const rollupConfig = (production) => { return {
   output : {
     format: 'umd',
     name: 'TinyMDE',
-    sourcemap: production ? false : 'inline', // TODO this doesn't work yet
+    // sourcemap: production ? false : 'inline', // TODO this doesn't work yet
   },
   plugins: [babel()]
 }};
 
 const jsMax = () => gulp.src('./src/*.js')
+  .pipe(sourcemaps.init())
   .pipe(rollup(rollupConfig(false)))
+  .pipe(sourcemaps.write())
   .pipe(rename('tiny-mde.js'))
   .pipe(size({ showFiles: true }))
   .pipe(gulp.dest('./dist'));

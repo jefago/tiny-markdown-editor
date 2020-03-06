@@ -61,11 +61,14 @@ class TinyMDE {
     this.e = document.createElement('div');
     this.e.className = 'TinyMDE';
     this.e.contentEditable = true;
+    // The following is important for formatting purposes, but also since otherwise the browser replaces subsequent spaces with  &nbsp; &nbsp;
+    // That breaks a lot of stuff, so we do this here and not in CSS—therefore, you don't have to remember to but this in the CSS file
+    this.e.style.whiteSpace = 'pre-wrap'; 
     element.appendChild(this.e);
     this.e.addEventListener("input", (e) => this.handleInputEvent(e));
     // this.e.addEventListener("keydown", (e) => this.handleKeydownEvent(e));
     document.addEventListener("selectionchange", (e) => this.handleSelectionChangeEvent(e));
-    this.e.addEventListener("paste", (e) => { return this.handlePaste(e) });
+    this.e.addEventListener("paste", (e) => this.handlePaste(e));
   }
 
   setContent(content) {
@@ -78,8 +81,8 @@ class TinyMDE {
     this.lines = content.split(/(?:\r\n|\r|\n)/);
     for (let lineNum = 0; lineNum < this.lines.length; lineNum++) {
       let le = document.createElement('div');
-      le.className = 'TMPara';
-      this.lineTypes.push(le.className);
+      // le.className = 'TMPara';
+      // this.lineTypes.push(le.className);
       this.e.appendChild(le);
       this.lineElements.push(le);
       // this.updateInlineStyles(lineNum);
@@ -87,14 +90,13 @@ class TinyMDE {
       // le.appendChild(te);
 
     }
-
-
+    this.lineTypes = new Array(this.lines.length);
     this.updateFormatting();
   }
 
   updateFormatting() {
     for (let l = 0; l < this.lines.length; l++) {
-      this.calculateLineType(l);
+      this.updateTypeAndFormatLine(l);
     }
   }
 
@@ -110,14 +112,12 @@ class TinyMDE {
     this.lineElements[lineNum].innerHTML = this.replace(lineReplacement, lineCapture);
   }
 
-  calculateLineType(lineNum, apply = true) {
-
+  updateTypeAndFormatLine(lineNum) {
     if (lineNum < 0 || lineNum >= this.lines.length) throw 'array out of bounds';
 
     let lineType = 'TMPara';
     let lineCapture = [this.lines[lineNum]];
     let lineReplacement = '$$0'; // Default replacement for paragraph: Inline format the entire line
-
 
     // Check ongoing code blocks
     if (lineNum > 0 && (this.lineTypes[lineNum - 1] == 'TMCodeFenceBacktickOpen' || this.lineTypes[lineNum - 1] == 'TMFencedCodeBacktick')) {
@@ -131,8 +131,7 @@ class TinyMDE {
         lineType = 'TMFencedCodeBacktick';
         lineReplacement = '$0';
         lineCapture = [this.lines[lineNum]];
-      }
-      
+      } 
     }
     if (lineNum > 0 && (this.lineTypes[lineNum - 1] == 'TMCodeFenceTildeOpen' || this.lineTypes[lineNum - 1] == 'TMFencedCodeTilde')) {
       // We're in a tilde-fenced code block
@@ -176,7 +175,6 @@ class TinyMDE {
     if (lineType == 'TMSetextH1Marker' || lineType == 'TMSetextH2Marker') {
       if (lineNum == 0 || this.lineTypes[lineNum - 1] != 'TMPara') {
         // Setext marker is invalid. However, a H2 marker might still be a valid HR, so let's check that
-        // TODO Here need to update capture and replacement
         let capture = lineGrammar.TMHR.regex.exec(this.lines[lineNum]);
         if (capture) {
           // Valid HR
@@ -190,26 +188,20 @@ class TinyMDE {
           lineReplacement = '$$0';
         }
       } else {
-        // Valid setext marker. Change types of para lines if apply flag is set
-        if (apply) {
-          let headingLine = lineNum - 1;
-          do {
-            this.applyLineType(headingLine, (lineType == 'TMSetextH1Marker' ? 'TMSetextH1' : 'TMSetextH2'), '$$0', [this.lines[headingLine]]);
-            headingLine--;
-          } while(headingLine > 0 && this.lineTypes[headingLine] == 'TMPara');
-        }
+        // Valid setext marker. Change types of preceding para lines
+        let headingLine = lineNum - 1;
+        do {
+          this.applyLineType(headingLine, (lineType == 'TMSetextH1Marker' ? 'TMSetextH1' : 'TMSetextH2'), '$$0', [this.lines[headingLine]]);
+          headingLine--;
+        } while(headingLine > 0 && this.lineTypes[headingLine] == 'TMPara'); 
       }
     }
-    if (apply) {
-      this.applyLineType(lineNum, lineType, lineReplacement, lineCapture);
-      // this.lineTypes[lineNum] = lineType;
-    }
-    return lineType;
-    
+    // Lastly, actually apply the line style
+    this.applyLineType(lineNum, lineType, lineReplacement, lineCapture);    
   }
 
   updateLineContentsAndTypes() {
-    let typesDirty = false;
+    let dirty = false;
     // Check if we have changed anything about the number of lines (inserted or deleted a paragraph)
     if (this.lineElements.length != this.e.childElementCount) {
       console.log('Para # changed');
@@ -217,7 +209,7 @@ class TinyMDE {
       this.lineElements = this.e.childNodes;
       this.lines = Array(this.lineElements.length);
       this.lineTypes = [];
-      typesDirty = true;
+      dirty = true;
     }
     for (let line = 0; line < this.lineElements.length; line++) {
       let e = this.lineElements[line];
@@ -225,14 +217,10 @@ class TinyMDE {
       if (this.lines[line] !== ct) {
         // Line changed, update it
         this.lines[line] = ct;
-        // Check whether line style has changed
-        // if (!typesDirty && this.calculateLineType(line, false) != this.lineTypes[line]) {
-        //   typesDirty = true;
-        // }
-        typesDirty = true;
+        dirty = true;
       }
     }
-    if (typesDirty) {
+    if (dirty) {
       this.updateFormatting();
       return true;
       this.log(`STYLES RECALCULATED`, stringifyObject(this.lines));
@@ -256,6 +244,10 @@ class TinyMDE {
         node = node.parentNode;
       }
     }
+    // Check that the selection was inside our text. If not, we'd have ascended to the root of the DOM (node == null)
+    if (!node) {
+      return null;
+    }
     let row = 0;
     while (node.previousSibling) {
       row++;
@@ -264,7 +256,9 @@ class TinyMDE {
     return {row: row, col: col};
   }
 
-  setSelection({row, col}) {
+  setSelection(para) {
+    if (!para) return;
+    let {row, col} = para; 
     if (row >= this.lineElements.length) {
       // Selection past the end of text, set selection to end of text
       row = this.lineElements.length - 1;
@@ -305,9 +299,13 @@ class TinyMDE {
         node = node.parentNode;
       }
     }
-    // Selection past the end of the line, just keep it at the end of the line
 
-
+    // Somehow, the position was invalid; just keep it at the end of the line
+    range.selectNode(parentNode);
+    range.collapse(false);
+    let selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
   }
 
   handleInputEvent(event) {
