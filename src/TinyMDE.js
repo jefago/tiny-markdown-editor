@@ -254,7 +254,7 @@ class TinyMDE {
 
           // Hack for OL: increment number
           if (continuableType == 'TMOL') {
-            capture[1] = capture[1].replace(/\d{1,9}/, (result) => { parseInt(result[0]) + 1});
+            capture[1] = capture[1].replace(/\d{1,9}/, (result) => { return parseInt(result[0]) + 1});
           }
           this.lines[sel.row] = `${capture[1]}${this.lines[sel.row]}`;
           sel.col = capture[1].length;
