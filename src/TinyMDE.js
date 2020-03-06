@@ -200,11 +200,20 @@ class TinyMDE {
     this.applyLineType(lineNum, lineType, lineReplacement, lineCapture);    
   }
 
-  updateLineContentsAndTypes() {
+  updateLineContentsAndFormatting() {
+    if (this.updateLineContents()) {
+      this.updateFormatting();
+    }
+  }
+
+  /**
+   * Updates the class properties (lines, lineElements) from the DOM.
+   * @returns true if contents changed
+   */
+  updateLineContents() {
     let dirty = false;
     // Check if we have changed anything about the number of lines (inserted or deleted a paragraph)
-    if (this.lineElements.length != this.e.childElementCount) {
-      console.log('Para # changed');
+    if (this.lines.length != this.e.childElementCount) {
       // yup. Recalculate everything
       this.lineElements = this.e.childNodes;
       this.lines = Array(this.lineElements.length);
@@ -220,12 +229,43 @@ class TinyMDE {
         dirty = true;
       }
     }
-    if (dirty) {
-      this.updateFormatting();
-      return true;
-      this.log(`STYLES RECALCULATED`, stringifyObject(this.lines));
+    return dirty;
+  }
+
+  processNewParagraph(sel) {
+    let continuableType = false;
+    // Let's see if we need to continue a list
+    if (sel && sel.row > 0) {
+      switch (this.lineTypes[sel.row - 1]) {
+        case 'TMUL': continuableType = 'TMUL'; break;
+        case 'TMOL': continuableType = 'TMOL'; break;
+        case 'TMIndentedCode': continuableType = 'TMIndentedCode'; break;
+      }
     }
-    return false; // No recalculation done
+    // Update lines from content
+    this.updateLineContents();
+    if (continuableType) {
+      // Check if the previous line was non-empty
+      let capture = lineGrammar[continuableType].regex.exec(this.lines[sel.row - 1]);
+      if (capture) {
+        // Convention: capture[1] is the line type marker, capture[2] is the content
+        if (capture[2]) {
+          // Previous line has content, continue the continuable type
+
+          // Hack for OL: increment number
+          if (continuableType == 'TMOL') {
+            capture[1] = capture[1].replace(/\d{1,9}/, (result) => { parseInt(result[0]) + 1});
+          }
+          this.lines[sel.row] = `${capture[1]}${this.lines[sel.row]}`;
+          sel.col = capture[1].length;
+        } else {
+          // Previous line has no content, remove the continuable type from the previous row
+          this.lines[sel.row - 1] = '';
+        }     
+      }
+    }
+    this.updateFormatting();
+    this.log(`Paragraph inserted`, stringifyObject(event.getTargetRanges()))
   }
 
   // updateInlineStyles(lineNum) {
@@ -309,12 +349,19 @@ class TinyMDE {
     selection.addRange(range);
   }
 
+  /** 
+   * Event handler for input events 
+   */
   handleInputEvent(event) {
-    
     let sel = this.getSelection();
-    this.log(`INPUT at ${sel ? sel.row : '-'}:${sel ? sel.col : '-'}`, `EVENT\n${stringifyObject(event)}\n`);
-    // this.updateFormatting();
-    this.updateLineContentsAndTypes();
+    if (event.inputType == 'insertParagraph' && sel) {
+      this.processNewParagraph(sel);
+    } else {
+      this.log(`INPUT at ${sel ? sel.row : '-'}:${sel ? sel.col : '-'}`, `EVENT\n${stringifyObject(event)}\n`);
+      // this.updateFormatting();
+      this.updateLineContentsAndFormatting();  
+    }
+    
     if (sel) this.setSelection(sel);
 
     
@@ -335,7 +382,7 @@ class TinyMDE {
     document.execCommand("insertText", false, text);
     let sel = this.getSelection();
     // this.updateFormatting();
-    this.updateLineContentsAndTypes();
+    this.updateLineContentsAndFormatting();
     if (sel) this.setSelection(sel);
   
     // Prevent regular paste
