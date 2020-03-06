@@ -265,12 +265,7 @@ class TinyMDE {
       }
     }
     this.updateFormatting();
-    this.log(`Paragraph inserted`, stringifyObject(event.getTargetRanges()))
   }
-
-  // updateInlineStyles(lineNum) {
-  //   this.lineElements[lineNum].innerHTML = processInlineStyles(this.lines[lineNum]);
-  // }
 
   getSelection() {
     const selection = window.getSelection();
@@ -358,14 +353,11 @@ class TinyMDE {
       this.processNewParagraph(sel);
     } else {
       this.log(`INPUT at ${sel ? sel.row : '-'}:${sel ? sel.col : '-'}`, `EVENT\n${stringifyObject(event)}\n`);
-      // this.updateFormatting();
       this.updateLineContentsAndFormatting();  
     }
     
     if (sel) this.setSelection(sel);
 
-    
-    // this.log(`INPUT`, JSON.stringify(event.data));
   }
 
   handleSelectionChangeEvent(event) {
@@ -381,7 +373,6 @@ class TinyMDE {
     // insert text manually
     document.execCommand("insertText", false, text);
     let sel = this.getSelection();
-    // this.updateFormatting();
     this.updateLineContentsAndFormatting();
     if (sel) this.setSelection(sel);
   
