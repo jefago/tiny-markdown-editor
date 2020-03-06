@@ -300,9 +300,10 @@ class TinyMDE {
       }
     }
 
-    // Somehow, the position was invalid; just keep it at the end of the line
-    range.selectNode(parentNode);
-    range.collapse(false);
+    // Somehow, the position was invalid; just keep it at the beginning of the line
+    node = parentNode.firstChild ? parentNode.firstChild : parentNode;
+    range.selectNode(node);
+    range.collapse(true);
     let selection = window.getSelection();
     selection.removeAllRanges();
     selection.addRange(range);
