@@ -51,3 +51,14 @@
 .TMMark_TMH1, .TMMark_TMH2 {
   color:#ff8080;
 }
+
+.TMImage {
+  text-decoration: underline;
+  text-decoration-color: #00ff00;
+}
+
+
+.TMLink {
+  text-decoration: underline;
+  text-decoration-color: #0000ff;
+}

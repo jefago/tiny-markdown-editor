@@ -45,6 +45,9 @@ class TinyMDE {
     this.lines = [];
     this.lineElements = [];
     this.lineTypes = [];
+    this.lineCaptures = [];
+    this.lineReplacements = [];
+    this.linkLabels = [];
 
     if (props.element && !props.element.tagName) {
       props.element = document.getElementById(props.element);
@@ -95,8 +98,9 @@ class TinyMDE {
   }
 
   updateFormatting() {
+    this.updateLineTypes();
     for (let l = 0; l < this.lines.length; l++) {
-      this.updateTypeAndFormatLine(l);
+      this.applyLineType(l, this.lineTypes[l], this.lineReplacements[l], this.lineCaptures[l]);    
     }
   }
 
@@ -112,92 +116,97 @@ class TinyMDE {
     this.lineElements[lineNum].innerHTML = this.replace(lineReplacement, lineCapture);
   }
 
-  updateTypeAndFormatLine(lineNum) {
-    if (lineNum < 0 || lineNum >= this.lines.length) throw 'array out of bounds';
+  updateLineTypes() {
+    for (let lineNum = 0; lineNum < this.lines.length; lineNum++) {
+      let lineType = 'TMPara';
+      let lineCapture = [this.lines[lineNum]];
+      let lineReplacement = '$$0'; // Default replacement for paragraph: Inline format the entire line
 
-    let lineType = 'TMPara';
-    let lineCapture = [this.lines[lineNum]];
-    let lineReplacement = '$$0'; // Default replacement for paragraph: Inline format the entire line
-
-    // Check ongoing code blocks
-    if (lineNum > 0 && (this.lineTypes[lineNum - 1] == 'TMCodeFenceBacktickOpen' || this.lineTypes[lineNum - 1] == 'TMFencedCodeBacktick')) {
-      // We're in a backtick-fenced code block, check if the current line closes it
-      let capture = lineGrammar.TMCodeFenceBacktickOpen.regex.exec(this.lines[lineNum]);
-      if (capture) {
-        lineType = 'TMCodeFenceBacktickClose';
-        lineReplacement = lineGrammar.TMCodeFenceBacktickOpen.replacement;
-        lineCapture = capture;
-      } else {
-        lineType = 'TMFencedCodeBacktick';
-        lineReplacement = '$0';
-        lineCapture = [this.lines[lineNum]];
-      } 
-    }
-    if (lineNum > 0 && (this.lineTypes[lineNum - 1] == 'TMCodeFenceTildeOpen' || this.lineTypes[lineNum - 1] == 'TMFencedCodeTilde')) {
-      // We're in a tilde-fenced code block
-      let capture = lineGrammar.TMCodeFenceTildeOpen.regex.exec(this.lines[lineNum]);
-      if (capture)  {
-        lineType = 'TMCodeFenceTildeClose';
-        lineReplacement = lineGrammar.TMCodeFenceTildeOpen.replacement;
-        lineCapture = capture;
-      }
-      else {
-        lineType = 'TMFencedCodeTilde';
-        lineReplacement = '$0';
-        lineCapture = [this.lines[lineNum]];
-      } 
-    }
-
-    // Check all regexps if we haven't applied one of the code block types
-    if (lineType == 'TMPara') {
-      for (let type of Object.keys(lineGrammar)) {
-        let capture = lineGrammar[type].regex.exec(this.lines[lineNum]);
+      // Check ongoing code blocks
+      if (lineNum > 0 && (this.lineTypes[lineNum - 1] == 'TMCodeFenceBacktickOpen' || this.lineTypes[lineNum - 1] == 'TMFencedCodeBacktick')) {
+        // We're in a backtick-fenced code block, check if the current line closes it
+        let capture = lineGrammar.TMCodeFenceBacktickOpen.regexp.exec(this.lines[lineNum]);
         if (capture) {
-          lineType = type;
-          lineReplacement = lineGrammar[type].replacement;
+          lineType = 'TMCodeFenceBacktickClose';
+          lineReplacement = lineGrammar.TMCodeFenceBacktickOpen.replacement;
           lineCapture = capture;
-          break;
-        }
-      }
-    }
-
-    // Setext H2 markers that can also be interpreted as an empty list item should be regarded as such (as per CommonMark spec)
-    if (lineType == 'TMSetextH2Marker') {
-      let capture = lineGrammar.TMUL.regex.exec(this.lines[lineNum]);
-      if (capture) {
-        lineType = 'TMUL';
-        lineReplacement = lineGrammar.TMUL.replacement;
-        lineCapture = capture;
-      }      
-    }
-
-    // Setext headings are only valid if preceded by a paragraph (and if so, they change the type of the previous paragraph)
-    if (lineType == 'TMSetextH1Marker' || lineType == 'TMSetextH2Marker') {
-      if (lineNum == 0 || this.lineTypes[lineNum - 1] != 'TMPara') {
-        // Setext marker is invalid. However, a H2 marker might still be a valid HR, so let's check that
-        let capture = lineGrammar.TMHR.regex.exec(this.lines[lineNum]);
-        if (capture) {
-          // Valid HR
-          lineType = 'TMHR';
-          lineCapture = capture;
-          lineReplacement = lineGrammar.TMHR.replacement;
         } else {
-          // Not valid HR, format as TMPara
-          lineType = 'TMPara';
+          lineType = 'TMFencedCodeBacktick';
+          lineReplacement = '$0';
           lineCapture = [this.lines[lineNum]];
-          lineReplacement = '$$0';
-        }
-      } else {
-        // Valid setext marker. Change types of preceding para lines
-        let headingLine = lineNum - 1;
-        do {
-          this.applyLineType(headingLine, (lineType == 'TMSetextH1Marker' ? 'TMSetextH1' : 'TMSetextH2'), '$$0', [this.lines[headingLine]]);
-          headingLine--;
-        } while(headingLine > 0 && this.lineTypes[headingLine] == 'TMPara'); 
+        } 
       }
+      if (lineNum > 0 && (this.lineTypes[lineNum - 1] == 'TMCodeFenceTildeOpen' || this.lineTypes[lineNum - 1] == 'TMFencedCodeTilde')) {
+        // We're in a tilde-fenced code block
+        let capture = lineGrammar.TMCodeFenceTildeOpen.regexp.exec(this.lines[lineNum]);
+        if (capture)  {
+          lineType = 'TMCodeFenceTildeClose';
+          lineReplacement = lineGrammar.TMCodeFenceTildeOpen.replacement;
+          lineCapture = capture;
+        }
+        else {
+          lineType = 'TMFencedCodeTilde';
+          lineReplacement = '$0';
+          lineCapture = [this.lines[lineNum]];
+        } 
+      }
+
+      // Check all regexps if we haven't applied one of the code block types
+      if (lineType == 'TMPara') {
+        for (let type of Object.keys(lineGrammar)) {
+          let capture = lineGrammar[type].regexp.exec(this.lines[lineNum]);
+          if (capture) {
+            lineType = type;
+            lineReplacement = lineGrammar[type].replacement;
+            lineCapture = capture;
+            break;
+          }
+        }
+      }
+
+      // Setext H2 markers that can also be interpreted as an empty list item should be regarded as such (as per CommonMark spec)
+      if (lineType == 'TMSetextH2Marker') {
+        let capture = lineGrammar.TMUL.regexp.exec(this.lines[lineNum]);
+        if (capture) {
+          lineType = 'TMUL';
+          lineReplacement = lineGrammar.TMUL.replacement;
+          lineCapture = capture;
+        }      
+      }
+
+      // Setext headings are only valid if preceded by a paragraph (and if so, they change the type of the previous paragraph)
+      if (lineType == 'TMSetextH1Marker' || lineType == 'TMSetextH2Marker') {
+        if (lineNum == 0 || this.lineTypes[lineNum - 1] != 'TMPara') {
+          // Setext marker is invalid. However, a H2 marker might still be a valid HR, so let's check that
+          let capture = lineGrammar.TMHR.regexp.exec(this.lines[lineNum]);
+          if (capture) {
+            // Valid HR
+            lineType = 'TMHR';
+            lineCapture = capture;
+            lineReplacement = lineGrammar.TMHR.replacement;
+          } else {
+            // Not valid HR, format as TMPara
+            lineType = 'TMPara';
+            lineCapture = [this.lines[lineNum]];
+            lineReplacement = '$$0';
+          }
+        } else {
+          // Valid setext marker. Change types of preceding para lines
+          let headingLine = lineNum - 1;
+          do {
+            this.lineTypes[headingLine] = (lineType == 'TMSetextH1Marker' ? 'TMSetextH1' : 'TMSetextH2');
+            this.lineReplacements[headingLine] = '$$0';
+            this.lineCaptures[headingLine] = [this.lines[headingLine]];
+
+            headingLine--;
+          } while(headingLine > 0 && this.lineTypes[headingLine] == 'TMPara'); 
+        }
+      }
+      // Lastly, save the line style to be applied later
+      this.lineTypes[lineNum] = lineType;
+      this.lineReplacements[lineNum] = lineReplacement;
+      this.lineCaptures[lineNum] = lineCapture;
     }
-    // Lastly, actually apply the line style
-    this.applyLineType(lineNum, lineType, lineReplacement, lineCapture);    
   }
 
   updateLineContentsAndFormatting() {
@@ -246,7 +255,7 @@ class TinyMDE {
     this.updateLineContents();
     if (continuableType) {
       // Check if the previous line was non-empty
-      let capture = lineGrammar[continuableType].regex.exec(this.lines[sel.row - 1]);
+      let capture = lineGrammar[continuableType].regexp.exec(this.lines[sel.row - 1]);
       if (capture) {
         // Convention: capture[1] is the line type marker, capture[2] is the content
         if (capture[2]) {
