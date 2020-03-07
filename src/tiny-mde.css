@@ -62,3 +62,8 @@
   text-decoration: underline;
   text-decoration-color: #0000ff;
 }
+
+.TMLinkLabel {
+  text-decoration: underline;
+  text-decoration-color: #c000c0;
+}

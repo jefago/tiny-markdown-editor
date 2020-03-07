@@ -1,4 +1,4 @@
-import { lineTypeRegExp, inlineTriggerChars, processInlineStyles, lineGrammar } from "./grammar";
+import { inlineGrammar, lineGrammar, punctuationLeading, punctuationTrailing, htmlescape } from "./grammar";
 
 function stringifyObject(event) {
   let keys = [];
@@ -99,15 +99,28 @@ class TinyMDE {
 
   updateFormatting() {
     this.updateLineTypes();
+
+    this.updateLinkLabels();
+
     for (let l = 0; l < this.lines.length; l++) {
       this.applyLineType(l, this.lineTypes[l], this.lineReplacements[l], this.lineCaptures[l]);    
     }
   }
 
+  updateLinkLabels() {
+    this.linkLabels = [];
+    for (let l = 0; l < this.lines.length; l++) {
+      if (this.lineTypes[l] == 'TMLinkReferenceDefinition') {
+        this.linkLabels.push(this.lineCaptures[l][lineGrammar.TMLinkReferenceDefinition.labelPlaceholder]);
+      }
+    }
+    this.log(`Link labels`, stringifyObject(this.linkLabels));
+  }
+
   replace(replacement, capture) {
     return replacement
-      .replace(/\$\$([0-9])/g, (str, p1) => processInlineStyles(capture[p1])) 
-      .replace(/\$([0-9])/g, (str, p1) => capture[p1]);
+      .replace(/\$\$([0-9])/g, (str, p1) => this.processInlineStyles(capture[p1])) 
+      .replace(/\$([0-9])/g, (str, p1) => htmlescape(capture[p1]));
   }
 
   applyLineType(lineNum, lineType, lineReplacement, lineCapture) {
@@ -213,6 +226,238 @@ class TinyMDE {
     if (this.updateLineContents()) {
       this.updateFormatting();
     }
+  }
+
+  parseLinkOrImage(originalString, isImage) {
+    // Skip the opening bracket
+    let textOffset = isImage ? 2 : 1;
+    let opener = originalString.substr(0, textOffset);
+    let type = isImage ? 'TMImage' : 'TMLink';
+    let currentOffset = textOffset;
+    
+    let bracketLevel = 1;
+    let linkText = false;
+  
+  
+    textOuter: while (currentOffset < originalString.length && !linkText) {
+      let string = originalString.substr(currentOffset);
+  
+      // Process any escapes and code blocks at current position, they bind more strongly than links
+      // TODO: Autolinks, HTML tags also bind more strongly
+      for (let rule of ['escape', 'code']) {
+        let cap = inlineGrammar[rule].regexp.exec(string);
+        if (cap) {
+          currentOffset += cap[0].length;
+          continue textOuter; 
+        }
+      }
+  
+      // Check for image. It's okay for an image to be included in a link or image
+      if (string.match(inlineGrammar.imageOpen.regexp)) {
+        // Opening image. It's okay if this is a matching pair of brackets
+        bracketLevel++;
+        currentOffset += 2;
+        continue textOuter;
+      }
+  
+      if (string.match(inlineGrammar.linkOpen.regexp)) {
+        // Opening bracket. Two things to do:
+        // 1) it's okay if this part of a pair of brackets.
+        // 2) If we are currently trying to parse a link, this nested bracket musn't start a valid link (no nested links allowed)
+        bracketLevel++;
+        // if (bracketLevel >= 2) return false; // Nested unescaped brackets, this doesn't qualify as a link / image
+        if (!isImage) {
+          if (this.parseLinkOrImage(string, false)) {
+            // Valid link inside this possible link, which makes this link invalid (inner links beat outer ones)
+            return false;
+          }
+        }
+        currentOffset += 1;
+        continue textOuter;
+      }
+  
+      if (string.match(/^\]/)) {
+        bracketLevel--;
+        if (bracketLevel == 0) {
+          // Found matching bracket and haven't found anything disqualifying this as link / image.
+          linkText = originalString.substr(textOffset, currentOffset - textOffset);
+          currentOffset++;
+          continue textOuter;
+        }
+      }
+  
+      // Nothing matches, proceed to next char
+      currentOffset++;
+    }
+  
+    // Did we find a link text (i.e., find a matching closing bracket?)
+    if (!linkText) return false; // Nope
+  
+    // So far, so good. We've got a valid link text. Let's see what type of link this is
+  
+    // TODO parse inline link here
+  
+    // if (originalString.substr(currentOffset).match(/^\(/)) {
+    //   // Potential inline link / image
+    //   let parenthesisOffset = currentOffset + 1;
+    //   let parenthesisLevel = 0;
+  
+  
+    // } else {
+      // Ref link / image
+      return {
+        replacement : `<span class="TMMark TMMark_${type}">${opener}</span><span class="${type}">${this.processInlineStyles(linkText)}</span><span class="TMMark TMMark_${type}">]</span>`,
+        charCount :  currentOffset
+      }
+    // }
+  
+  }
+  
+  processInlineStyles(originalString) {
+    let processed = '';
+    let stack = []; // Stack is an array of objects of the format: {delimiter, delimString, count, output}
+    let offset = 0;
+    let string = originalString;
+  
+  
+    outer: while (string) {
+      // Process simple rules (non-delimiter)
+      for (let rule of ['escape', 'code']) {
+        let cap = inlineGrammar[rule].regexp.exec(string);
+        if (cap) {
+          string = string.substr(cap[0].length);
+          offset += cap[0].length;
+          processed += inlineGrammar[rule].replacement
+            // .replace(/\$\$([1-9])/g, (str, p1) => processInlineStyles(cap[p1])) // todo recursive calling
+            .replace(/\$([1-9])/g, (str, p1) => htmlescape(cap[p1]));
+          continue outer; 
+        }
+      }
+  
+      // Check for links / images
+      let potentialLink = string.match(inlineGrammar.linkOpen.regexp);
+      let potentialImage = string.match(inlineGrammar.imageOpen.regexp);
+      if (potentialImage || potentialLink) {
+        let result = this.parseLinkOrImage(string, potentialImage);
+        if (result) {
+          processed = `${processed}${result.replacement}`;
+          string = string.substr(result.charCount);
+          offset += result.charCount;
+          continue outer;
+        }
+      }
+      
+      // Check for em / strong delimiters
+      let cap = /(^\*+)|(^_+)/.exec(string);
+      if (cap) {
+        let delimCount = cap[0].length;
+        const delimString = cap[0];
+        const currentDelimiter = cap[0][0]; // This should be * or _
+  
+        string = string.substr(cap[0].length);
+      
+        // We have a delimiter run. Let's check if it can open or close an emphasis.
+        
+        const preceding = (offset > 0) ? originalString.substr(0, offset) : ' '; // beginning and end of line count as whitespace
+        const following = (offset + cap[0].length < originalString.length) ? string : ' ';
+  
+        const punctuationFollows = following.match(punctuationLeading);
+        const punctuationPrecedes = preceding.match(punctuationTrailing);
+        const whitespaceFollows = following.match(/^\s/);
+        const whitespacePrecedes = preceding.match(/\s$/);
+  
+        // These are the rules for right-flanking and left-flanking delimiter runs as per CommonMark spec
+        let canOpen = !whitespaceFollows && (!punctuationFollows || !!whitespacePrecedes || !!punctuationPrecedes);
+        let canClose = !whitespacePrecedes && (!punctuationPrecedes || !!whitespaceFollows || !!punctuationFollows);
+  
+        // Underscores have more detailed rules than just being part of left- or right-flanking run:
+        if (currentDelimiter == '_' && canOpen && canClose) {
+          canOpen = punctuationPrecedes;
+          canClose = punctuationFollows;
+        }
+  
+        // If the delimiter can close, check the stack if there's something it can close
+        if (canClose) {
+          let stackPointer = stack.length - 1;
+          // See if we can find a matching opening delimiter, move down through the stack
+          while (delimCount && stackPointer >= 0) {
+            if (stack[stackPointer].delimiter == currentDelimiter) {
+              // We found a matching delimiter, let's construct the formatted string
+  
+              // Firstly, if we skipped any stack levels, pop them immediately (non-matching delimiters)
+              while (stackPointer < stack.length - 1) {
+                const entry = stack.pop();
+                processed = `${entry.output}${entry.delimString.substr(0, entry.count)}${processed}`;
+              }
+  
+              // Then, format the string
+              if (delimCount >= 2 && stack[stackPointer].count >= 2) {
+                // Strong
+                processed = `<span class="TMMark">${currentDelimiter}${currentDelimiter}</span><strong>${processed}</strong><span class="TMMark">${currentDelimiter}${currentDelimiter}</span>`;
+                delimCount -= 2;
+                stack[stackPointer].count -= 2;
+              } else {
+                // Em
+                processed = `<span class="TMMark">${currentDelimiter}</span><em>${processed}</em><span class="TMMark">${currentDelimiter}</span>`;
+                delimCount -= 1;
+                stack[stackPointer].count -= 1;
+              }
+  
+              // If that stack level is empty now, pop it
+              if (stack[stackPointer].count == 0) {
+                let entry = stack.pop();
+                processed = `${entry.output}${processed}`
+                stackPointer--;
+              }
+  
+            } else {
+              // This stack level's delimiter type doesn't match the current delimiter type
+              // Go down one level in the stack
+              stackPointer--;
+            }
+          }
+        }
+        // If there are still delimiters left, and the delimiter run can open, push it on the stack
+        if (delimCount && canOpen) {
+          stack.push({
+            delimiter: currentDelimiter,
+            delimString: delimString,
+            count: delimCount,
+            output: processed
+          });
+          processed = ''; // Current formatted output has been pushed on the stack and will be prepended when the stack gets popped
+          delimCount = 0;
+        }
+  
+        // Any delimiters that are left (closing unmatched) are appended to the output.
+        if (delimCount) {
+          processed = `${processed}${delimString.substr(0,delimCount)}`;
+        }
+  
+        offset += cap[0].length;
+        continue outer;
+      }
+  
+      // Process 'default' rule
+      cap = inlineGrammar.default.regexp.exec(string);
+      if (cap) {
+        string = string.substr(cap[0].length);
+        offset += cap[0].length;
+        processed += inlineGrammar.default.replacement
+          // .replace(/\$\$([1-9])/g, (str, p1) => processInlineStyles(cap[p1])) // todo recursive calling
+          .replace(/\$([1-9])/g, (str, p1) => htmlescape(cap[p1]));
+        continue outer; 
+      }
+      throw 'Infinite loop!';
+    }
+  
+    // Empty the stack, any opening delimiters are unused
+    while (stack.length) {
+      const entry = stack.pop();
+      processed = `${entry.output}${entry.delimString.substr(0, entry.count)}${processed}`;
+    }
+  
+    return processed;
   }
 
   /**
