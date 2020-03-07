@@ -60,6 +60,10 @@ class TinyMDE {
     this.setContent(props.content || '# Hello TinyMDE!\nEdit **here**');
   }
 
+  /**
+   * Creates the editor element inside the target element of the DOM tree
+   * @param element The target element of the DOM tree
+   */
   createEditorElement(element) {
     this.e = document.createElement('div');
     this.e.className = 'TinyMDE';
@@ -74,6 +78,10 @@ class TinyMDE {
     this.e.addEventListener("paste", (e) => this.handlePaste(e));
   }
 
+  /**
+   * Sets the editor content.
+   * @param {string} content The new Markdown content
+   */
   setContent(content) {
     // Delete any existing content
     for (let e of this.lineElements) {
@@ -97,16 +105,22 @@ class TinyMDE {
     this.updateFormatting();
   }
 
+  /**
+   * This is the main method to update the formatting (from this.lines to HTML output)
+   */
   updateFormatting() {
+    // First, parse line types. This will update this.lineTypes, this.lineReplacements, and this.lineCaptures
+    // We don't apply the formatting yet
     this.updateLineTypes();
-
+    // Collect any valid link labels from link reference definitions—we need that for formatting to determine what's a valid link
     this.updateLinkLabels();
-
-    for (let l = 0; l < this.lines.length; l++) {
-      this.applyLineType(l, this.lineTypes[l], this.lineReplacements[l], this.lineCaptures[l]);    
-    }
+    // Now, apply the formatting
+    this.applyLineTypes();
   }
 
+  /**
+   * Updates this.linkLabels: For every link reference definition (line type TMLinkReferenceDefinition), we collect the label
+   */
   updateLinkLabels() {
     this.linkLabels = [];
     for (let l = 0; l < this.lines.length; l++) {
@@ -117,18 +131,38 @@ class TinyMDE {
     this.log(`Link labels`, stringifyObject(this.linkLabels));
   }
 
+  /**
+   * Helper function to replace placeholders from a RegExp capture. The replacement string can contain regular dollar placeholders (e.g., $1),
+   * which are interpreted like in String.replace(), but also double dollar placeholders ($$1). In the case of double dollar placeholders, 
+   * Markdown inline grammar is applied on the content of the captured subgroup, i.e., $$1 processes inline Markdown grammar in the content of the
+   * first captured subgroup, and replaces `$$1` with the result.
+   * 
+   * @param {string} replacement The replacement string, including placeholders.
+   * @param  capture The result of a RegExp.exec() call
+   * @returns The replacement string, with placeholders replaced from the capture result.
+   */
   replace(replacement, capture) {
     return replacement
       .replace(/\$\$([0-9])/g, (str, p1) => this.processInlineStyles(capture[p1])) 
       .replace(/\$([0-9])/g, (str, p1) => htmlescape(capture[p1]));
   }
 
-  applyLineType(lineNum, lineType, lineReplacement, lineCapture) {
-    this.lineTypes[lineNum] = lineType;
-    this.lineElements[lineNum].className = lineType;
-    this.lineElements[lineNum].innerHTML = this.replace(lineReplacement, lineCapture);
+  /**
+   * Applies the line types (from this.lineTypes as well as the capture result in this.lineReplacements and this.lineCaptures) 
+   * and processes inline formatting for all lines.
+   */
+  applyLineTypes() {
+    for (let lineNum = 0; lineNum < this.lines.length; lineNum++) {
+      this.lineElements[lineNum].className = this.lineTypes[lineNum];
+      this.lineElements[lineNum].innerHTML = this.replace(this.lineReplacements[lineNum], this.lineCaptures[lineNum]);
+    }    
   }
 
+  /**
+   * Determines line types for all lines based on the line / block grammar. Captures the results of the respective line
+   * grammar regular expressions.
+   * Updates this.lineTypes, this.lineCaptures, and this.lineReplacements.
+   */
   updateLineTypes() {
     for (let lineNum = 0; lineNum < this.lines.length; lineNum++) {
       let lineType = 'TMPara';
