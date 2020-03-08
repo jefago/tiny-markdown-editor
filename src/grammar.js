@@ -125,8 +125,12 @@ var inlineGrammar = {
     regexpUncompiled : '^\\!\\[',
     replacement : ''
   },
+  linkLabel : {
+    regexpUncompiled: '^\[\s*)([^\s\]](?:[^\]]|\\\])*?)(\s*\]',
+    replacement: ''
+  },
   default : {
-    regexpUncompiled : '(.|(?:[^TriggerChars]+))',
+    regexpUncompiled : '^(.|(?:[^TriggerChars]+))',
     replacement: '$1'
   }
 };
