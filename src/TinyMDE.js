@@ -418,7 +418,7 @@ class TinyMDE {
 
           else if (linkDetails.length == 7) {
             // Whitespace after closing delimiter of title
-            linkDetails[6] = linkDetails[6].concat(cap[6]);
+            linkDetails[6] = linkDetails[6].concat(cap[0]);
           }
 
           else {
@@ -439,7 +439,8 @@ class TinyMDE {
             case 2: linkDetails[1] = linkDetails[1].concat(cap[0]); break; // Part of the link destination
             case 3: return false; // Lacking opening delimiter for link title
             case 4: return false; // Lcaking opening delimiter for link title
-            case 5: linkDetails[4] = linkDetails[4].concat(cap[0]); break; // Part of the link title
+            case 5: linkDetails.push(''); // This opens the link title
+            case 6: linkDetails[5] = linkDetails[5].concat(cap[0]); break; // Part of the link title
             default: return false; // After link title was closed, without closing parenthesis
           }
           currentOffset += cap[0].length;
@@ -454,8 +455,8 @@ class TinyMDE {
         }
 
         // Process closing angle bracket as delimiter of destination
-        if ((linkDetails.length == 2 || linkDetails.length == 3) && string.match(/^>/)) {
-          if (linkDetails.length == 2) linkDetails.push(''); // Empty link destination
+        if ((linkDetails.length == 1 || linkDetails.length == 2) && string.match(/^>/)) {
+          if (linkDetails.length == 1) linkDetails.push(''); // Empty link destination
           linkDetails.push('>');
           currentOffset++;
           continue inlineOuter;
@@ -508,6 +509,7 @@ class TinyMDE {
           if (linkDetails.length <= 2) {
             // We are inside the link destination. Parentheses have to be matched if not in angle brackets
             while (linkDetails.length < 2) linkDetails.push('');
+            linkDetails[1] = linkDetails[1].concat(')');
             if (!linkDetails[0].match(/<$/)) parenthesisLevel--;
           } else if (linkDetails.length == 5 || linkDetails.length == 6) {
             // We are inside the link title. 
@@ -542,7 +544,8 @@ class TinyMDE {
             case 2: linkDetails[1] = linkDetails[1].concat(cap[0]); break; // Part of the link destination
             case 3: return false; // Lacking opening delimiter for link title
             case 4: return false; // Lcaking opening delimiter for link title
-            case 5: linkDetails[4] = linkDetails[4].concat(cap[0]); break; // Part of the link title
+            case 5: linkDetails.push(''); // This opens the link title
+            case 6: linkDetails[5] = linkDetails[5].concat(cap[0]); break; // Part of the link title
             default: return false; // After link title was closed, without closing parenthesis
           }
           currentOffset += cap[0].length;
