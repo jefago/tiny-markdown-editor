@@ -67,3 +67,7 @@
   text-decoration: underline;
   text-decoration-color: #c000c0;
 }
+
+.TMLinkDetails {
+  color:red;
+}

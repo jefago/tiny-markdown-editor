@@ -262,6 +262,15 @@ class TinyMDE {
     }
   }
 
+  /**
+   * Attempts to parse a link or image at the current position. This assumes that the opening [ or ![ has already been matched. 
+   * Returns false if this is not a valid link, image. See below for more information
+   * @param {string} originalString The original string, starting at the opening marker ([ or ![)
+   * @param {boolean} isImage Whether or not this is an image (opener == ![)
+   * @returns false if not a valid link / image. 
+   * Otherwise returns an object with two properties: output is the string to be included in the processed output, 
+   * charCount is the number of input characters (from originalString) consumed.
+   */
   parseLinkOrImage(originalString, isImage) {
     // Skip the opening bracket
     let textOffset = isImage ? 2 : 1;
@@ -271,12 +280,15 @@ class TinyMDE {
     
     let bracketLevel = 1;
     let linkText = false;
-  
+    let linkRef = false;
+    let linkDetails = []; // If matched, this will be an array: [whitespace + link destination delimiter, link destination, link destination delimiter, whitespace, link title delimiter, link title, link title delimiter + whitespace]. All can be empty strings.
+
   
     textOuter: while (currentOffset < originalString.length && !linkText) {
       let string = originalString.substr(currentOffset);
   
-      // Process any escapes and code blocks at current position, they bind more strongly than links
+      // Capture any escapes and code blocks at current position, they bind more strongly than links
+      // We don't have to actually process them here, that'll be done later in case the link / image is valid, but we need to skip over them.
       // TODO: Autolinks, HTML tags also bind more strongly
       for (let rule of ['escape', 'code']) {
         let cap = inlineGrammar[rule].regexp.exec(string);
@@ -294,6 +306,7 @@ class TinyMDE {
         continue textOuter;
       }
   
+      // Check for link (not an image because that would have been captured and skipped over above)
       if (string.match(inlineGrammar.linkOpen.regexp)) {
         // Opening bracket. Two things to do:
         // 1) it's okay if this part of a pair of brackets.
@@ -310,6 +323,7 @@ class TinyMDE {
         continue textOuter;
       }
   
+      // Check for closing bracket
       if (string.match(/^\]/)) {
         bracketLevel--;
         if (bracketLevel == 0) {
@@ -328,6 +342,217 @@ class TinyMDE {
     if (!linkText) return false; // Nope
   
     // So far, so good. We've got a valid link text. Let's see what type of link this is
+    let nextChar = currentOffset < originalString.length ? originalString.substr(currentOffset, 1) : ''; 
+    if (nextChar == '[') {
+      
+      // Potential ref link
+      // let cap = 
+      return false;
+    
+    } else if (nextChar != '(') {
+      
+      // Potential shortcut ref link
+      linkRef = linkText.trim();
+
+    } else { // nextChar == '('
+      
+      // Potential inline link
+      currentOffset++;
+      let done = false;
+
+      let parenthesisLevel = 1;
+      inlineOuter: while (currentOffset < originalString.length && parenthesisLevel > 0) {
+        let string = originalString.substr(currentOffset);
+
+        // Process whitespace
+        let cap = /^\s+/.exec(string);
+        if (cap) {
+          // whitespace. Valid at the beginning, end, between destination and title, inside title, and 
+          // inside destination only if enclosed in angle brackets
+
+          // TODO this could be a switch statement
+
+          if (linkDetails.length == 0) { 
+            // Beginning
+            linkDetails.push(cap[0]);
+          }
+
+          else if (linkDetails.length == 1) { 
+            // We already have an open destination, but no destination yet. This is part of the link destination. 
+            // It also means the destination was opened with <, otherwise we wouldn't be here (the whitespace would have been already matched)
+            linkDetails[1] = linkDetails[1].concat(cap[0]);
+          }
+
+          else if (linkDetails.length == 2) {
+            // We have an open destination and some content in it. This whitespace is allowed in the destination if it was opened 
+            // with an angle bracket, otherwise this closes the destination.
+            if (linkDetails[0].match(/</)) {
+              linkDetails[1] = linkDetails[1].concat(cap[0]);
+            } else {
+              if (parenthesisLevel != 1) return false; // Unbalanced parenthesis
+              linkDetails.push(''); // Empty end delimiter for destination
+              linkDetails.push(cap[0]); // Whitespace in between destination and title
+            }
+          } 
+
+          else if (linkDetails.length == 3) {
+            // We have a complete destination including end delimiter. This is whitespace between destination and title
+            linkDetails.push(cap[0]);
+          }
+
+          else if (linkDetails.length == 4) {
+            // We should never get here. We don't have an opening delimiter yet for the title, but have already captured white space.
+            // This means the link isn't well-formed
+            return false;
+          }
+
+          else if (linkDetails.length == 5) {
+            // Whitespace at the beginning of the title
+            linkDetails.push(cap[0]);
+          }
+
+          else if (linkDetails.length == 6) {
+            // Whitespace inside title
+            linkDetails[5] = linkDetails[5].concat(cap[0]);
+          }
+
+          else if (linkDetails.length == 7) {
+            // Whitespace after closing delimiter of title
+            linkDetails[6] = linkDetails[6].concat(cap[6]);
+          }
+
+          else {
+            // We should never get here, whitespace after trailing whitespace has already been captured.
+            return false;
+          }
+
+          currentOffset += cap[0].length;
+          continue inlineOuter;
+        }
+
+        // Process backslash escapes
+        cap = inlineGrammar.escape.regexp.exec(string);
+        if (cap) {
+          switch (linkDetails.length) {
+            case 0: linkDetails.push(''); // this opens the link destination, add empty opening delimiter and proceed to next case
+            case 1: linkDetails.push(cap[0]); break; // This opens the link destination, append it
+            case 2: linkDetails[1] = linkDetails[1].concat(cap[0]); break; // Part of the link destination
+            case 3: return false; // Lacking opening delimiter for link title
+            case 4: return false; // Lcaking opening delimiter for link title
+            case 5: linkDetails[4] = linkDetails[4].concat(cap[0]); break; // Part of the link title
+            default: return false; // After link title was closed, without closing parenthesis
+          }
+          currentOffset += cap[0].length;
+        }
+
+        // Process opening angle bracket as deilimiter of destination
+        if (linkDetails.length < 2 && string.match(/^</)) {
+          if (linkDetails.length == 0) linkDetails.push('');
+          linkDetails[0] = linkDetails[0].concat('<');
+          currentOffset++;
+          continue inlineOuter;
+        }
+
+        // Process closing angle bracket as delimiter of destination
+        if ((linkDetails.length == 2 || linkDetails.length == 3) && string.match(/^>/)) {
+          if (linkDetails.length == 2) linkDetails.push(''); // Empty link destination
+          linkDetails.push('>');
+          currentOffset++;
+          continue inlineOuter;
+        }
+
+        // Process  non-parenthesis delimiter for title. 
+        cap = /^["']/.exec(string)
+        // For this to be a valid opener, we have to either have no destination, only whitespace so far,
+        // or a destination with trailing whitespace.
+        if (cap && (linkDetails.length == 0 || linkDetails.length == 1 || linkDetails.length == 4)) {
+          while (linkDetails.length < 4) linkDetails.push('');
+          linkDetails.push(cap[0]);
+          currentOffset++;
+          continue inlineOuter;
+        }
+
+        // For this to be a valid closer, we have to have an opener and some or no title, and this has to match the opener
+        if (cap && (linkDetails.length == 5 || linkDetails.length == 6) && linkDetails[4] == cap[0]) {
+          if (linkDetails.length == 5) linkDetails.push(''); // Empty link title
+          linkDetails.push(cap[0]);
+          currentOffset++;
+          continue inlineOuter;
+        }
+        // Other cases (linkDetails.length == 2, 3, 7) will be handled with the "default" case below.
+
+        // Process opening parenthesis
+        if (string.match(/^\(/)) {
+          switch (linkDetails.length) {
+            case 0: linkDetails.push(''); // this opens the link destination, add empty opening delimiter and proceed to next case
+            case 1: linkDetails.push(''); // This opens the link destination
+            case 2: // Part of the link destination
+              linkDetails[1] = linkDetails[1].concat('('); 
+              if (!linkDetails[0].match(/<$/)) parenthesisLevel++;  
+              break; 
+            case 3: linkDetails.push('');  //  opening delimiter for link title
+            case 4: linkDetails.push('('); break;// opening delimiter for link title
+            case 5: linkDetails.push(''); // opens the link title, add empty title content and proceed to next case 
+            case 6:// Part of the link title. Un-escaped parenthesis only allowed in " or ' delimited title
+              if (linkDetails[4] == '(') return false;
+              linkDetails[5] = linkDetails[5].concat('('); 
+              break; 
+            default: return false; // After link title was closed, without closing parenthesis
+          }
+          currentOffset++;
+          continue inlineOuter;
+        }
+
+        // Process closing parenthesis
+        if (string.match(/^\)/)) {
+          if (linkDetails.length <= 2) {
+            // We are inside the link destination. Parentheses have to be matched if not in angle brackets
+            while (linkDetails.length < 2) linkDetails.push('');
+            if (!linkDetails[0].match(/<$/)) parenthesisLevel--;
+          } else if (linkDetails.length == 5 || linkDetails.length == 6) {
+            // We are inside the link title. 
+            if (linkDetails[3] == '(') {
+              // This closes the link title
+              if (linkDetails.length == 5) linkDetails.push('');
+              linkDetails.push(')');
+            } else {
+              // Just regular ol' content
+              if (linkDetails.length == 5) linkDetails.push(')');
+              else linkDetails[5] = linkDetails[5].concat(')');
+            }
+          } else  {
+            parenthesisLevel--; // This should decrease it from 1 to 0...
+          }
+
+          if (parenthesisLevel == 0) {
+            // No invalid condition, let's make sure the linkDetails array is complete
+            while (linkDetails.length < 7) linkDetails.push('');
+          } 
+
+          currentOffset++;
+          continue inlineOuter;
+        }
+
+        // Any old character
+        cap = /^./.exec(string);
+        if (cap) {
+          switch (linkDetails.length) {
+            case 0: linkDetails.push(''); // this opens the link destination, add empty opening delimiter and proceed to next case
+            case 1: linkDetails.push(cap[0]); break; // This opens the link destination, append it
+            case 2: linkDetails[1] = linkDetails[1].concat(cap[0]); break; // Part of the link destination
+            case 3: return false; // Lacking opening delimiter for link title
+            case 4: return false; // Lcaking opening delimiter for link title
+            case 5: linkDetails[4] = linkDetails[4].concat(cap[0]); break; // Part of the link title
+            default: return false; // After link title was closed, without closing parenthesis
+          }
+          currentOffset += cap[0].length;
+          continue inlineOuter;
+        }
+        throw "Infinte loop";
+      }
+
+    }
+
   
     // TODO parse inline link here
   
@@ -339,10 +564,31 @@ class TinyMDE {
   
     // } else {
       // Ref link / image
-      return {
-        replacement : `<span class="TMMark TMMark_${type}">${opener}</span><span class="${type}">${this.processInlineStyles(linkText)}</span><span class="TMMark TMMark_${type}">]</span>`,
-        charCount :  currentOffset
+    if (linkRef) {
+      // Check that linkRef is valid
+      for (let label of this.linkLabels) {
+        if (label == linkRef) {
+          return {
+            output : `<span class="TMMark TMMark_${type}">${opener}</span><span class="${type}">${this.processInlineStyles(linkText)}</span><span class="TMMark TMMark_${type}">]</span>`,
+            charCount :  currentOffset
+          }
+        }
       }
+      return false;
+    }
+    else if (linkDetails) {
+      let ld = '';
+      for (let i = 0; i < linkDetails.length; i++) {
+        ld = ld.concat(`<span class="TMLinkDetails TMLinkDetails_${i}">${linkDetails[i]}</span>`);
+      }
+
+      return {
+        output: `<span class="TMMark TMMark_${type}">${opener}</span><span class="${type}">${this.processInlineStyles(linkText)}</span><span class="TMMark TMMark_${type}">](</span>${ld}<span class="TMMark TMMark_${type}">)</span>`,
+        charCount: currentOffset
+      }
+    }
+
+    return false;
     // }
   
   }
@@ -374,7 +620,7 @@ class TinyMDE {
       if (potentialImage || potentialLink) {
         let result = this.parseLinkOrImage(string, potentialImage);
         if (result) {
-          processed = `${processed}${result.replacement}`;
+          processed = `${processed}${result.output}`;
           string = string.substr(result.charCount);
           offset += result.charCount;
           continue outer;
