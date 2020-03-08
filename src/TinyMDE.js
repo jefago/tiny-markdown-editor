@@ -444,6 +444,7 @@ class TinyMDE {
             default: return false; // After link title was closed, without closing parenthesis
           }
           currentOffset += cap[0].length;
+          continue inlineOuter;
         }
 
         // Process opening angle bracket as deilimiter of destination
@@ -509,11 +510,16 @@ class TinyMDE {
           if (linkDetails.length <= 2) {
             // We are inside the link destination. Parentheses have to be matched if not in angle brackets
             while (linkDetails.length < 2) linkDetails.push('');
-            linkDetails[1] = linkDetails[1].concat(')');
+
             if (!linkDetails[0].match(/<$/)) parenthesisLevel--;
+
+            if (parenthesisLevel > 0) {
+              linkDetails[1] = linkDetails[1].concat(')');
+            }
+            
           } else if (linkDetails.length == 5 || linkDetails.length == 6) {
             // We are inside the link title. 
-            if (linkDetails[3] == '(') {
+            if (linkDetails[4] == '(') {
               // This closes the link title
               if (linkDetails.length == 5) linkDetails.push('');
               linkDetails.push(')');
