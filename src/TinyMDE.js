@@ -587,6 +587,7 @@ class TinyMDE {
     }
     else if (linkDetails) {
       let ld = '';
+      // TODO make this look a bit nicer
       for (let i = 0; i < linkDetails.length; i++) {
         ld = ld.concat(`<span class="TMLinkDetails TMLinkDetails_${i}">${linkDetails[i]}</span>`);
       }
