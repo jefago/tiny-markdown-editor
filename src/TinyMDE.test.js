@@ -65,40 +65,46 @@ test('correctly parses **a *b***', () => {
   expect(init('**XXXA *XXXB***').lineHTML(0)).toMatch(/<strong[^>]*>.*XXXA.*<em[^>]*>XXXB<\/em>.*<\/strong>/);
 });
 
-test('asterisk in word can close emphasis *a*b*', () => {
+test('asterisk in word can close emphasis: *a*b*', () => {
   expect(init('*XXXA*XXXB*').lineHTML(0)).toMatch(/<em[^>]*>.*XXXA.*<\/em>.*XXXB/);
 });
 
-test('underscore in word can NOT close emphasis _a_b_', () => {
+test('underscore in word can NOT close emphasis: _a_b_', () => {
   expect(init('_XXXA_XXXB_').lineHTML(0)).toMatch(/<em[^>]*>.*XXXA_XXXB.*<\/em>/);
 });
 
-test('correctly parses opening asterisk without closing ***a*', () => {
+test('correctly parses opening asterisk without closing: ***a*', () => {
   expect(init('***XXXA*').lineHTML(0)).toMatch(/\*\*.*<em[^>]*>.*XXXA.*<\/em>/);
 });
 
-test('correctly parses closing asterisk without opening *a***', () => {
+test('correctly parses closing asterisk without opening: *a***', () => {
   expect(init('*XXXA***').lineHTML(0)).toMatch(/<em[^>]*>.*XXXA.*<\/em>.*\*\*/);
 });
 
-test('correctly parses opening asterisk without closing ___a_', () => {
+test('correctly parses opening asterisk without closing: ___a_', () => {
   expect(init('___XXXA_').lineHTML(0)).toMatch(/__.*<em[^>]*>.*XXXA.*<\/em>/);
 });
 
-test('correctly parses closing asterisk without opening _a___', () => {
+test('correctly parses closing asterisk without opening: _a___', () => {
   expect(init('_XXXA___').lineHTML(0)).toMatch(/<em[^>]*>.*XXXA.*<\/em>.*__/);
 });
 
-test('Underscore in between punctuation can open emphasis foo-_(bar)_', () => {
+test('Underscore in between punctuation can open emphasis: foo-_(bar)_', () => {
   expect(init('foo-_(bar)_').lineHTML(0)).toMatch(/foo-.*<em[^>]*>.*\(bar\).*<\/em>.*/);
 });
 
-test('Underscore next to punctuation can enclose emphasis _(bar)_', () => {
+test('Underscore next to punctuation can enclose emphasis: _(bar)_', () => {
   expect(init('_(bar)_').lineHTML(0)).toMatch(/<em[^>]*>.*\(bar\).*<\/em>.*/);
 });
 
-// This foo-_(bar)_ should
-// THis _(also)_ should
+test('Emphasis works multiple times on the same line', () => {
+  expect(init('Several *emphasized* words *and also* some *phrases* here').lineHTML(0))
+    .toMatch(/<em[^>]*>emphasized<\/em>.*<em[^>]*>and also<\/em>.*<em[^>]*>phrases<\/em>/);
+})
+
+test('Emphasis delimiters can be mixed and matched', () => {
+  expect(init('__*Mixed* and matched__').lineHTML(0)).toMatch(/<strong[^>]*>.*<em[^>]*>Mixed<\/em>.*and matched<\/strong>/);
+})
 
 // Some <html> </tags> right here
 // <html a="b" >
@@ -130,9 +136,6 @@ test('Underscore next to punctuation can enclose emphasis _(bar)_', () => {
 // [invalid] 
 // [invalid][]
 // [in-valid][invalid]
-// This foo-_(bar)_ should
-// THis _(also)_ should
-// Only _underscores_ in this line
 // There's <html><like><tags><over><here>
 // A [ref link] in here.
 // And another [ref link][].
@@ -150,18 +153,7 @@ test('Underscore next to punctuation can enclose emphasis _(bar)_', () => {
 // This one [is *a](link) over* here, but not an emphasis.
 // Here [the [inner](one) is] the valid link.
 // An ![image [can](have) a](link) inside it.
-// This **is** a test.
 
-// *Full line emphasized*
-// Open ***without* close
-// Both __types__ of *delimiters*
-// __*Mixed* and matched__
-// __mixed*_ and *unmatched_
-// Close **without* open** test
-// ab**cd*e*f*g*h**i*j*k
-// Several *em* phasized *words and* some *phrases*.
-// Triple ***emphasis***. 
-// One *emphasis *within* another*.
 
 // H1
 // ==
