@@ -194,7 +194,7 @@ class TinyMDE {
 
       // Check all regexps if we haven't applied one of the code block types
       if (lineType == 'TMPara') {
-        for (let type of Object.keys(lineGrammar)) {
+        for (let type in lineGrammar) {
           let capture = lineGrammar[type].regexp.exec(this.lines[lineNum]);
           if (capture) {
             lineType = type;

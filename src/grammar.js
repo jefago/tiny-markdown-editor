@@ -10,13 +10,15 @@ const replacements = {
   NotTriggerChar: /[^`_*\[\]()<>!~]/,
   Scheme: /[A-Za-z][A-Za-z0-9\+\.\-]{1,31}/,
   Email: /[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*/, // From CommonMark spec
-  HTMLOpenTag: /<HTMLTagName\s*>/,
+  HTMLOpenTag: /<HTMLTagName(?:HTMLAttribute)*\s*\/?>/,
   HTMLCloseTag: /<\/HTMLTagName\s*>/,
   HTMLTagName: /[A-Za-z][A-Za-z0-9-]*/, 
   HTMLComment: /<!--(?:[^>-]|(?:[^>-](?:[^-]|-[^-])*[^-]))-->/,
   HTMLPI: /<\?(?:|.|(?:[^?]|\?[^>])*)\?>/,
   HTMLDeclaration: /<![A-Z]+\s[^>]*>/,
   HTMLCDATA: /<!\[CDATA\[.*?\]\]>/,
+  HTMLAttribute: /\s+[A-Za-z_:][A-Za-z0-9_.:-]*(?:HTMLAttValue)?/,
+  HTMLAttValue: /\s*=\s*(?:(?:'[^']*')|(?:"[^"]*")|(?:[^\s"'=<>`]+))/,
 }
 
 // From CommonMark.js. 
@@ -143,15 +145,13 @@ var inlineGrammar = {
   }
 };
 
-// Compile regexps
+// Process replacements in regexps
 const rules =[...Object.keys(inlineGrammar)];
 const replacementRegexp = new RegExp(Object.keys(replacements).join('|'));
 console.log(replacementRegexp.source);
 for (let rule of rules) {
   let re = inlineGrammar[rule].regexp.source;
-  // for (let rp of Object.keys(replacements)) {
-  //   re = re.replace(rp, replacements[rp].source);
-  // }
+  // Replace while there is something to replace. This means it also works over multiple levels (replacements containing replacements)
   while (re.match(replacementRegexp)) {
     re = re.replace(replacementRegexp, (string) => { return replacements[string].source; });
   }
