@@ -4,7 +4,7 @@
   "description": "TinyMDE: A tiny, dependency-free embeddable HTML/JavaScript Markdown editor.",
   "main": "src/tiny-mde.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "repository": {
     "type": "git",
@@ -28,6 +28,7 @@
     "gulp-size": "^3.0.0",
     "gulp-sourcemaps": "^2.6.5",
     "gulp-terser": "^1.2.0",
+    "jest": "^25.1.0",
     "rollup": "^1.31.1",
     "rollup-plugin-babel": "^4.3.3",
     "terser": "^4.6.4"

@@ -100,6 +100,14 @@ class TinyMDE {
   }
 
   /**
+   * Gets the editor content as a Markdown string.
+   * @returns {string} The editor content as a markdown string
+   */
+  getContent() {
+    return this.lines.join('\n');
+  }
+
+  /**
    * This is the main method to update the formatting (from this.lines to HTML output)
    */
   updateFormatting() {
@@ -903,18 +911,21 @@ class TinyMDE {
   // }
 
   log(message, details) {
-    let e = document.createElement('details');
-    let s = document.createElement('summary');
-    let t = document.createTextNode(message);
-    s.appendChild(t);
-    e.appendChild(s);
-    let c = document.createElement('code');
-    let p = document.createElement('pre');
-    t = document.createTextNode(details);
-    c.appendChild(t);
-    p.appendChild(c);
-    e.appendChild(p);
-    document.getElementById('log').appendChild(e);
+    // TODO Remove logging
+    if (document.getElementById('log')) {
+      let e = document.createElement('details');
+      let s = document.createElement('summary');
+      let t = document.createTextNode(message);
+      s.appendChild(t);
+      e.appendChild(s);
+      let c = document.createElement('code');
+      let p = document.createElement('pre');
+      t = document.createTextNode(details);
+      c.appendChild(t);
+      p.appendChild(c);
+      e.appendChild(p);
+      document.getElementById('log').appendChild(e);
+    }
     
   }
 

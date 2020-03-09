@@ -148,14 +148,12 @@ var inlineGrammar = {
 // Process replacements in regexps
 const rules =[...Object.keys(inlineGrammar)];
 const replacementRegexp = new RegExp(Object.keys(replacements).join('|'));
-console.log(replacementRegexp.source);
 for (let rule of rules) {
   let re = inlineGrammar[rule].regexp.source;
   // Replace while there is something to replace. This means it also works over multiple levels (replacements containing replacements)
   while (re.match(replacementRegexp)) {
     re = re.replace(replacementRegexp, (string) => { return replacements[string].source; });
   }
-  console.log(`${rule}: /${re}/${inlineGrammar[rule].regexp.flags}`);
   inlineGrammar[rule].regexp = new RegExp(re, inlineGrammar[rule].regexp.flags);
 };
 
