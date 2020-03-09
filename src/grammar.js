@@ -11,26 +11,9 @@ const punctuationTrailing = new RegExp(/(?:[!"#$%&'()*+,\-./:;<=>?@\[\]\\^_`{|}~
 
 // export const inlineTriggerChars = new RegExp(`[${replacements.TriggerChars}]`);
 
-// export const lineTypeRegExp = {
-//   TMH1: /^ {0,3}# +/,
-//   TMH2: /^ {0,3}## +/,
-//   TMH3: /^ {0,3}### +/,
-//   TMH4: /^ {0,3}#### +/,
-//   TMH5: /^ {0,3}##### +/,
-//   TMH6: /^ {0,3}###### +/,
-//   TMBlockquote: /^ {0,3}> +/,
-//   TMCodeFenceBacktickOpen: /^ {0,3}(```)/,
-//   TMCodeFenceTildeOpen: /^ {0,3}(~~~)/,
-//   TMBlankLine: /^[ \t]*$/,
-//   TMSetextH1Marker: /^ {0,3}=+\s*$/,
-//   TMSetextH2Marker: /^ {0,3}-+\s*$/,
-//   TMHR: /^ {0,3}((\*[ \t]*\*[ \t]*\*[ \t\*]*)|(-[ \t]*-[ \t]*-[ \t-]*)|(_[ \t]*_[ \t]*_[ \t_]*))$/,
-//   TMUL: /^ {0,3}[+*-] +/,
-//   TMOL: /^ {0,3}\d{1,9}[.)] +/,
-//   TMIndentedCode: /^(    |\t)/,
-// };
-
-// This is CommonMark's block grammar, but we're ignoring nested blocks here.
+/**
+ * This is CommonMark's block grammar, but we're ignoring nested blocks here.  
+ */ 
 const lineGrammar = { 
   TMH1: { 
     regexp: /^( {0,3}#)((?:\s+)(?:.*?))((?:#\s*)?)$/, 
@@ -104,77 +87,69 @@ const lineGrammar = {
 };
 
 
-
-// Structure of the following object:
-// Top level entries are rules, each consisting of an array of regular expressions (in string format) as well as a replacement.
-// In the regular expressions, replacements from the object 'replacements' will be processed before compiling.
+/**
+ * Structure of the object:
+ * Top level entries are rules, each consisting of a regular expressions (in string format) as well as a replacement.
+ * In the regular expressions, replacements from the object 'replacements' will be processed before compiling into the property regexp.
+ */
 var inlineGrammar = {
   escape : {
-    regexpUncompiled : '^(\\\\[ASCIIPunctuation])',
-    replacement : '<span class="TMMark">\\</span>$1'
+    // regexpUncompiled : '^\\\\([ASCIIPunctuation])',
+    regexp: /^\\([ASCIIPunctuation])/,
+    replacement : '<span class="TMMark TMMark_TMEscape">\\</span>$1'
   },
   code : {
-    regexpUncompiled : '^(`+)((?:[^`])|(?:[^`].*?[^`]))(\\1)',
-    replacement : '<span class="TMMark">$1</span><code class="TMCode">$2</code><span class="TMMark">$3</span>' // No recursive application of rules
+    // regexpUncompiled : '^(`+)((?:[^`])|(?:[^`].*?[^`]))(\\1)',
+    regexp: /^(`+)((?:[^`])|(?:[^`].*?[^`]))(\1)/,
+    replacement : '<span class="TMMark TMMark_TMCode">$1</span><code class="TMCode">$2</code><span class="TMMark TMMark_TMCode">$3</span>' // No recursive application of rules
   },
+  // autolink : {
+  //   regexpUncompiled: '',
+  //   replacement: ''
+  // },
   linkOpen : {
-    regexpUncompiled : '^\\[',
+    // regexpUncompiled : '^\\[',
+    regexp: /^\[/,
     replacement: ''
   },
   imageOpen : {
-    regexpUncompiled : '^\\!\\[',
+    // regexpUncompiled : '^\\!\\[',
+    regexp: /^\!\[/,
     replacement : ''
   },
   linkLabel : {
-    regexpUncompiled: '^(\\[\\s*)([^\\]]*?)(\\s*\\])',
+    // regexpUncompiled: '^(\\[\\s*)([^\\]]*?)(\\s*\\])',
+    regexp: /^(\[\s*)([^\]]*?)(\s*\])/,
     replacement: '',
     labelPlaceholder: 2
   },
   default : {
-    regexpUncompiled : '^(.|(?:[^TriggerChars]+))',
+    // regexpUncompiled : '^(.|(?:[^TriggerChars]+))',
+    regexp: /^(.|(?:[^TriggerChars]+))/,
     replacement: '$1'
   }
 };
 
-
-
-for (let rule of Object.keys(inlineGrammar)) {
-  inlineGrammar[rule].regexp = [];
-  let re = inlineGrammar[rule].regexpUncompiled;
+// Compile regexps
+const rules =[...Object.keys(inlineGrammar)];
+for (let rule of rules) {
+  let re = inlineGrammar[rule].regexp.source;
   for (let rp of Object.keys(replacements)) {
     re = re.replace(rp, replacements[rp]);
   }
-  inlineGrammar[rule].regexp = new RegExp(re);
+  inlineGrammar[rule].regexp = new RegExp(re, inlineGrammar[rule].regexp.flags);
 };
 
-// export function processInlineStyles(string) {
-//   let processed = '';
-
-//   outer: while (string) {
-//     for (let rule of Object.keys(inlineGrammar)) {
-//       for (let regexp of inlineGrammar[rule].regexp) {
-//         let cap = regexp.exec(string);
-//         if (cap) {
-//           string = string.substr(cap[0].length);
-//           processed += inlineGrammar[rule].replacement
-//             .replace(/\$\$([1-9])/g, (str, p1) => processInlineStyles(cap[p1])) // todo recursive calling
-//             .replace(/\$([1-9])/g, (str, p1) => cap[p1]);
-//           continue outer;
-        
-//         }
-//       }
-//     }
-//     throw 'Infinite loop!';
-//   }
-//   return processed;
-// }
-
+/**
+ * Escapes HTML special characters (<, >, and &) in the string.
+ * @param {string} string The raw string to be escaped
+ * @returns {string} The string, ready to be used in HTML
+ */
 function htmlescape(string) {
-  return string
+  return (string ? string : '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 }
-
 
 export { lineGrammar, inlineGrammar, punctuationLeading, punctuationTrailing, htmlescape };

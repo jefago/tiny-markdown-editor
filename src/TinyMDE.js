@@ -92,14 +92,8 @@ class TinyMDE {
     this.lines = content.split(/(?:\r\n|\r|\n)/);
     for (let lineNum = 0; lineNum < this.lines.length; lineNum++) {
       let le = document.createElement('div');
-      // le.className = 'TMPara';
-      // this.lineTypes.push(le.className);
       this.e.appendChild(le);
       this.lineElements.push(le);
-      // this.updateInlineStyles(lineNum);
-      // let te = document.createTextNode(l); // TODO inline parsing
-      // le.appendChild(te);
-
     }
     this.lineTypes = new Array(this.lines.length);
     this.updateFormatting();
@@ -579,6 +573,11 @@ class TinyMDE {
     return false;
   }
   
+  /**
+   * Formats a markdown string as HTML, using Markdown inline formatting.
+   * @param {string} originalString The input (markdown inline formatted) string
+   * @returns {string} The HTML formatted output
+   */
   processInlineStyles(originalString) {
     let processed = '';
     let stack = []; // Stack is an array of objects of the format: {delimiter, delimString, count, output}
