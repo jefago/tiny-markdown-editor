@@ -126,8 +126,9 @@ var inlineGrammar = {
     replacement : ''
   },
   linkLabel : {
-    regexpUncompiled: '^\[\s*)([^\s\]](?:[^\]]|\\\])*?)(\s*\]',
-    replacement: ''
+    regexpUncompiled: '^(\\[\\s*)([^\\]]*?)(\\s*\\])',
+    replacement: '',
+    labelPlaceholder: 2
   },
   default : {
     regexpUncompiled : '^(.|(?:[^TriggerChars]+))',

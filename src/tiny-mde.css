@@ -65,9 +65,15 @@
 
 .TMLinkLabel {
   text-decoration: underline;
-  text-decoration-color: #c000c0;
+  color: #c000c0;
+  font-family: monospace;
 }
 
-.TMLinkDetails {
-  color:red;
+.TMLinkTitle {
+  font-style:italic;
+}
+
+.TMLinkDestination {
+  text-decoration: underline;
+  color: #0000ff;
 }

@@ -281,6 +281,7 @@ class TinyMDE {
     let bracketLevel = 1;
     let linkText = false;
     let linkRef = false;
+    let linkLabel = [];
     let linkDetails = []; // If matched, this will be an array: [whitespace + link destination delimiter, link destination, link destination delimiter, whitespace, link title delimiter, link title, link title delimiter + whitespace]. All can be empty strings.
 
   
@@ -343,17 +344,32 @@ class TinyMDE {
   
     // So far, so good. We've got a valid link text. Let's see what type of link this is
     let nextChar = currentOffset < originalString.length ? originalString.substr(currentOffset, 1) : ''; 
+
+    // REFERENCE LINKS
     if (nextChar == '[') {
-      
-      // Potential ref link
-      // let cap = 
-      return false;
-    
+      let string = originalString.substr(currentOffset);
+      let cap = inlineGrammar.linkLabel.regexp.exec(string);
+      if (cap) {
+        // Valid link label
+        currentOffset += cap[0].length;
+        linkLabel.push(cap[1], cap[2], cap[3]);
+        if (cap[inlineGrammar.linkLabel.labelPlaceholder]) {
+          // Full reference link
+          linkRef = cap[inlineGrammar.linkLabel.labelPlaceholder];
+        } else {
+          // Collapsed reference link
+          linkRef = linkText.trim();
+        }
+      } else {
+        // Not a valid link label
+        return false;
+      }   
     } else if (nextChar != '(') {
       
-      // Potential shortcut ref link
+      // Shortcut ref link
       linkRef = linkText.trim();
 
+    // INLINE LINKS
     } else { // nextChar == '('
       
       // Potential inline link
@@ -562,45 +578,43 @@ class TinyMDE {
 
     }
 
-  
-    // TODO parse inline link here
-  
-    // if (originalString.substr(currentOffset).match(/^\(/)) {
-    //   // Potential inline link / image
-    //   let parenthesisOffset = currentOffset + 1;
-    //   let parenthesisLevel = 0;
-  
-  
-    // } else {
-      // Ref link / image
     if (linkRef) {
-      // Check that linkRef is valid
+      // Ref link; check that linkRef is valid
+
       for (let label of this.linkLabels) {
         if (label == linkRef) {
+          let output = `<span class="TMMark TMMark_${type}">${opener}</span><span class="${type}">${this.processInlineStyles(linkText)}</span><span class="TMMark TMMark_${type}">]</span>`;
+          if (linkLabel.length >= 3) {
+            output = output.concat(
+              `<span class="TMMark TMMark_${type}">${linkLabel[0]}</span>`,
+              `<span class="TMLinkLabel">${linkLabel[1]}</span>`,
+              `<span class="TMMark TMMark_${type}">${linkLabel[2]}</span>`
+            );
+          }
           return {
-            output : `<span class="TMMark TMMark_${type}">${opener}</span><span class="${type}">${this.processInlineStyles(linkText)}</span><span class="TMMark TMMark_${type}">]</span>`,
+            output : output,
             charCount :  currentOffset
           }
         }
       }
+      // Didn't find a label definition with the same link label; link is invalid
       return false;
     }
     else if (linkDetails) {
-      let ld = '';
-      // TODO make this look a bit nicer
-      for (let i = 0; i < linkDetails.length; i++) {
-        ld = ld.concat(`<span class="TMLinkDetails TMLinkDetails_${i}">${linkDetails[i]}</span>`);
+      // Inline link
+
+      // This should never happen, but better safe than sorry.
+      while (linkDetails.length < 7) {
+        linkDetails.push('');
       }
 
       return {
-        output: `<span class="TMMark TMMark_${type}">${opener}</span><span class="${type}">${this.processInlineStyles(linkText)}</span><span class="TMMark TMMark_${type}">](</span>${ld}<span class="TMMark TMMark_${type}">)</span>`,
+        output: `<span class="TMMark TMMark_${type}">${opener}</span><span class="${type}">${this.processInlineStyles(linkText)}</span><span class="TMMark TMMark_${type}">](${linkDetails[0]}</span><span class="TMLinkDestination">${linkDetails[1]}</span><span class="TMMark TMMark_${type}">${linkDetails[2]}${linkDetails[3]}${linkDetails[4]}</span><span class="TMLinkTitle">${linkDetails[5]}</span><span class="TMMark TMMark_${type}">${linkDetails[6]})</span>`,
         charCount: currentOffset
       }
     }
 
     return false;
-    // }
-  
   }
   
   processInlineStyles(originalString) {
