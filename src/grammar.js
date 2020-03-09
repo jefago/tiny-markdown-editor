@@ -1,8 +1,15 @@
+// const replacements = {
+//   ASCIIPunctuation: '!"#$%&\'()*+,\\-./:;<=>?@\\[\\]^_`{|}~',
+//   TriggerChars: '`_\*\[\]\(\)',
+//   Scheme: `[A-Za-z][A-Za-z0-9\+\.\-]{1,31}`,
+//   Email: `[a-zA-Z0-9.!#$%&'*+/=?^_\`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*`, // From CommonMark spec
+
+// }
 const replacements = {
-  ASCIIPunctuation: '!"#$%&\'()*+,\\-./:;<=>?@\\[\\]^_`{|}~',
-  TriggerChars: '`_\*\[\]\(\)',
-  Scheme: `[A-Za-z][A-Za-z0-9\+\.\-]{1,31}`,
-  Email: `[a-zA-Z0-9.!#$%&'*+/=?^_\`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*`, // From CommonMark spec
+  ASCIIPunctuation: /[!"#$%&'()*+,\-\.\/:;<=>\?@\[\]^_`\{\|\}~]/,
+  NotTriggerChar: /[^`_*\[\]()<>!~]/,
+  Scheme: /[A-Za-z][A-Za-z0-9\+\.\-]{1,31}/,
+  Email: /[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*/, // From CommonMark spec
 
 }
 
@@ -96,7 +103,7 @@ const lineGrammar = {
  */
 var inlineGrammar = {
   escape : {
-    regexp: /^\\([ASCIIPunctuation])/,
+    regexp: /^\\(ASCIIPunctuation)/,
     replacement : '<span class="TMMark TMMark_TMEscape">\\</span>$1'
   },
   code : {
@@ -121,7 +128,7 @@ var inlineGrammar = {
     labelPlaceholder: 2
   },
   default : {
-    regexp: /^(.|(?:[^TriggerChars]+))/,
+    regexp: /^(.|(?:NotTriggerChar+))/,
     replacement: '$1'
   }
 };
@@ -131,7 +138,7 @@ const rules =[...Object.keys(inlineGrammar)];
 for (let rule of rules) {
   let re = inlineGrammar[rule].regexp.source;
   for (let rp of Object.keys(replacements)) {
-    re = re.replace(rp, replacements[rp]);
+    re = re.replace(rp, replacements[rp].source);
   }
   inlineGrammar[rule].regexp = new RegExp(re, inlineGrammar[rule].regexp.flags);
 };
