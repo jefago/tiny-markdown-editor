@@ -108,7 +108,7 @@
   font-style:italic;
 }
 
-.TMLinkDestination {
+.TMLinkDestination, .TMAutolink {
   text-decoration: underline;
   color: #0000ff;
 }

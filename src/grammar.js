@@ -1,6 +1,8 @@
 const replacements = {
   ASCIIPunctuation: '!"#$%&\'()*+,\\-./:;<=>?@\\[\\]^_`{|}~',
   TriggerChars: '`_\*\[\]\(\)',
+  Scheme: `[A-Za-z][A-Za-z0-9\+\.\-]{1,31}`,
+  Email: `[a-zA-Z0-9.!#$%&'*+/=?^_\`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*`, // From CommonMark spec
 
 }
 
@@ -101,10 +103,10 @@ var inlineGrammar = {
     regexp: /^(`+)((?:[^`])|(?:[^`].*?[^`]))(\1)/,
     replacement : '<span class="TMMark TMMark_TMCode">$1</span><code class="TMCode">$2</code><span class="TMMark TMMark_TMCode">$3</span>' 
   },
-  // autolink : {
-  //   regexp: //,
-  //   replacement: ''
-  // },
+  autolink : {
+    regexp: /^\<((?:Scheme\:[^\s<>]*)|(?:Email))\>/,
+    replacement: '<span class="TMMark TMMark_TMAutolink">&lt;</span><span class="TMAutolink">$1</span><span class="TMMark TMMark_TMAutolink">&gt;</span>'
+  },
   linkOpen : {
     regexp: /^\[/,
     replacement: ''
