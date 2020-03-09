@@ -383,65 +383,25 @@ class TinyMDE {
         // Process whitespace
         let cap = /^\s+/.exec(string);
         if (cap) {
-          // whitespace. Valid at the beginning, end, between destination and title, inside title, and 
-          // inside destination only if enclosed in angle brackets
-
-          // TODO this could be a switch statement
-
-          if (linkDetails.length == 0) { 
-            // Beginning
-            linkDetails.push(cap[0]);
+          switch (linkDetails.length) {
+            case 0: linkDetails.push(cap[0]); break; // Opening whitespace
+            case 1: linkDetails.push(cap[0]); break;// Open destination, but not a destination yet; desination opened with <
+            case 2: // Open destination with content in it. Whitespace only allowed if opened by angle bracket, otherwise this closes the destination
+              if (linkDetails[0].match(/</)) {
+                linkDetails[1] = linkDetails[1].concat(cap[0]);
+              } else {
+                if (parenthesisLevel != 1) return false; // Unbalanced parenthesis
+                linkDetails.push(''); // Empty end delimiter for destination
+                linkDetails.push(cap[0]); // Whitespace in between destination and title
+              }
+              break;
+            case 3: linkDetails.push(cap[0]); break; // Whitespace between destination and title
+            case 4: return false; // This should never happen (no opener for title yet, but more whitespace to capture)
+            case 5: linkDetails.push(''); // Whitespace at beginning of title, push empty title and continue
+            case 6: linkDetails[5] = linkDetails[5].concat(cap[0]); break; // Whitespace in title
+            case 7: linkDetails[6] = linkDetails[6].concat(cap[0]); break; // Whitespace after closing delimiter
+            default: return false; // We should never get here
           }
-
-          else if (linkDetails.length == 1) { 
-            // We already have an open destination, but no destination yet. This is part of the link destination. 
-            // It also means the destination was opened with <, otherwise we wouldn't be here (the whitespace would have been already matched)
-            linkDetails[1] = linkDetails[1].concat(cap[0]);
-          }
-
-          else if (linkDetails.length == 2) {
-            // We have an open destination and some content in it. This whitespace is allowed in the destination if it was opened 
-            // with an angle bracket, otherwise this closes the destination.
-            if (linkDetails[0].match(/</)) {
-              linkDetails[1] = linkDetails[1].concat(cap[0]);
-            } else {
-              if (parenthesisLevel != 1) return false; // Unbalanced parenthesis
-              linkDetails.push(''); // Empty end delimiter for destination
-              linkDetails.push(cap[0]); // Whitespace in between destination and title
-            }
-          } 
-
-          else if (linkDetails.length == 3) {
-            // We have a complete destination including end delimiter. This is whitespace between destination and title
-            linkDetails.push(cap[0]);
-          }
-
-          else if (linkDetails.length == 4) {
-            // We should never get here. We don't have an opening delimiter yet for the title, but have already captured white space.
-            // This means the link isn't well-formed
-            return false;
-          }
-
-          else if (linkDetails.length == 5) {
-            // Whitespace at the beginning of the title
-            linkDetails.push(cap[0]);
-          }
-
-          else if (linkDetails.length == 6) {
-            // Whitespace inside title
-            linkDetails[5] = linkDetails[5].concat(cap[0]);
-          }
-
-          else if (linkDetails.length == 7) {
-            // Whitespace after closing delimiter of title
-            linkDetails[6] = linkDetails[6].concat(cap[0]);
-          }
-
-          else {
-            // We should never get here, whitespace after trailing whitespace has already been captured.
-            return false;
-          }
-
           currentOffset += cap[0].length;
           continue inlineOuter;
         }
@@ -573,32 +533,34 @@ class TinyMDE {
           currentOffset += cap[0].length;
           continue inlineOuter;
         }
-        throw "Infinte loop";
+        throw "Infinite loop"; // we should never get here since the last test matches any character
       }
 
     }
 
     if (linkRef) {
       // Ref link; check that linkRef is valid
-
+      let valid = false;
       for (let label of this.linkLabels) {
         if (label == linkRef) {
-          let output = `<span class="TMMark TMMark_${type}">${opener}</span><span class="${type}">${this.processInlineStyles(linkText)}</span><span class="TMMark TMMark_${type}">]</span>`;
-          if (linkLabel.length >= 3) {
-            output = output.concat(
-              `<span class="TMMark TMMark_${type}">${linkLabel[0]}</span>`,
-              `<span class="TMLinkLabel">${linkLabel[1]}</span>`,
-              `<span class="TMMark TMMark_${type}">${linkLabel[2]}</span>`
-            );
-          }
-          return {
-            output : output,
-            charCount :  currentOffset
-          }
+          valid = true;
+          break;
         }
       }
-      // Didn't find a label definition with the same link label; link is invalid
-      return false;
+      let label = valid ? "TMLinkLabel TMLinkLabel_Valid" : "TMLinkLabel TMLinkLabel_Invalid"
+      let output = `<span class="TMMark TMMark_${type}">${opener}</span><span class="${type} ${(linkLabel.length < 3 || !linkLabel[1]) ? label : ""}">${this.processInlineStyles(linkText)}</span><span class="TMMark TMMark_${type}">]</span>`;
+
+      if (linkLabel.length >= 3) {
+        output = output.concat(
+          `<span class="TMMark TMMark_${type}">${linkLabel[0]}</span>`,
+          `<span class="${label}">${linkLabel[1]}</span>`,
+          `<span class="TMMark TMMark_${type}">${linkLabel[2]}</span>`
+        );
+      }
+      return {
+        output : output,
+        charCount :  currentOffset
+      }
     }
     else if (linkDetails) {
       // Inline link
@@ -697,12 +659,12 @@ class TinyMDE {
               // Then, format the string
               if (delimCount >= 2 && stack[stackPointer].count >= 2) {
                 // Strong
-                processed = `<span class="TMMark">${currentDelimiter}${currentDelimiter}</span><strong>${processed}</strong><span class="TMMark">${currentDelimiter}${currentDelimiter}</span>`;
+                processed = `<span class="TMMark">${currentDelimiter}${currentDelimiter}</span><strong class="TMStrong">${processed}</strong><span class="TMMark">${currentDelimiter}${currentDelimiter}</span>`;
                 delimCount -= 2;
                 stack[stackPointer].count -= 2;
               } else {
                 // Em
-                processed = `<span class="TMMark">${currentDelimiter}</span><em>${processed}</em><span class="TMMark">${currentDelimiter}</span>`;
+                processed = `<span class="TMMark">${currentDelimiter}</span><em class="TMEm">${processed}</em><span class="TMMark">${currentDelimiter}</span>`;
                 delimCount -= 1;
                 stack[stackPointer].count -= 1;
               }

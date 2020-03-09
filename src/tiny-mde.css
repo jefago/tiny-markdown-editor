@@ -3,6 +3,7 @@
   color:#000;
   font-size:16px;
   line-height:24px;
+  border:1px solid #000000;
 }
 
 .TMBlankLine {
@@ -40,7 +41,7 @@
   font-style: italic;
 }
 
-.TinyMDE code {
+.TMCode {
   background-color:#c0c0c0;
 }
 
@@ -49,6 +50,10 @@
 }
 
 .TMMark_TMH1, .TMMark_TMH2 {
+  color:#ff8080;
+}
+
+.TMMark_TMUL, .TMMark_TMOL {
   color:#ff8080;
 }
 
@@ -65,8 +70,15 @@
 
 .TMLinkLabel {
   text-decoration: underline;
-  color: #c000c0;
   font-family: monospace;
+}
+
+.TMLinkLabel_Definition, .TMLinkLabel_Valid {
+  color: #40c040;
+}
+
+.TMLinkLabel_Invalid {
+  color: #ff0000;
 }
 
 .TMLinkTitle {
@@ -76,4 +88,18 @@
 .TMLinkDestination {
   text-decoration: underline;
   color: #0000ff;
+}
+
+.TMHR { 
+  position: relative;
+}
+
+.TMHR:before { 
+  content: '';
+  position: absolute;
+  bottom: 50%;
+  left: 40%;
+  border-bottom: 2px solid #808080;
+  width: 20%;
+  z-index:0;
 }

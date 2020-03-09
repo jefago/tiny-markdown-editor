@@ -98,7 +98,7 @@ const lineGrammar = {
   },
   TMLinkReferenceDefinition: {
     regexp: /^( {0,3}\[\s*)([^\s\]](?:[^\]]|\\\])*?)(\s*\]:)(.*)$/, // TODO the rest of the line can't quite have "any" format
-    replacement: '<span class="TMMark TMMark_TMLinkReferenceDefinition">$1</span><span class="TMLinkLabel">$2</span><span class="TMMark TMMark_TMLinkReferenceDefinition">$3</span>$4',
+    replacement: '<span class="TMMark TMMark_TMLinkReferenceDefinition">$1</span><span class="TMLinkLabel TMLinkLabel_Definition">$2</span><span class="TMMark TMMark_TMLinkReferenceDefinition">$3</span>$4',
     labelPlaceholder: 2 // this defines which placeholder in the above regex is the link "label"
   }
 };
@@ -115,7 +115,7 @@ var inlineGrammar = {
   },
   code : {
     regexpUncompiled : '^(`+)((?:[^`])|(?:[^`].*?[^`]))(\\1)',
-    replacement : '<span class="TMMark">$1</span><code>$2</code><span class="TMMark">$3</span>' // No recursive application of rules
+    replacement : '<span class="TMMark">$1</span><code class="TMCode">$2</code><span class="TMMark">$3</span>' // No recursive application of rules
   },
   linkOpen : {
     regexpUncompiled : '^\\[',
