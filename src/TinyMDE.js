@@ -285,7 +285,7 @@ class TinyMDE {
       // Capture any escapes and code blocks at current position, they bind more strongly than links
       // We don't have to actually process them here, that'll be done later in case the link / image is valid, but we need to skip over them.
       // TODO: Autolinks, HTML tags also bind more strongly
-      for (let rule of ['escape', 'code', 'autolink']) {
+      for (let rule of ['escape', 'code', 'autolink', 'html']) {
         let cap = inlineGrammar[rule].regexp.exec(string);
         if (cap) {
           currentOffset += cap[0].length;
@@ -587,7 +587,7 @@ class TinyMDE {
   
     outer: while (string) {
       // Process simple rules (non-delimiter)
-      for (let rule of ['escape', 'code', 'autolink']) {
+      for (let rule of ['escape', 'code', 'autolink', 'html']) {
         let cap = inlineGrammar[rule].regexp.exec(string);
         if (cap) {
           string = string.substr(cap[0].length);

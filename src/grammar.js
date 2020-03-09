@@ -10,7 +10,13 @@ const replacements = {
   NotTriggerChar: /[^`_*\[\]()<>!~]/,
   Scheme: /[A-Za-z][A-Za-z0-9\+\.\-]{1,31}/,
   Email: /[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*/, // From CommonMark spec
-
+  HTMLOpenTag: /<HTMLTagName\s*>/,
+  HTMLCloseTag: /<\/HTMLTagName\s*>/,
+  HTMLTagName: /[A-Za-z][A-Za-z0-9-]*/, 
+  HTMLComment: /<!--(?:[^>-]|(?:[^>-](?:[^-]|-[^-])*[^-]))-->/,
+  HTMLPI: /<\?(?:|.|(?:[^?]|\?[^>])*)\?>/,
+  HTMLDeclaration: /<![A-Z]+\s[^>]*>/,
+  HTMLCDATA: /<!\[CDATA\[.*?\]\]>/,
 }
 
 // From CommonMark.js. 
@@ -114,6 +120,10 @@ var inlineGrammar = {
     regexp: /^\<((?:Scheme\:[^\s<>]*)|(?:Email))\>/,
     replacement: '<span class="TMMark TMMark_TMAutolink">&lt;</span><span class="TMAutolink">$1</span><span class="TMMark TMMark_TMAutolink">&gt;</span>'
   },
+  html : {
+    regexp: /^((?:HTMLOpenTag)|(?:HTMLCloseTag)|(?:HTMLComment)|(?:HTMLPI)|(?:HTMLDeclaration)|(?:HTMLCDATA))/,
+    replacement: '<span class="TMHTML">$1</span>',
+  },
   linkOpen : {
     regexp: /^\[/,
     replacement: ''
@@ -135,11 +145,17 @@ var inlineGrammar = {
 
 // Compile regexps
 const rules =[...Object.keys(inlineGrammar)];
+const replacementRegexp = new RegExp(Object.keys(replacements).join('|'));
+console.log(replacementRegexp.source);
 for (let rule of rules) {
   let re = inlineGrammar[rule].regexp.source;
-  for (let rp of Object.keys(replacements)) {
-    re = re.replace(rp, replacements[rp].source);
+  // for (let rp of Object.keys(replacements)) {
+  //   re = re.replace(rp, replacements[rp].source);
+  // }
+  while (re.match(replacementRegexp)) {
+    re = re.replace(replacementRegexp, (string) => { return replacements[string].source; });
   }
+  console.log(`${rule}: /${re}/${inlineGrammar[rule].regexp.flags}`);
   inlineGrammar[rule].regexp = new RegExp(re, inlineGrammar[rule].regexp.flags);
 };
 
