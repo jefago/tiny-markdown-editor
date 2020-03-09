@@ -94,37 +94,31 @@ const lineGrammar = {
  */
 var inlineGrammar = {
   escape : {
-    // regexpUncompiled : '^\\\\([ASCIIPunctuation])',
     regexp: /^\\([ASCIIPunctuation])/,
     replacement : '<span class="TMMark TMMark_TMEscape">\\</span>$1'
   },
   code : {
-    // regexpUncompiled : '^(`+)((?:[^`])|(?:[^`].*?[^`]))(\\1)',
     regexp: /^(`+)((?:[^`])|(?:[^`].*?[^`]))(\1)/,
-    replacement : '<span class="TMMark TMMark_TMCode">$1</span><code class="TMCode">$2</code><span class="TMMark TMMark_TMCode">$3</span>' // No recursive application of rules
+    replacement : '<span class="TMMark TMMark_TMCode">$1</span><code class="TMCode">$2</code><span class="TMMark TMMark_TMCode">$3</span>' 
   },
   // autolink : {
-  //   regexpUncompiled: '',
+  //   regexp: //,
   //   replacement: ''
   // },
   linkOpen : {
-    // regexpUncompiled : '^\\[',
     regexp: /^\[/,
     replacement: ''
   },
   imageOpen : {
-    // regexpUncompiled : '^\\!\\[',
     regexp: /^\!\[/,
     replacement : ''
   },
   linkLabel : {
-    // regexpUncompiled: '^(\\[\\s*)([^\\]]*?)(\\s*\\])',
     regexp: /^(\[\s*)([^\]]*?)(\s*\])/,
     replacement: '',
     labelPlaceholder: 2
   },
   default : {
-    // regexpUncompiled : '^(.|(?:[^TriggerChars]+))',
     regexp: /^(.|(?:[^TriggerChars]+))/,
     replacement: '$1'
   }
