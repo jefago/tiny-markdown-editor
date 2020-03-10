@@ -1,12 +1,23 @@
 import { htmlescape } from "../grammar";
 
-const htmlRegExp = (html) => {
-  let match = html
+const classTagRegExp = (content, className, tagName = 'span') => {
+  let match = content
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/[\\\[\]\(\)\{\}\.\*\+\?\|\$\^]/, '\\$0');
-  return new RegExp(`<span[^>]*class\\s*=\\s*["']?[^"'>]*TMHTML[^>]*>${match}<\\/span>`);
+    .replace(/([\\\[\]\(\)\{\}\.\*\+\?\|\$\^])/g, '\\$1');
+  return new RegExp(`<${tagName}[^>]*class\\s*=\\s*["']?[^"'>]*${className}[^>]*>${match}<\\/${tagName}>`);
+};
+
+const htmlRegExp = (html) => classTagRegExp(html, 'TMHTML');
+
+const inlineLinkRegExp = (text, destination = '', title = '') => {
+  // TMLink, TMLinkDestination, TMLinkTitle
+  return new RegExp([
+    classTagRegExp(text, 'TMLink').source,
+    classTagRegExp(destination, 'TMLinkDestination').source,
+    classTagRegExp(title, 'TMLinkTitle').source
+  ].join('.*'));
 }
 
 test('correctly parses * emphasis', () => {
@@ -94,14 +105,14 @@ test('ASCII punctuation can be backslash-escaped', () => {
   //  !, ", #, $, %, &, ', (, ), *, +, ,, -, ., / (U+0021–2F), :, ;, <, =, >, ?, @ (U+003A–0040), [, \, ], ^, _, ` (U+005B–0060), {, |, }, or ~
   let punctuation =  ['!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/', ':', ';', '<', '=', '>', '?', '@', '[', '\\', ']', '^', '_', '`', '{', '|', '}', '~'];
   for (let p of punctuation) {
-    expect(initTinyMDE(`\\${p}`).lineHTML(0)).toMatch(/<span[^>]*class\s*=\s*["'][^"']*TMMark_TMEscape[^>]*>\\<\/span>/);
+    expect(initTinyMDE(`\\${p}`).lineHTML(0)).toMatch(classTagRegExp('\\', 'TMMark_TMEscape'));
   }
 });
 
 test('Non-ASCII-punctuation can NOT be backslash-escaped', () => {
   let nonPunctuation =  ['→', 'A', 'a', ' ', '3', 'φ', '«'];
   for (let p of nonPunctuation) {
-    expect(initTinyMDE(`\\${p}`).lineHTML(0)).not.toMatch(/<span[^>]*class\s*=\s*["'][^"']*TMMark_TMEscape[^>]*>\\<\/span>/);
+    expect(initTinyMDE(`\\${p}`).lineHTML(0)).not.toMatch(classTagRegExp('\\', 'TMMark_TMEscape'));
   }
 });
 
@@ -139,7 +150,7 @@ test('Autolink binds more strongly than inline link: [this <https://]()>', () =>
 test('HTML binds more strongly than inline link: [this <tag a="]()">', () => {
   let result = initTinyMDE('[XXXA <XXXB XXXC="]()">').lineHTML(0);
   expect(result).not.toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMLink[^>]*>XXXA/);
-  expect(result).toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMHTML[^>]*>&lt;XXXB XXXC="\]\(\)"&gt;<\/span>/);
+  expect(result).toMatch(classTagRegExp(`<XXXB XXXC="]()">`, 'TMHTML'));
 });
 
 test('Code span binds more strongly than inline link: [this `code]()>`', () => {
@@ -154,33 +165,89 @@ test(`HTML open tag recognized: <a foo="bar" bam = 'baz <em>"</em>' _boolean zoo
   expect(initTinyMDE(html).lineHTML(0)).toMatch(htmlRegExp(html));
 })
 
-test(`HTML close tag recognized </html>`, () => {
+test(`Invalid HTML open tags NOT recognized: <__> <33> <a h*ref="hi"> <a href="hi'> <a href=hi'> < a> <a/ > <foo bar=baz bim!bop /> <a href='a'title=title>`, () => {
+  let html = `<__> <33> <a h*ref="hi"> <a href="hi'> <a href=hi'> < a> <a/ > <foo bar=baz bim!bop /> <a href='a'title=title>`;
+  expect(initTinyMDE(html).lineHTML(0)).not.toMatch('TMHTML');
+})
+
+test(`HTML close tag recognized: </html>`, () => {
   expect(initTinyMDE('</XXXA>').lineHTML(0)).toMatch(htmlRegExp('</XXXA>'));
 });
 
+test('HTML close tag can\'t have attributes: </tag a="b">', () => {
+  expect(initTinyMDE('</tag a="b">').lineHTML(0)).not.toMatch('TMHTML');
+});
 
-// Some <html> </tags> right here
-// <html a="b" >
-// More <html    a="b c"    d  =  'e f'  h = i j /> here
-// Comment <!-- here --> and <!-- not -- a --> comment and neither here <!---->
-// Test <a foo="bar" bam = 'baz <em>"</em>' _boolean zoop:33=zoop:33 /> case
-// Illegal HTML <__> <33> <a h*ref="hi"> <a href="hi'> <a href=hi'> < a> <a/ > <foo bar=baz bim!bop /> <a href='a'title=title>
-// Processing instructions <?here?> and <? h e r e ?> and <?a?> here and <??> here and <? here ? here > here ?> yup
-// Declarations <!DOCTYPE html> and <!DECLARE > and <!DO the OK@#( fwekof'230-2= πππ> here but <!NOT> here
-// A <![CDATA[section right ] freak > ing ]] here]]> but not anymore
+test(`HTML comments recognized: <!--comment--> `, () => {
+  expect(initTinyMDE('<!--XXXA-->').lineHTML(0)).toMatch(htmlRegExp('<!--XXXA-->'));
+});
 
+test('Invalid HTML comments NOT recognized: <!-- not -- valid -->, <!---->', () => {
+  expect(initTinyMDE('<!-- not -- valid --> <!---->').lineHTML(0)).not.toMatch('TMHTML');
+});
 
+test('HTML processing instructions recognized: <? instruction ?>', () => {
+  expect(initTinyMDE('<?XXXA?>').lineHTML(0)).toMatch(htmlRegExp('<?XXXA?>'));
+});
+
+test(`HTML declarations recognized:  <!DOCTYPE html>, <!DECLARE >, <!DO the OK@#( fwekof'230-2= πππ>`, () => {
+  let tests = [`<!DOCTYPE html>`, `<!DECLARE >`, `<!DO the OK@#( fwekof'230-2= πππ>`];
+  for (let test of tests) {
+    expect(initTinyMDE(test).lineHTML(0)).toMatch(htmlRegExp(test));
+  }
+});
+
+test(`Invalid HTML declaration NOT recognized: <!DOCTYPE>`, () => {
+  expect(initTinyMDE('<!DOCTYPE>').lineHTML(0)).not.toMatch('TMHTML');
+});
+
+test(`HTML CDATA section recognized: <![CDATA[A]]B]]>`, () => {
+  expect(initTinyMDE('<![CDATA[A]]B]]>').lineHTML(0)).toMatch(htmlRegExp('<![CDATA[A]]B]]>'));
+});
+
+test(`Email autolinks recognized: <abc@def.gh>`, () => {
+  expect(initTinyMDE('<abc@def.gh>').lineHTML(0)).toMatch(classTagRegExp('abc@def.gh', 'TMAutolink'));
+});
+
+test(`URI autolinks recognized: <http://foo.bar.baz/test?q=hello&id=22&boolean>`, () => {
+  let link = `http://foo.bar.baz/test?q=hello&id=22&boolean`;
+  expect(initTinyMDE(`<${link}>`).lineHTML(0)).toMatch(classTagRegExp(link, 'TMAutolink'));
+});
+
+test(`Spaces not allowed in URI autolinks`, () => {
+  expect(initTinyMDE('<http://foo.bar/baz bim>').lineHTML(0)).not.toMatch('TMAutolink');
+});
+
+test(`Simple inline link parsed correctly: [text](destination)`, () => {
+  expect(initTinyMDE(`[XXXA](XXXB)`).lineHTML(0)).toMatch(inlineLinkRegExp('XXXA', 'XXXB'));
+});
+
+test(`Inline link destination can be in angle brackets: [text](<desti nation>)`, () => {
+  expect(initTinyMDE(`[XXXA](<XXXB XXXC>)`).lineHTML(0)).toMatch(inlineLinkRegExp('XXXA', 'XXXB XXXC'));
+});
+
+test(`Inline link destination can't include spaces: [link](desti nation)`, () => {
+  expect(initTinyMDE(`[XXXA](XXXB XXXC)`).lineHTML(0)).not.toMatch('TMLink');
+})
+
+test(`Inline link with unbalanced parenthesis in destination is invalid: [text]( ( )`, () => {
+  expect(initTinyMDE(`[XXXA]( ( )`).lineHTML(0)).not.toMatch('TMLink');
+});
+
+test(`All link destination (none, <>) and title (", ', ()) delimiters work`, () => {
+  const destDelim = [['', ''], ['<', '>']];
+  const titleDelim = [['"', '"'], [`'`, `'`], [`(`, `)`]];
+  for (let dd of destDelim) for (let td of titleDelim) {
+    let link = `[XXXA](${dd[0]}XXXB${dd[1]} ${td[0]}XXXC${td[1]})`;
+    expect(initTinyMDE(link).lineHTML(0)).toMatch(inlineLinkRegExp('XXXA', 'XXXB', 'XXXC'));
+  }
+});
+
+// test(`Empty inline link works: []()`)
 
 // [ref]: https://www.jefago.com
 // [ref link]: </this has spaces> "and a title"
 // [  link label  ]: "Only title, spaces in the label"
-
-
-// Autolinks
-// ---------
-// <mail@jefago.com> <https://www.jefago.com/> <a+b:>
-
-
 // [invalid] 
 // [invalid][]
 // [in-valid][invalid]
