@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>TinyMDE demo</title>
+    <script src="./tiny-mde.js"></script>
+    <link rel="stylesheet" type="text/css" href="./tiny-mde.min.css" />
+    <meta name="viewport" content="initial-scale=1.0">
+  </head>
+  <body>
+    <h1>TinyMDE demo</h1>
+    <div id="tinymde" style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0"></div>
+    <div id="log" style="width:100%; background-color:black; color:white; height:200px; overflow-y:scroll; font-family:monospace"></div>
+    <script>
+      tinyMDE = new TinyMDE({element: 'tinymde', content: `# Hello TinyMDE
+Some <html> </tags> right here
+<html a="b" >
+More <html    a="b c"    d  =  'e f'  h = i j /> here
+Comment <!-- here --> and <!-- not -- a --> comment and neither here <!---->
+Test <a foo="bar" bam = 'baz <em>"</em>' _boolean zoop:33=zoop:33 /> case
+Illegal HTML <__> <33> <a h*ref="hi"> <a href="hi'> <a href=hi'> < a> <a/ > <foo bar=baz bim!bop /> <a href='a'title=title>
+Processing instructions <?here?> and <? h e r e ?> and <?a?> here and <??> here and <? here ? here > here ?> yup
+Declarations <!DOCTYPE html> and <!DECLARE > and <!DO the OK@#( fwekof'230-2= πππ> here but <!NOT> here
+A <![CDATA[section right ] freak > ing ]] here]]> but not anymore
+Autolink, not inline link: [this <https://]()>
+HTML, not inline link: [this <html a="]()">
+More \`complex\`  line with *one **style** within* another.
+Code \`ends here\\\` not here\`
+More \`\`difficult \`code\`\` spans \\\`not code\` \\"
+Code \`\` \`that starts \`\` with a backtick
+This is [not \`a ](link) right\` here.
+
+[ref]: https://www.jefago.com
+[ref link]: </this has spaces> "and a title"
+[  link label  ]: "Only title, spaces in the label"
+
+
+Autolinks
+---------
+<mail@jefago.com> <https://www.jefago.com/> <a+b:>
+
+
+[invalid] 
+[invalid][]
+[in-valid][invalid]
+This foo-_(bar)_ should
+THis _(also)_ should
+Only _underscores_ in this line
+There's <html><like><tags><over><here>
+A [ref link] in here.
+And another [ref link][].
+A valid [link to a ref][ref] here.
+An invalid [ref link][nope].
+An [inline link](/inline) here.
+Some [inline](<links>) [inline](<link link> "title title") [inline](<link link> (title title)) [inline](  <link link>   'title \\' title') ss
+[Inline](  /with invalid title text  ) here.
+[Inline]( </with (complex) dest>  (and title text) ) here.
+[Inline](<> "") link with empty delimiters
+[Inline]() link completely empty
+[Valid link](")))") here
+[Valid link](<)))>) here
+[Invalid](  ( ) here
+This one [is *a](link) over* here, but not an emphasis.
+Here [the [inner](one) is] the valid link.
+An ![image [can](have) a](link) inside it.
+This **is** a test.
+
+*Full line emphasized*
+Open ***without* close
+Both __types__ of *delimiters*
+__*Mixed* and matched__
+__mixed*_ and *unmatched_
+Close **without* open** test
+ab**cd*e*f*g*h**i*j*k
+Several *em* phasized *words and* some *phrases*.
+Triple ***emphasis***. 
+One *emphasis *within* another*.
+
+H1
+==
+Hello *there*.
+~~~
+Code
+block
+~~~
+
+
+> Quote and
+    Indented code block
+
+  * * * 
+  
+- UL
+- UL (and an empty one below)
+- 
+
+1) OL
+2) OL`});
+    </script>
+    <button onclick="tinyMDE.setContent('# Test\nContent **here**')">Button</button>
+  </body>
+</html>
