@@ -12,11 +12,18 @@ const classTagRegExp = (content, className, tagName = 'span') => {
 const htmlRegExp = (html) => classTagRegExp(html, 'TMHTML');
 
 const inlineLinkRegExp = (text, destination = '', title = '') => {
-  // TMLink, TMLinkDestination, TMLinkTitle
   return new RegExp([
     classTagRegExp(text, 'TMLink').source,
     classTagRegExp(destination, 'TMLinkDestination').source,
     classTagRegExp(title, 'TMLinkTitle').source
+  ].join('.*'));
+}
+
+const inlineImageRegExp = (text, destination = '', title = '') => {
+  return new RegExp([
+    classTagRegExp(text, 'TMImage').source,
+    classTagRegExp(destination, 'TMImageDestination').source,
+    classTagRegExp(title, 'TMImageTitle').source
   ].join('.*'));
 }
 
@@ -242,10 +249,9 @@ test(`All link destination (none, <>) and title (", ', ()) delimiters work`, () 
   }
 });
 
-// TODO fix broken test
-// test(`Empty inline link works: []()`, () => {
-//   expect(initTinyMDE('[]()').lineHTML(0)).toMatch(inlineLinkRegExp('XXXA','',''));
-// })
+test(`Empty inline link works: []()`, () => {
+  expect(initTinyMDE('[]()').lineHTML(0)).toMatch(inlineLinkRegExp('','',''));
+})
 
 test(`Formatting in link text works: [*em*](destination)`, () => {
   expect(initTinyMDE('[*XXXA*](XXXB)').lineHTML(0)).toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMLink[^>]*>.*<em[^>]*>XXXA<\/em>/);
@@ -261,14 +267,38 @@ test(`Links can't be nested, inner link binds more strongly: [a [b](c) d](e)`, (
   expect(initTinyMDE('[XXXA [XXXB](XXXC) XXXD](XXXE)').lineHTML(0)).toMatch(inlineLinkRegExp('XXXB', 'XXXC'));
 })
 
-// Brackets have to be matched
+test(`Basic image works: ![](/url)`, () => {
+  expect(initTinyMDE('![](/XXXA)').lineHTML(0)).toMatch(inlineImageRegExp('','/XXXA'));
+})
+
+test(`All image destination (none, <>) and title (", ', ()) delimiters work`, () => {
+  const destDelim = [['', ''], ['<', '>']];
+  const titleDelim = [['"', '"'], [`'`, `'`], [`(`, `)`]];
+  for (let dd of destDelim) for (let td of titleDelim) {
+    let link = `![XXXA XXXY](${dd[0]}XXXB${dd[1]} ${td[0]}XXXC XXXD${td[1]})`;
+    expect(initTinyMDE(link).lineHTML(0)).toMatch(inlineImageRegExp('XXXA XXXY', 'XXXB', 'XXXC XXXD'));
+  }
+});
+
+test(`Formatting in image text works: ![*em*](destination)`, () => {
+  expect(initTinyMDE('![*XXXA*](XXXB)').lineHTML(0)).toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMImage[^>]*>.*<em[^>]*>XXXA<\/em>/);
+});
+
+test(`Link in image description is allowed: ![a [b](c) d](e)`, () => {
+  const text = '![XXXA [XXXB](XXXC) XXXD](XXXE)';
+  const result = initTinyMDE(text).lineHTML(0);
+  expect(result).toMatch(inlineLinkRegExp('XXXB', 'XXXC')); // Just check the link is there...
+  expect(result).toMatch(/<span[^>]*class\s*=\s*["']?[^>"']*TMImage[^>]*>XXXA.*<span[^>]*class\s*=\s*["']?[^>"']*TMLink[^>]*>XXXB/)
+});
+
+
+
 // [ref]: https://www.jefago.com
 // [ref link]: </this has spaces> "and a title"
 // [  link label  ]: "Only title, spaces in the label"
 // [invalid] 
 // [invalid][]
 // [in-valid][invalid]
-// There's <html><like><tags><over><here>
 // A [ref link] in here.
 // And another [ref link][].
 // A valid [link to a ref][ref] here.
