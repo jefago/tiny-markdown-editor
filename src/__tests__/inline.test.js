@@ -1,110 +1,104 @@
-import TinyMDE from './TinyMDE';
-
-function init(content) {
-  document.body.innerHTML = '<div id="container"></div>';
-  let tinyMDE = new TinyMDE({element: 'container', content: content});
-  return {
-    editorInstance: () => tinyMDE,
-    editorElement: () => document.getElementById('container').firstChild,
-    lineType: (lineNum) => document.getElementById('container').firstChild.childNodes[lineNum].className,
-    lineHTML: (lineNum) => document.getElementById('container').firstChild.childNodes[lineNum].innerHTML,
-    content: () => tinyMDE.getContent(),
-  }
-}
-
-
-test('sets up correctly when passed an ID', () => {
-  document.body.innerHTML = '<div id="container"></div>';
-  let tinyMDE = new TinyMDE({element: 'container'});
-  expect(document.getElementById('container').firstChild.className).toBe('TinyMDE');
-});
-
-test('sets up correctly when passed an element', () => {
-  document.body.innerHTML = '<div id="container"></div>';
-  let tinyMDE = new TinyMDE({element: document.getElementById('container')});
-  expect(document.getElementById('container').firstChild.className).toBe('TinyMDE');
-});
-
 test('correctly parses * emphasis', () => {
-  expect(init('*em*').lineHTML(0)).toMatch(/<em[^>]*>em<\/em>/);
+  expect(initTinyMDE('*em*').lineHTML(0)).toMatch(/<em[^>]*>em<\/em>/);
 });
 
 test('correctly parses ** strong emphasis', () => {
-  expect(init('**strong**').lineHTML(0)).toMatch(/<strong[^>]*>strong<\/strong>/);
+  expect(initTinyMDE('**strong**').lineHTML(0)).toMatch(/<strong[^>]*>strong<\/strong>/);
 });
 
 test('triple emphasis *** becomes <em><strong>', () => {
-  expect(init('***text***').lineHTML(0)).toMatch(/<em[^>]*>.*<strong[^>]*>text<\/strong>.*<\/em>/);
+  expect(initTinyMDE('***text***').lineHTML(0)).toMatch(/<em[^>]*>.*<strong[^>]*>text<\/strong>.*<\/em>/);
 });
 
 test('correctly parses _ emphasis', () => {
-  expect(init('_XXXA_').lineHTML(0)).toMatch(/<em[^>]*>XXXA<\/em>/);
+  expect(initTinyMDE('_XXXA_').lineHTML(0)).toMatch(/<em[^>]*>XXXA<\/em>/);
 });
 
 test('correctly parses __ strong emphasis', () => {
-  expect(init('__XXXA__').lineHTML(0)).toMatch(/<strong[^>]*>XXXA<\/strong>/);
+  expect(initTinyMDE('__XXXA__').lineHTML(0)).toMatch(/<strong[^>]*>XXXA<\/strong>/);
 });
 
 test('triple emphasis ___ becomes <em><strong>', () => {
-  expect(init('___XXXA___').lineHTML(0)).toMatch(/<em[^>]*>.*<strong[^>]*>XXXA<\/strong>.*<\/em>/);
+  expect(initTinyMDE('___XXXA___').lineHTML(0)).toMatch(/<em[^>]*>.*<strong[^>]*>XXXA<\/strong>.*<\/em>/);
 });
 
 test('correctly parses ***a* b**', () => {
-  expect(init('***XXXA* XXXB**').lineHTML(0)).toMatch(/<strong[^>]*>.*<em[^>]*>XXXA<\/em>.*XXXB<\/strong>/);
+  expect(initTinyMDE('***XXXA* XXXB**').lineHTML(0)).toMatch(/<strong[^>]*>.*<em[^>]*>XXXA<\/em>.*XXXB<\/strong>/);
 });
 
 test('correctly parses ***a** b*', () => {
-  expect(init('***XXXA** XXXB*').lineHTML(0)).toMatch(/<em[^>]*>.*<strong[^>]*>XXXA<\/strong>.*XXXB<\/em>/);
+  expect(initTinyMDE('***XXXA** XXXB*').lineHTML(0)).toMatch(/<em[^>]*>.*<strong[^>]*>XXXA<\/strong>.*XXXB<\/em>/);
 });
 
 test('correctly parses *a **b***', () => {
-  expect(init('*XXXA **XXXB***').lineHTML(0)).toMatch(/<em[^>]*>.*XXXA.*<strong[^>]*>XXXB<\/strong>.*<\/em>/);
+  expect(initTinyMDE('*XXXA **XXXB***').lineHTML(0)).toMatch(/<em[^>]*>.*XXXA.*<strong[^>]*>XXXB<\/strong>.*<\/em>/);
 });
 
 test('correctly parses **a *b***', () => {
-  expect(init('**XXXA *XXXB***').lineHTML(0)).toMatch(/<strong[^>]*>.*XXXA.*<em[^>]*>XXXB<\/em>.*<\/strong>/);
+  expect(initTinyMDE('**XXXA *XXXB***').lineHTML(0)).toMatch(/<strong[^>]*>.*XXXA.*<em[^>]*>XXXB<\/em>.*<\/strong>/);
 });
 
 test('asterisk in word can close emphasis: *a*b*', () => {
-  expect(init('*XXXA*XXXB*').lineHTML(0)).toMatch(/<em[^>]*>.*XXXA.*<\/em>.*XXXB/);
+  expect(initTinyMDE('*XXXA*XXXB*').lineHTML(0)).toMatch(/<em[^>]*>.*XXXA.*<\/em>.*XXXB/);
 });
 
 test('underscore in word can NOT close emphasis: _a_b_', () => {
-  expect(init('_XXXA_XXXB_').lineHTML(0)).toMatch(/<em[^>]*>.*XXXA_XXXB.*<\/em>/);
+  expect(initTinyMDE('_XXXA_XXXB_').lineHTML(0)).toMatch(/<em[^>]*>.*XXXA_XXXB.*<\/em>/);
 });
 
 test('correctly parses opening asterisk without closing: ***a*', () => {
-  expect(init('***XXXA*').lineHTML(0)).toMatch(/\*\*.*<em[^>]*>.*XXXA.*<\/em>/);
+  expect(initTinyMDE('***XXXA*').lineHTML(0)).toMatch(/\*\*.*<em[^>]*>.*XXXA.*<\/em>/);
 });
 
 test('correctly parses closing asterisk without opening: *a***', () => {
-  expect(init('*XXXA***').lineHTML(0)).toMatch(/<em[^>]*>.*XXXA.*<\/em>.*\*\*/);
+  expect(initTinyMDE('*XXXA***').lineHTML(0)).toMatch(/<em[^>]*>.*XXXA.*<\/em>.*\*\*/);
 });
 
 test('correctly parses opening asterisk without closing: ___a_', () => {
-  expect(init('___XXXA_').lineHTML(0)).toMatch(/__.*<em[^>]*>.*XXXA.*<\/em>/);
+  expect(initTinyMDE('___XXXA_').lineHTML(0)).toMatch(/__.*<em[^>]*>.*XXXA.*<\/em>/);
 });
 
 test('correctly parses closing asterisk without opening: _a___', () => {
-  expect(init('_XXXA___').lineHTML(0)).toMatch(/<em[^>]*>.*XXXA.*<\/em>.*__/);
+  expect(initTinyMDE('_XXXA___').lineHTML(0)).toMatch(/<em[^>]*>.*XXXA.*<\/em>.*__/);
 });
 
 test('Underscore in between punctuation can open emphasis: foo-_(bar)_', () => {
-  expect(init('foo-_(bar)_').lineHTML(0)).toMatch(/foo-.*<em[^>]*>.*\(bar\).*<\/em>.*/);
+  expect(initTinyMDE('foo-_(bar)_').lineHTML(0)).toMatch(/foo-.*<em[^>]*>.*\(bar\).*<\/em>.*/);
 });
 
 test('Underscore next to punctuation can enclose emphasis: _(bar)_', () => {
-  expect(init('_(bar)_').lineHTML(0)).toMatch(/<em[^>]*>.*\(bar\).*<\/em>.*/);
+  expect(initTinyMDE('_(bar)_').lineHTML(0)).toMatch(/<em[^>]*>.*\(bar\).*<\/em>.*/);
 });
 
 test('Emphasis works multiple times on the same line', () => {
-  expect(init('Several *emphasized* words *and also* some *phrases* here').lineHTML(0))
+  expect(initTinyMDE('Several *emphasized* words *and also* some *phrases* here').lineHTML(0))
     .toMatch(/<em[^>]*>emphasized<\/em>.*<em[^>]*>and also<\/em>.*<em[^>]*>phrases<\/em>/);
 })
 
 test('Emphasis delimiters can be mixed and matched', () => {
-  expect(init('__*Mixed* and matched__').lineHTML(0)).toMatch(/<strong[^>]*>.*<em[^>]*>Mixed<\/em>.*and matched<\/strong>/);
+  expect(initTinyMDE('__*Mixed* and matched__').lineHTML(0)).toMatch(/<strong[^>]*>.*<em[^>]*>Mixed<\/em>.*and matched<\/strong>/);
 })
+
+test('ASCII punctuation can be backslash-escaped', () => {
+  //  !, ", #, $, %, &, ', (, ), *, +, ,, -, ., / (U+0021–2F), :, ;, <, =, >, ?, @ (U+003A–0040), [, \, ], ^, _, ` (U+005B–0060), {, |, }, or ~
+  let punctuation =  ['!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/', ':', ';', '<', '=', '>', '?', '@', '[', '\\', ']', '^', '_', '`', '{', '|', '}', '~'];
+  for (let p of punctuation) {
+    expect(initTinyMDE(`\\${p}`).lineHTML(0)).toMatch(/<span[^>]*class\s*=\s*["'][^"']*TMMark_TMEscape[^>]*>\\<\/span>/);
+  }
+});
+
+test('Non-ASCII-punctuation can NOT be backslash-escaped', () => {
+  //  !, ", #, $, %, &, ', (, ), *, +, ,, -, ., / (U+0021–2F), :, ;, <, =, >, ?, @ (U+003A–0040), [, \, ], ^, _, ` (U+005B–0060), {, |, }, or ~
+  let nonPunctuation =  ['→', 'A', 'a', ' ', '3', 'φ', '«'];
+  for (let p of nonPunctuation) {
+    expect(initTinyMDE(`\\${p}`).lineHTML(0)).not.toMatch(/<span[^>]*class\s*=\s*["'][^"']*TMMark_TMEscape[^>]*>\\<\/span>/);
+  }
+});
+
+test('Single backtick code parsed correctly', () => {
+  expect(initTinyMDE('Some `backtickcode` here').lineHTML(0)).toMatch(/Some.*<code[^>]*>backtickcode<\/code>.*here/);
+});
+
 
 // Some <html> </tags> right here
 // <html a="b" >

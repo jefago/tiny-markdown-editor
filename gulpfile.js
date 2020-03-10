@@ -8,6 +8,9 @@ const cssnano = require('cssnano');
 const terser = require('gulp-terser');
 const rename = require('gulp-rename');
 const sourcemaps = require('gulp-sourcemaps');
+const jestCLI = require('jest-cli');
+// import * as jest from require('gulp-jest');
+
 
 
 const rollupConfig = (production) => { return {
@@ -19,6 +22,12 @@ const rollupConfig = (production) => { return {
   },
   plugins: [babel()]
 }};
+
+const test = () => jestCLI.run(); /*{
+  // gulp.src('./src/__tests__/*.js')
+  // .pipe(jest());
+  return jestCLI.run();
+}*/
 
 const jsMax = () => gulp.src('./src/*.js')
   .pipe(sourcemaps.init())
@@ -57,15 +66,16 @@ const css = () =>
 const build = gulp.series(js, css);
 
 const watch = () =>{
-  gulp.watch('./src/*.js', js);
+  gulp.watch('./src/*.js', gulp.series(test, js));
   gulp.watch('./src/*.css', css);
 }
 
 const dev = gulp.series(
-  js, css, watch
+  test, js, css, watch
 );
   
   
 
 exports.default = build;
 exports.dev = dev;
+exports.test = test;
