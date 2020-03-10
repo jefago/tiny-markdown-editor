@@ -1,3 +1,14 @@
+import { htmlescape } from "../grammar";
+
+const htmlRegExp = (html) => {
+  let match = html
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/[\\\[\]\(\)\{\}\.\*\+\?\|\$\^]/, '\\$0');
+  return new RegExp(`<span[^>]*class\\s*=\\s*["']?[^"'>]*TMHTML[^>]*>${match}<\\/span>`);
+}
+
 test('correctly parses * emphasis', () => {
   expect(initTinyMDE('*em*').lineHTML(0)).toMatch(/<em[^>]*>em<\/em>/);
 });
@@ -88,7 +99,6 @@ test('ASCII punctuation can be backslash-escaped', () => {
 });
 
 test('Non-ASCII-punctuation can NOT be backslash-escaped', () => {
-  //  !, ", #, $, %, &, ', (, ), *, +, ,, -, ., / (U+0021–2F), :, ;, <, =, >, ?, @ (U+003A–0040), [, \, ], ^, _, ` (U+005B–0060), {, |, }, or ~
   let nonPunctuation =  ['→', 'A', 'a', ' ', '3', 'φ', '«'];
   for (let p of nonPunctuation) {
     expect(initTinyMDE(`\\${p}`).lineHTML(0)).not.toMatch(/<span[^>]*class\s*=\s*["'][^"']*TMMark_TMEscape[^>]*>\\<\/span>/);
@@ -97,6 +107,55 @@ test('Non-ASCII-punctuation can NOT be backslash-escaped', () => {
 
 test('Single backtick code parsed correctly', () => {
   expect(initTinyMDE('Some `backtickcode` here').lineHTML(0)).toMatch(/Some.*<code[^>]*>backtickcode<\/code>.*here/);
+});
+
+test('Backtick escapes NOT processed in code', () => {
+  expect(initTinyMDE('`\\!`').lineHTML(0)).toMatch(/<code[^>]*>\\!<\/code>/);
+})
+
+test('Backslash backtick ends code block: `code\\` ', () => {
+  expect(initTinyMDE('`XXXA\\`').lineHTML(0)).toMatch(/<code[^>]*>XXXA\\<\/code>/);
+});
+
+test('Double backtick code can contain single backtick: ``a`b``', () => {
+  expect(initTinyMDE('``XXXA`XXXB``').lineHTML(0)).toMatch(/<code[^>]*>XXXA`XXXB<\/code>/);
+});
+
+test('Escaped backtick doesn\'t start code span', () => {
+  expect(initTinyMDE('\\`XXXA`').lineHTML(0)).not.toMatch(/<code[^>]*>/);
+});
+
+// TODO Make this test pass
+// test('Single space is stripped from both sides of code block: `` `a` ``', () => {
+//   expect(initTinyMDE('`` `XXXA` ``').lineHTML(0)).toMatch(/<code[^>]*>`XXXA`<\/code>/);
+// });
+
+test('Autolink binds more strongly than inline link: [this <https://]()>', () => {
+  let result = initTinyMDE('[XXXA <XXXB://]()>').lineHTML(0);
+  expect(result).not.toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMLink[^>]*>XXXA/);
+  expect(result).toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMAutolink[^>]*>XXXB/);
+});
+
+test('HTML binds more strongly than inline link: [this <tag a="]()">', () => {
+  let result = initTinyMDE('[XXXA <XXXB XXXC="]()">').lineHTML(0);
+  expect(result).not.toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMLink[^>]*>XXXA/);
+  expect(result).toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMHTML[^>]*>&lt;XXXB XXXC="\]\(\)"&gt;<\/span>/);
+});
+
+test('Code span binds more strongly than inline link: [this `code]()>`', () => {
+  let result = initTinyMDE('[XXXA `XXXB]()`').lineHTML(0);
+  expect(result).not.toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMLink[^>]*>XXXA/);
+  expect(result).toMatch(/<code[^>]*>XXXB\]\(\)<\/code>/);
+});
+
+test(`HTML open tag recognized: <a foo="bar" bam = 'baz <em>"</em>' _boolean zoop:33=zoop:33 />`, () => {
+  let html = `<a foo="bar" bam = 'baz <em>"</em>' _boolean zoop:33=zoop:33 />`;
+  let match = `<span[^>]*class\\s*=\\s*["']?[^"'>]*TMHTML[^>]*>${htmlescape(html)}<\\/span>`
+  expect(initTinyMDE(html).lineHTML(0)).toMatch(htmlRegExp(html));
+})
+
+test(`HTML close tag recognized </html>`, () => {
+  expect(initTinyMDE('</XXXA>').lineHTML(0)).toMatch(htmlRegExp('</XXXA>'));
 });
 
 
@@ -109,13 +168,8 @@ test('Single backtick code parsed correctly', () => {
 // Processing instructions <?here?> and <? h e r e ?> and <?a?> here and <??> here and <? here ? here > here ?> yup
 // Declarations <!DOCTYPE html> and <!DECLARE > and <!DO the OK@#( fwekof'230-2= πππ> here but <!NOT> here
 // A <![CDATA[section right ] freak > ing ]] here]]> but not anymore
-// Autolink, not inline link: [this <https://]()>
-// HTML, not inline link: [this <html a="]()">
-// More \`complex\`  line with *one **style** within* another.
-// Code \`ends here\\\` not here\`
-// More \`\`difficult \`code\`\` spans \\\`not code\` \\"
-// Code \`\` \`that starts \`\` with a backtick
-// This is [not \`a ](link) right\` here.
+
+
 
 // [ref]: https://www.jefago.com
 // [ref link]: </this has spaces> "and a title"
