@@ -267,6 +267,13 @@ test(`Links can't be nested, inner link binds more strongly: [a [b](c) d](e)`, (
   expect(initTinyMDE('[XXXA [XXXB](XXXC) XXXD](XXXE)').lineHTML(0)).toMatch(inlineLinkRegExp('XXXB', 'XXXC'));
 })
 
+test(`Link text can contain images: [a ![b](c) d](e)`, () => {
+  const result = initTinyMDE('[XXXA ![XXXB](XXXC) XXXD](XXXE)').lineHTML(0);
+  expect(result).toMatch(inlineImageRegExp('XXXB', 'XXXC'));
+  expect(result).toMatch(/<span[^>]*class\s*=\s*["']?[^>"']*TMLink[^>]*>XXXA.*<span[^>]*class\s*=\s*["']?[^>"']*TMImage[^>]*>XXXB/)
+})
+
+
 test(`Basic image works: ![](/url)`, () => {
   expect(initTinyMDE('![](/XXXA)').lineHTML(0)).toMatch(inlineImageRegExp('','/XXXA'));
 })
@@ -284,7 +291,7 @@ test(`Formatting in image text works: ![*em*](destination)`, () => {
   expect(initTinyMDE('![*XXXA*](XXXB)').lineHTML(0)).toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMImage[^>]*>.*<em[^>]*>XXXA<\/em>/);
 });
 
-test(`Link in image description is allowed: ![a [b](c) d](e)`, () => {
+test(`Image description can contain links: ![a [b](c) d](e)`, () => {
   const text = '![XXXA [XXXB](XXXC) XXXD](XXXE)';
   const result = initTinyMDE(text).lineHTML(0);
   expect(result).toMatch(inlineLinkRegExp('XXXB', 'XXXC')); // Just check the link is there...
