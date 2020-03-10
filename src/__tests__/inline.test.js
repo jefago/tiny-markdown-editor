@@ -102,7 +102,6 @@ test('Emphasis delimiters can be mixed and matched', () => {
 })
 
 test('ASCII punctuation can be backslash-escaped', () => {
-  //  !, ", #, $, %, &, ', (, ), *, +, ,, -, ., / (U+0021–2F), :, ;, <, =, >, ?, @ (U+003A–0040), [, \, ], ^, _, ` (U+005B–0060), {, |, }, or ~
   let punctuation =  ['!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/', ':', ';', '<', '=', '>', '?', '@', '[', '\\', ']', '^', '_', '`', '{', '|', '}', '~'];
   for (let p of punctuation) {
     expect(initTinyMDE(`\\${p}`).lineHTML(0)).toMatch(classTagRegExp('\\', 'TMMark_TMEscape'));
@@ -238,13 +237,30 @@ test(`All link destination (none, <>) and title (", ', ()) delimiters work`, () 
   const destDelim = [['', ''], ['<', '>']];
   const titleDelim = [['"', '"'], [`'`, `'`], [`(`, `)`]];
   for (let dd of destDelim) for (let td of titleDelim) {
-    let link = `[XXXA](${dd[0]}XXXB${dd[1]} ${td[0]}XXXC${td[1]})`;
-    expect(initTinyMDE(link).lineHTML(0)).toMatch(inlineLinkRegExp('XXXA', 'XXXB', 'XXXC'));
+    let link = `[XXXA](${dd[0]}XXXB${dd[1]} ${td[0]}XXXC XXXD${td[1]})`;
+    expect(initTinyMDE(link).lineHTML(0)).toMatch(inlineLinkRegExp('XXXA', 'XXXB', 'XXXC XXXD'));
   }
 });
 
-// test(`Empty inline link works: []()`)
+test(`Empty inline link works: []()`, () => {
+  expect(initTinyMDE('[]()').lineHTML(0)).toMatch(inlineLinkRegExp('XXXA','',''));
+})
 
+test(`Formatting in link text works: [*em*](destination)`, () => {
+  expect(initTinyMDE('[*XXXA*](XXXB)').lineHTML(0)).toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMLink[^>]*>.*<em[^>]*>XXXA<\/em>/);
+});
+
+test(`Links and emphasis bind left-to-right: [*em](destination)*`, () => {
+  let output = initTinyMDE('[*XXXA](XXXB)*').lineHTML(0);
+  expect(output).not.toMatch(/<em[^>]*>/);
+  expect(output).toMatch(inlineLinkRegExp('*XXXA', 'XXXB'));
+});
+
+test(`Links can't be nested, inner link binds more strongly: [a [b](c) d](e)`, () => {
+  expect(initTinyMDE('[XXXA [XXXB](XXXC) XXXD](XXXE)').lineHTML(0)).toMatch(inlineLinkRegExp('XXXB', 'XXXC'));
+})
+
+// Brackets have to be matched
 // [ref]: https://www.jefago.com
 // [ref link]: </this has spaces> "and a title"
 // [  link label  ]: "Only title, spaces in the label"
@@ -256,17 +272,7 @@ test(`All link destination (none, <>) and title (", ', ()) delimiters work`, () 
 // And another [ref link][].
 // A valid [link to a ref][ref] here.
 // An invalid [ref link][nope].
-// An [inline link](/inline) here.
-// Some [inline](<links>) [inline](<link link> "title title") [inline](<link link> (title title)) [inline](  <link link>   'title \\' title') ss
-// [Inline](  /with invalid title text  ) here.
-// [Inline]( </with (complex) dest>  (and title text) ) here.
-// [Inline](<> "") link with empty delimiters
-// [Inline]() link completely empty
-// [Valid link](")))") here
-// [Valid link](<)))>) here
-// [Invalid](  ( ) here
-// This one [is *a](link) over* here, but not an emphasis.
-// Here [the [inner](one) is] the valid link.
+
 // An ![image [can](have) a](link) inside it.
 
 
