@@ -287,7 +287,7 @@ class TinyMDE {
     let linkDetails = []; // If matched, this will be an array: [whitespace + link destination delimiter, link destination, link destination delimiter, whitespace, link title delimiter, link title, link title delimiter + whitespace]. All can be empty strings.
 
   
-    textOuter: while (currentOffset < originalString.length && !linkText) {
+    textOuter: while (currentOffset < originalString.length && linkText === false /* empty string is okay */) {
       let string = originalString.substr(currentOffset);
   
       // Capture any escapes and code blocks at current position, they bind more strongly than links
@@ -341,7 +341,7 @@ class TinyMDE {
     }
   
     // Did we find a link text (i.e., find a matching closing bracket?)
-    if (!linkText) return false; // Nope
+    if (linkText === false) return false; // Nope
   
     // So far, so good. We've got a valid link text. Let's see what type of link this is
     let nextChar = currentOffset < originalString.length ? originalString.substr(currentOffset, 1) : ''; 
@@ -539,7 +539,7 @@ class TinyMDE {
 
     }
 
-    if (linkRef) {
+    if (linkRef !== false) {
       // Ref link; check that linkRef is valid
       let valid = false;
       for (let label of this.linkLabels) {
