@@ -9,6 +9,7 @@ global.initTinyMDE = (content) => {
     lineType: (lineNum) => document.getElementById('container').firstChild.childNodes[lineNum].className,
     lineHTML: (lineNum) => document.getElementById('container').firstChild.childNodes[lineNum].innerHTML,
     content: () => tinyMDE.getContent(),
+    numLines: () => document.getElementById('container').firstChild.childNodes.length,
   }
 }
 
