@@ -248,7 +248,7 @@ class TinyMDE {
             this.lineCaptures[headingLine] = [this.lines[headingLine]];
 
             headingLine--;
-          } while(headingLine > 0 && this.lineTypes[headingLine] == 'TMPara'); 
+          } while(headingLine >= 0 && this.lineTypes[headingLine] == 'TMPara'); 
         }
       }
       // Lastly, save the line style to be applied later
