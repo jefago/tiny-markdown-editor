@@ -11,3 +11,12 @@ global.initTinyMDE = (content) => {
     content: () => tinyMDE.getContent(),
   }
 }
+
+global.classTagRegExp = (content, className, tagName = 'span') => {
+  let match = content
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/([\\\[\]\(\)\{\}\.\*\+\?\|\$\^])/g, '\\$1');
+  return new RegExp(`<${tagName}[^>]*class\\s*=\\s*["']?[^"'>]*${className}[^>]*>${match}<\\/${tagName}>`);
+};

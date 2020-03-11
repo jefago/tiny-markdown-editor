@@ -1,13 +1,6 @@
 import { htmlescape } from "../grammar";
 
-const classTagRegExp = (content, className, tagName = 'span') => {
-  let match = content
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/([\\\[\]\(\)\{\}\.\*\+\?\|\$\^])/g, '\\$1');
-  return new RegExp(`<${tagName}[^>]*class\\s*=\\s*["']?[^"'>]*${className}[^>]*>${match}<\\/${tagName}>`);
-};
+
 
 const htmlRegExp = (html) => classTagRegExp(html, 'TMHTML');
 
@@ -298,39 +291,40 @@ test(`Image description can contain links: ![a [b](c) d](e)`, () => {
   expect(result).toMatch(/<span[^>]*class\s*=\s*["']?[^>"']*TMImage[^>]*>XXXA.*<span[^>]*class\s*=\s*["']?[^>"']*TMLink[^>]*>XXXB/)
 });
 
+test(`Image description can contain images: ![a ![b](c) d](e)`, () => {
+  const text = '![XXXA ![XXXB](XXXC) XXXD](XXXE)';
+  const result = initTinyMDE(text).lineHTML(0);
+  expect(result).toMatch(inlineImageRegExp('XXXB', 'XXXC')); // Just check the link is there...
+  expect(result).toMatch(/<span[^>]*class\s*=\s*["']?[^>"']*TMImage[^>]*>XXXA.*<span[^>]*class\s*=\s*["']?[^>"']*TMImage[^>]*>XXXB/)
+});
 
+test(`Simple ref link works: [text][ref]`, () => {
+  const text = '[XXXB]: https://abc.de\n[XXXA][XXXB]';
+  expect(initTinyMDE(text).lineHTML(1)).toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMLink[^>]*>XXXA.*<span[^>]*class\s*=\s*["']?[^"'>]*TMLinkLabel_Valid[^>]*>XXXB/);
+});
 
-// [ref]: https://www.jefago.com
-// [ref link]: </this has spaces> "and a title"
-// [  link label  ]: "Only title, spaces in the label"
-// [invalid] 
-// [invalid][]
-// [in-valid][invalid]
-// A [ref link] in here.
-// And another [ref link][].
-// A valid [link to a ref][ref] here.
-// An invalid [ref link][nope].
+test(`Spaces in link label get ignored: [text][   ref   ]`, () => {
+  const text = '[   XXXB  ]: https://abc.de\n[XXXA][  XXXB   ]';
+  expect(initTinyMDE(text).lineHTML(1)).toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMLink[^>]*>XXXA.*<span[^>]*class\s*=\s*["']?[^"'>]*TMLinkLabel_Valid[^>]*>XXXB/);
+});
 
-// An ![image [can](have) a](link) inside it.
+test(`Collapsed ref link works: [ref][]`, () => {
+  const text = '[XXXA]: https://abc.de\n[XXXA][]';
+  expect(initTinyMDE(text).lineHTML(1)).toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMLinkLabel_Valid[^>]*>XXXA/);
+});
 
+test(`Shortcut ref link works: [ref]`, () => {
+  const text = '[XXXA]: https://abc.de\n[XXXA]';
+  expect(initTinyMDE(text).lineHTML(1)).toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMLinkLabel_Valid[^>]*>XXXA/);
+});
 
-// H1
-// ==
-// Hello *there*.
-// ~~~
-// Code
-// block
-// ~~~
+test(`Valid and invalid link references correctly identified`, () => {
+  const editor = initTinyMDE('[XXXA]: https://abc.de\n[XXXA]\n[XXXB]');
+  expect (editor.lineHTML(1)).toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMLinkLabel_Valid[^>]*>XXXA/);
+  expect (editor.lineHTML(2)).toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMLinkLabel_Invalid[^>]*>XXXB/);
+});
 
-
-// > Quote and
-//     Indented code block
-
-//   * * * 
-  
-// - UL
-// - UL (and an empty one below)
-// - 
-
-// 1) OL
-// 2) OL
+test(`Simple ref image works: ![text][ref]`, () => {
+  const text = '[XXXB]: https://abc.de\n![XXXA][XXXB]';
+  expect(initTinyMDE(text).lineHTML(1)).toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMImage[^>]*>XXXA.*<span[^>]*class\s*=\s*["']?[^"'>]*TMLinkLabel_Valid[^>]*>XXXB/);
+});
