@@ -167,32 +167,39 @@ class TinyMDE {
    * Updates this.lineTypes, this.lineCaptures, and this.lineReplacements.
    */
   updateLineTypes() {
+    let codeBlockType = false;
+    let codeBlockSeqLength = 0;
     for (let lineNum = 0; lineNum < this.lines.length; lineNum++) {
       let lineType = 'TMPara';
       let lineCapture = [this.lines[lineNum]];
       let lineReplacement = '$$0'; // Default replacement for paragraph: Inline format the entire line
 
+
       // Check ongoing code blocks
-      if (lineNum > 0 && (this.lineTypes[lineNum - 1] == 'TMCodeFenceBacktickOpen' || this.lineTypes[lineNum - 1] == 'TMFencedCodeBacktick')) {
+      // if (lineNum > 0 && (this.lineTypes[lineNum - 1] == 'TMCodeFenceBacktickOpen' || this.lineTypes[lineNum - 1] == 'TMFencedCodeBacktick')) {
+      if (codeBlockType == 'TMCodeFenceBacktickOpen') {
         // We're in a backtick-fenced code block, check if the current line closes it
-        let capture = lineGrammar.TMCodeFenceBacktickOpen.regexp.exec(this.lines[lineNum]);
-        if (capture) {
+        let capture = lineGrammar.TMCodeFenceBacktickClose.regexp.exec(this.lines[lineNum]);
+        if (capture && capture.groups['seq'].length >= codeBlockSeqLength) {
           lineType = 'TMCodeFenceBacktickClose';
-          lineReplacement = lineGrammar.TMCodeFenceBacktickOpen.replacement;
+          lineReplacement = lineGrammar.TMCodeFenceBacktickClose.replacement;
           lineCapture = capture;
+          codeBlockType = false;
         } else {
           lineType = 'TMFencedCodeBacktick';
           lineReplacement = '$0';
           lineCapture = [this.lines[lineNum]];
         } 
       }
-      if (lineNum > 0 && (this.lineTypes[lineNum - 1] == 'TMCodeFenceTildeOpen' || this.lineTypes[lineNum - 1] == 'TMFencedCodeTilde')) {
+      // if (lineNum > 0 && (this.lineTypes[lineNum - 1] == 'TMCodeFenceTildeOpen' || this.lineTypes[lineNum - 1] == 'TMFencedCodeTilde')) {
+      else if (codeBlockType == 'TMCodeFenceTildeOpen') {
         // We're in a tilde-fenced code block
-        let capture = lineGrammar.TMCodeFenceTildeOpen.regexp.exec(this.lines[lineNum]);
-        if (capture)  {
+        let capture = lineGrammar.TMCodeFenceTildeClose.regexp.exec(this.lines[lineNum]);
+        if (capture && capture.groups['seq'].length >= codeBlockSeqLength)  {
           lineType = 'TMCodeFenceTildeClose';
-          lineReplacement = lineGrammar.TMCodeFenceTildeOpen.replacement;
+          lineReplacement = lineGrammar.TMCodeFenceTildeClose.replacement;
           lineCapture = capture;
+          codeBlockType = false;
         }
         else {
           lineType = 'TMFencedCodeTilde';
@@ -212,6 +219,12 @@ class TinyMDE {
             break;
           }
         }
+      }
+
+      // If we've opened a code block, remember that
+      if (lineType == 'TMCodeFenceBacktickOpen' || lineType == 'TMCodeFenceTildeOpen') {
+        codeBlockType = lineType;
+        codeBlockSeqLength = lineCapture.groups['seq'].length;
       }
 
       // Link reference definition and indented code can't interrupt a paragraph

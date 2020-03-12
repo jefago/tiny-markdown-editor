@@ -61,12 +61,20 @@ const lineGrammar = {
     replacement: '<span class="TMMark TMMark_TMBlockquote">$1</span>$$2'
   },
   TMCodeFenceBacktickOpen: { 
-    regexp: /^( {0,3}```\s*)([^`]*?)(\s*)$/, 
-    replacement: '<span class="TMMark TMMark_TMCodeFenceBacktick">$1</span><span class="TMInfoString">$2</span>$3'
+    regexp: /^( {0,3}(?<seq>````*)\s*)([^`]*?)(\s*)$/, 
+    replacement: '<span class="TMMark TMMark_TMCodeFenceBacktick">$1</span><span class="TMInfoString">$3</span>$4'
   },
   TMCodeFenceTildeOpen: { 
-    regexp: /^( {0,3}~~~\s*)(.*?)(\s*)$/, 
-    replacement: '<span class="TMMark TMMark_TMCodeFenceTilde">$1</span><span class="TMInfoString">$2</span>$3'
+    regexp: /^( {0,3}(?<seq>~~~~*)\s*)(.*?)(\s*)$/, 
+    replacement: '<span class="TMMark TMMark_TMCodeFenceTilde">$1</span><span class="TMInfoString">$3</span>$4'
+  },
+  TMCodeFenceBacktickClose: { 
+    regexp: /^( {0,3}(?<seq>````*))(\s*)$/, 
+    replacement: '<span class="TMMark TMMark_TMCodeFenceBacktick">$1</span>$3'
+  },
+  TMCodeFenceTildeClose: { 
+    regexp: /^( {0,3}(?<seq>~~~~*))(\s*)$/, 
+    replacement: '<span class="TMMark TMMark_TMCodeFenceTilde">$1</span>$3'
   },
   TMBlankLine: { 
     regexp: /^([ \t]*)$/, 
