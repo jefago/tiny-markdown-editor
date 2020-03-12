@@ -225,11 +225,27 @@ test('Info string for backtick fenced code can\'t contain backtick: ```js`\\nThi
 });
 
 
-// TODO this test should currently fail, but doesn't
-test('Closing code fence can\'t contain info string: ```js\\nthis.is();\\ncode = {};\\n```', () => {
+test('Closing code fence can\'t contain info string: ```\\ncode\\n```not closing\\ncode\\n```', () => {
   const testCases = [
-    '~~~\nFenced\~~~still\nhere\n~~~',
-    '```\nFenced\```still\nhere\n```',
+    '~~~\nFenced\n~~~still\nhere\n~~~',
+    '```\nFenced\n```still\nhere\n```',
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    console.log(editor.numLines());
+    expect(editor.lineType(0)).toMatch(/^TMCodeFence[A-Za-z]*Open$/);
+    for (let i = 1; i < editor.numLines() - 1; i++) {
+      console.log(`${i}: ${editor.lineType(i)}`);
+      expect(editor.lineType(i)).toMatch(/^TMFencedCode[A-Za-z]*$/);
+    }
+    expect(editor.lineType(editor.numLines()-1)).toMatch(/^TMCodeFence[A-Za-z]*Close$/);
+  }
+});
+
+test('Closing code fence has to be same length or longer than opening: `````\\ncode\\n```\\nstill code\\n`````', () => {
+  const testCases = [
+    '~~~~~\nFenced\n~~~\nhere\n~~~~~',
+    '`````\nFenced\n```\nhere\n`````',
   ];
   for (let testCase of testCases) {
     const editor = initTinyMDE(testCase);
@@ -240,6 +256,8 @@ test('Closing code fence can\'t contain info string: ```js\\nthis.is();\\ncode =
     expect(editor.lineType(editor.numLines()-1)).toMatch(/^TMCodeFence[A-Za-z]*Close$/);
   }
 });
+
+// TODO # backticks needs to be closing  >= opening
 
 test('Empty fenced code includes a <br>: ~~~\\n\\n~~~', () => {
   const testCases = [
