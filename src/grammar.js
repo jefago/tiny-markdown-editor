@@ -33,27 +33,27 @@ const punctuationTrailing = new RegExp(/(?:[!"#$%&'()*+,\-./:;<=>?@\[\]\\^_`{|}~
  */ 
 const lineGrammar = { 
   TMH1: { 
-    regexp: /^( {0,3}#)((?:\s+)(?:.*?))((?:#\s*)?)$/, 
+    regexp: /^( {0,3}#)((?:\s+)(?:.*?))((?:\s+#+\s*)?)$/, 
     replacement: '<span class="TMMark TMMark_TMH1">$1</span>$$2<span class="TMMark TMMark_TMH1">$3</span>'
   },
   TMH2: { 
-    regexp: /^( {0,3}##)((?:\s+)(?:.*?))((?:##\s*)?)$/, 
+    regexp: /^( {0,3}##)((?:\s+)(?:.*?))((?:\s+#+\s*)?)$/, 
     replacement: '<span class="TMMark TMMark_TMH2">$1</span>$$2<span class="TMMark TMMark_TMH2">$3</span>'
   },
   TMH3: { 
-    regexp: /^( {0,3}###)((?:\s+)(?:.*?))((?:###\s*)?)$/, 
+    regexp: /^( {0,3}###)((?:\s+)(?:.*?))((?:\s+#+\s*)?)$/, 
     replacement: '<span class="TMMark TMMark_TMH3">$1</span>$$2<span class="TMMark TMMark_TMH3">$3</span>'
   },
   TMH4: { 
-    regexp: /^( {0,3}####)((?:\s+)(?:.*?))((?:####\s*)?)$/, 
+    regexp: /^( {0,3}####)((?:\s+)(?:.*?))((?:\s+#+\s*)?)$/, 
     replacement: '<span class="TMMark TMMark_TMH4">$1</span>$$2<span class="TMMark TMMark_TMH4">$3</span>'
   },
   TMH5: { 
-    regexp: /^( {0,3}#####)((?:\s+)(?:.*?))((?:#####\s*)?)$/, 
+    regexp: /^( {0,3}#####)((?:\s+)(?:.*?))((?:\s+#+\s*)?)$/, 
     replacement: '<span class="TMMark TMMark_TMH5">$1</span>$$2<span class="TMMark TMMark_TMH5">$3</span>'
   },
   TMH6: { 
-    regexp: /^( {0,3}######)((?:\s+)(?:.*?))((?:######\s*)?)$/, 
+    regexp: /^( {0,3}######)((?:\s+)(?:.*?))((?:\s+#+\s*)?)$/, 
     replacement: '<span class="TMMark TMMark_TMH6">$1</span>$$2<span class="TMMark TMMark_TMH6">$3</span>'
   },
   TMBlockquote: { 
