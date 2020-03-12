@@ -12,6 +12,18 @@ test('Inline content processed in ATX heading: # *em*', () => {
   expect(editor.lineType(0)).toMatch('TMH1');
 })
 
+test('ATX headings can include any number of trailing #s: # H1 #####   ', () => {
+  const editor = initTinyMDE('# H1 #####   ');
+  expect(editor.lineType(0)).toMatch('TMH1');
+  expect(editor.lineHTML(0)).toMatch(/<span[^>]* class\s*=\s*["']?[^"'>]*TMMark[^>]*>\s*#####/);
+});
+
+test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', () => {
+  const editor = initTinyMDE('# H1#####   ');
+  expect(editor.lineType(0)).toMatch('TMH1');
+  expect(editor.lineHTML(0)).not.toMatch(/<span[^>]* class\s*=\s*["']?[^"'>]*TMMark[^>]*>\s*#####/);
+});
+
 test('Lines including only whitespace are considered blank', () => {
   const editor = initTinyMDE('\n   \n  \n');
   for (let line = 0; line < 3; line++) {
@@ -45,8 +57,21 @@ test('Thematic breaks can\'t be mixed and matched: ***---', () => {
   expect(initTinyMDE('***---').lineType(0)).not.toMatch('TMHR');
 });
 
+test('Thematic break take precendence over UL: * * *, - - -', () => {
+  const breaks = ['- - -', '* * *'];
+  for (let br of breaks) {
+    expect(initTinyMDE(br).lineType(0)).toMatch('TMHR');
+  }
+});
+
 test('Basic setext H1 works: H1\\n==', () => {
   const editor = initTinyMDE('H1\n==');
+  expect(editor.lineType(0)).toMatch('TMSetextH1');
+  expect(editor.lineType(1)).toMatch('TMSetextH1Marker');
+});
+
+test('Setext marker can have up to 3 leading and any number of trailing spaces: H1\\n   ==       ', () => {
+  const editor = initTinyMDE('H1\n   ==       ');
   expect(editor.lineType(0)).toMatch('TMSetextH1');
   expect(editor.lineType(1)).toMatch('TMSetextH1Marker');
 });
@@ -72,6 +97,115 @@ test('Setext H1 marker after the following blocks is invalid: code fence, ATX he
     expect(editor.lineType(editor.numLines() - 1)).not.toMatch('TMSetextH1Marker');
   }
 });
+
+test('Blank lines break setext heading', () => {
+  const editor = initTinyMDE('Not H1\n\nH1\nH1\n==');
+  expect(editor.lineType(0)).toMatch('TMPara');
+  expect(editor.lineType(1)).toMatch('TMBlankLine');
+  expect(editor.lineType(2)).toMatch('TMSetextH1');
+  expect(editor.lineType(3)).toMatch('TMSetextH1');
+  expect(editor.lineType(4)).toMatch('TMSetextH1Marker');
+});
+
+test('Setext H2 works: H2\\nStill H2\\n--', () => {
+  const editor = initTinyMDE('H2\nH2\n--');
+  expect(editor.lineType(0)).toMatch('TMSetextH2');
+  expect(editor.lineType(1)).toMatch('TMSetextH2');
+  expect(editor.lineType(2)).toMatch('TMSetextH2Marker');
+});
+
+test('Setext H2 takes precedence over thematic break: H2\\n---', () => {
+  const editor = initTinyMDE('H2\n---');
+  expect(editor.lineType(0)).toMatch('TMSetextH2');
+  expect(editor.lineType(1)).toMatch('TMSetextH2Marker');
+});
+
+test('Empty list item takes precedence over setext H2: Not H2\\n- ', () => {
+  const editor = initTinyMDE('Not H2\n- ');
+  expect(editor.lineType(0)).toMatch('TMPara');
+  expect(editor.lineType(1)).toMatch('TMUL');
+});
+
+test('Indented code block parsed correctly:     code', () => {
+  expect(initTinyMDE('    code').lineType(0)).toMatch('TMIndentedCode');
+});
+
+test('Indented code can\'t interrupt paragraph: Paragraph\\n    not code', () => {
+  // Paragraphs contained in: TMPara, TMUL, TMOL, TMBlockquote
+  const testCases = [
+    'Para\n    Not code',
+    '- UL\n    Not code',
+    '1. OL\n    Not code',
+    '> Blockquote\n    Not code'
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    expect(editor.lineType(1)).not.toMatch('TMIndentedCode');
+  }
+});
+
+test('Indented code can follow after non-paragraph: # Heading\\n    code', () => {
+  const testCases = [
+    '# Heading\n    Code',
+    'Setext heading\n====\n    Code',
+    // '<pre>HTML block</pre>\n    Code', // TODO
+    '---\n    Code',
+    '~~~\nFenced code\n~~~\n    Code',
+    '[ref]: https://abc.de\n    Code',
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    expect(editor.lineType(editor.numLines() - 1)).toMatch('TMIndentedCode');
+  }
+});
+
+test('Link reference definition cannot interrupt a paragraph: Paragraph\\n[ref]: (Not a ref definition)', () => {
+  // Paragraphs contained in: TMPara, TMUL, TMOL, TMBlockquote
+  const testCases = [
+    'Para\n[ref]: https://abc.de',
+    '- UL\n[ref]: https://abc.de',
+    '1. OL\n[ref]: https://abc.de',
+    '> Blockquote\n[ref]: https://abc.de'
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    expect(editor.lineType(1)).not.toMatch('TMLinkReferenceDefinition');
+  }
+});
+
+test('Link reference definition can follow after non-paragraph: # Heading\\n[ref]: (valid ref definition)', () => {
+  const testCases = [
+    '# Heading\n[ref]: https://abc.de',
+    'Setext heading\n====\n[ref]: https://abc.de',
+    // '<pre>HTML block</pre>\n[ref]: https://abc.de', // TODO
+    '---\n[ref]: https://abc.de',
+    '~~~\nFenced code\n~~~\n[ref]: https://abc.de',
+    '    Link reference definition\n[ref]: https://abc.de',
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    expect(editor.lineType(editor.numLines() - 1)).toMatch('TMLinkReferenceDefinition');
+  }
+});
+
+
+// TODO Make this test pass
+// test('Indented lines following list item continue that list item: 1. Text\\n   continued', () => {
+//   const cases = [
+//     '1. List item\n   Continued', 
+//     '- List item\n  Continued', 
+//     '   1.    List item\n         Continued', 
+//     '   -    List item\n        Continued',
+//     // '- List item\n  Continued\n\n  Still continued\n      Indented code in list item\n  > Blockquote in list item'
+//   ];
+//   for (let testCase of cases) {
+//     let editor = initTinyMDE(testCase);
+//     expect(editor.lineType(0)).toMatch(/^TM[OU]L$/);
+//     for (let l = 1; l <= editor.numLines(); l++) {
+//       expect(editor.lineType(l)).toMatch(/^TM[OU]L/);
+//     }
+//   }
+// });
 
 
 
