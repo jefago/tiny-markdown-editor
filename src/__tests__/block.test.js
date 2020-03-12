@@ -232,10 +232,8 @@ test('Closing code fence can\'t contain info string: ```\\ncode\\n```not closing
   ];
   for (let testCase of testCases) {
     const editor = initTinyMDE(testCase);
-    console.log(editor.numLines());
     expect(editor.lineType(0)).toMatch(/^TMCodeFence[A-Za-z]*Open$/);
     for (let i = 1; i < editor.numLines() - 1; i++) {
-      console.log(`${i}: ${editor.lineType(i)}`);
       expect(editor.lineType(i)).toMatch(/^TMFencedCode[A-Za-z]*$/);
     }
     expect(editor.lineType(editor.numLines()-1)).toMatch(/^TMCodeFence[A-Za-z]*Close$/);
