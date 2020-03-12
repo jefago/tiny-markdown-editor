@@ -213,6 +213,18 @@ class TinyMDE {
         }
       }
 
+      // Link reference definition and indented code can't interrupt a paragraph
+      if (
+        (lineType == 'TMIndentedCode' || lineType == 'TMLinkReferenceDefinition') 
+        && lineNum > 0 
+        && (this.lineTypes[lineNum-1] == 'TMPara' || this.lineTypes[lineNum-1] == 'TMUL' || this.lineTypes[lineNum-1] == 'TMOL' || this.lineTypes[lineNum-1] == 'TMBlockquote')
+      ) {
+        // Fall back to TMPara
+        lineType = 'TMPara';
+        lineCapture = [this.lines[lineNum]];
+        lineReplacement = '$$0';
+      }
+
       // Setext H2 markers that can also be interpreted as an empty list item should be regarded as such (as per CommonMark spec)
       if (lineType == 'TMSetextH2Marker') {
         let capture = lineGrammar.TMUL.regexp.exec(this.lines[lineNum]);
