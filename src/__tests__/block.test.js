@@ -1,3 +1,5 @@
+// ATX headings -----------------------------------------------------------------------------------
+
 test('Correctly parses ATX headings: # H1', () => {
   let heading = ' XXXA';
   for (let level = 1; level <= 6; level++) {
@@ -24,6 +26,8 @@ test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', () =
   expect(editor.lineHTML(0)).not.toMatch(/<span[^>]* class\s*=\s*["']?[^"'>]*TMMark[^>]*>\s*#####/);
 });
 
+// Blank lines  -----------------------------------------------------------------------------------
+
 test('Lines including only whitespace are considered blank', () => {
   const editor = initTinyMDE('\n   \n  \n');
   for (let line = 0; line < 3; line++) {
@@ -32,11 +36,13 @@ test('Lines including only whitespace are considered blank', () => {
 });
 
 test('Blank lines include a <br>', () => {
-  const editor = initTinyMDE('\n   \n  \n');
+  const editor = initTinyMDE('\n\n\n');
   for (let line = 0; line < 3; line++) {
     expect(editor.lineHTML(line)).toMatch(/<br[^>]*>/);
   }
 });
+
+// Thematic breaks (HR) -----------------------------------------------------------------------------------
 
 test('Simple thematic breaks are recognized with all characters: ---, ***, ___', () => {
   const breaks = ['---', '***', '___'];
@@ -63,6 +69,8 @@ test('Thematic break take precendence over UL: * * *, - - -', () => {
     expect(initTinyMDE(br).lineType(0)).toMatch('TMHR');
   }
 });
+
+// Setext headings -----------------------------------------------------------------------------------
 
 test('Basic setext H1 works: H1\\n==', () => {
   const editor = initTinyMDE('H1\n==');
@@ -126,6 +134,8 @@ test('Empty list item takes precedence over setext H2: Not H2\\n- ', () => {
   expect(editor.lineType(1)).toMatch('TMUL');
 });
 
+// Indented code  -----------------------------------------------------------------------------------
+
 test('Indented code block parsed correctly:     code', () => {
   expect(initTinyMDE('    code').lineType(0)).toMatch('TMIndentedCode');
 });
@@ -158,6 +168,91 @@ test('Indented code can follow after non-paragraph: # Heading\\n    code', () =>
     expect(editor.lineType(editor.numLines() - 1)).toMatch('TMIndentedCode');
   }
 });
+
+// Fenced code blocks  -----------------------------------------------------------------------------------
+test('Basic fenced code block works: ```\\nThis is\\ncode\\n```', () => {
+  const testCases = [
+    '~~~\nFenced\nCode\n~~~',
+    '```\nFenced\nCode\n```'
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    expect(editor.lineType(0)).toMatch(/^TMCodeFence[A-Za-z]*Open$/);
+    for (let i = 1; i < editor.numLines() - 1; i++) {
+      expect(editor.lineType(i)).toMatch(/^TMFencedCode[A-Za-z]*$/);
+    }
+    expect(editor.lineType(editor.numLines()-1)).toMatch(/^TMCodeFence[A-Za-z]*Close$/);
+  }
+});
+
+test('Opening fence can contain info string: ```js\\nthis.is();\\ncode = {};\\n```', () => {
+  const testCases = [
+    '~~~javascript\nFenced\nCode\n~~~',
+    '```javascript\nFenced\nCode\n```',
+    '~~~  javascript   \nFenced\nCode\n~~~',
+    '```  javascript   \nFenced\nCode\n```'
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    expect(editor.lineType(0)).toMatch(/^TMCodeFence[A-Za-z]*Open$/);
+    for (let i = 1; i < editor.numLines() - 1; i++) {
+      expect(editor.lineType(i)).toMatch(/^TMFencedCode[A-Za-z]*$/);
+    }
+    expect(editor.lineType(editor.numLines()-1)).toMatch(/^TMCodeFence[A-Za-z]*Close$/);
+    expect(editor.lineHTML(0)).toMatch(classTagRegExp('javascript', 'TMInfoString'));
+  }
+});
+
+test('Opening and closing fence must match: ```\\ncode\\n~~~\\nstill\\n```', () => {
+  const testCases = [
+    '```\ncode\n~~~\ncode\n```',
+    '~~~\ncode\n```\ncode\n~~~',
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    expect(editor.lineType(0)).toMatch(/^TMCodeFence[A-Za-z]*Open$/);
+    for (let i = 1; i < editor.numLines() - 1; i++) {
+      expect(editor.lineType(i)).toMatch(/^TMFencedCode[A-Za-z]*$/);
+    }
+    expect(editor.lineType(editor.numLines()-1)).toMatch(/^TMCodeFence[A-Za-z]*Close$/);
+  }
+});
+
+test('Info string for backtick fenced code can\'t contain backtick: ```js`\\nThis is not code\\n```', () => {
+  const editor = initTinyMDE('```javascript`\nThis is not code\n```');
+  expect(editor.lineType(0)).toMatch('TMPara');
+  expect(editor.lineType(1)).toMatch('TMPara');
+});
+
+
+// TODO this test should currently fail, but doesn't
+test('Closing code fence can\'t contain info string: ```js\\nthis.is();\\ncode = {};\\n```', () => {
+  const testCases = [
+    '~~~\nFenced\~~~still\nhere\n~~~',
+    '```\nFenced\```still\nhere\n```',
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    expect(editor.lineType(0)).toMatch(/^TMCodeFence[A-Za-z]*Open$/);
+    for (let i = 1; i < editor.numLines() - 1; i++) {
+      expect(editor.lineType(i)).toMatch(/^TMFencedCode[A-Za-z]*$/);
+    }
+    expect(editor.lineType(editor.numLines()-1)).toMatch(/^TMCodeFence[A-Za-z]*Close$/);
+  }
+});
+
+test('Empty fenced code includes a <br>: ~~~\\n\\n~~~', () => {
+  const testCases = [
+    '~~~\n\n~~~',
+    '```\n\n```',
+  ];
+  for (let testCase of testCases) {
+    expect(initTinyMDE(testCase).lineHTML(1)).toMatch(/<br[^>]*>/);
+  }
+});
+
+
+// Link reference definition  -----------------------------------------------------------------------------------
 
 test('Link reference definition cannot interrupt a paragraph: Paragraph\\n[ref]: (Not a ref definition)', () => {
   // Paragraphs contained in: TMPara, TMUL, TMOL, TMBlockquote
