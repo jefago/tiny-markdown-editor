@@ -255,8 +255,6 @@ test('Closing code fence has to be same length or longer than opening: `````\\nc
   }
 });
 
-// TODO # backticks needs to be closing  >= opening
-
 test('Empty fenced code includes a <br>: ~~~\\n\\n~~~', () => {
   const testCases = [
     '~~~\n\n~~~',
