@@ -84,8 +84,8 @@ class TinyMDE {
    */
   setContent(content) {
     // Delete any existing content
-    for (let e of this.lineElements) {
-      e.parentElement.removeChild(e);
+    while (this.e.firstChild) {
+      this.e.removeChild(this.e.firstChild);
     }
     this.lineElements = [];
 
