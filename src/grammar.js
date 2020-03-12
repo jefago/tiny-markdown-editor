@@ -61,16 +61,16 @@ const lineGrammar = {
     replacement: '<span class="TMMark TMMark_TMBlockquote">$1</span>$$2'
   },
   TMCodeFenceBacktickOpen: { 
-    regexp: /^( {0,3}```).*$/, 
-    replacement: '<span class="TMMark TMMark_TMCodeFenceBacktick">$0</span>'
+    regexp: /^( {0,3}```\s*)([^`]*?)(\s*)$/, 
+    replacement: '<span class="TMMark TMMark_TMCodeFenceBacktick">$1</span><span class="TMInfoString">$2</span>$3'
   },
   TMCodeFenceTildeOpen: { 
-    regexp: /^( {0,3}~~~).*$/, 
-    replacement: '<span class="TMMark TMMark_TMCodeFenceTilde">$0</span>'
+    regexp: /^( {0,3}~~~\s*)(.*?)(\s*)$/, 
+    replacement: '<span class="TMMark TMMark_TMCodeFenceTilde">$1</span><span class="TMInfoString">$2</span>$3'
   },
   TMBlankLine: { 
     regexp: /^([ \t]*)$/, 
-    replacement: '$0<br>'
+    replacement: '$0'
   },
   TMSetextH1Marker: { 
     regexp: /^ {0,3}=+\s*$/, 

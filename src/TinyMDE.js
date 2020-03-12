@@ -155,8 +155,9 @@ class TinyMDE {
    */
   applyLineTypes() {
     for (let lineNum = 0; lineNum < this.lines.length; lineNum++) {
+      let contentHTML = this.replace(this.lineReplacements[lineNum], this.lineCaptures[lineNum]);
       this.lineElements[lineNum].className = this.lineTypes[lineNum];
-      this.lineElements[lineNum].innerHTML = this.replace(this.lineReplacements[lineNum], this.lineCaptures[lineNum]);
+      this.lineElements[lineNum].innerHTML = (contentHTML == '' ? '<br />' : contentHTML); // Prevent empty elements which can't be selected etc.
     }    
   }
 
