@@ -85,11 +85,11 @@ const lineGrammar = {
     replacement: '<span class="TMMark TMMark_TMHR">$0</span>'
   },
   TMUL: { 
-    regexp: /^( {0,3}[+*-] )(.*)$/, 
+    regexp: /^( {0,3}[+*-] {1,4})(.*)$/, 
     replacement: '<span class="TMMark TMMark_TMUL">$1</span>$$2'
   },
   TMOL: { 
-    regexp: /^( {0,3}\d{1,9}[.)] )(.*)$/, 
+    regexp: /^( {0,3}\d{1,9}[.)] {1,4})(.*)$/, 
     replacement: '<span class="TMMark TMMark_TMOL">$1</span>$$2'
   },
   TMIndentedCode: { 
