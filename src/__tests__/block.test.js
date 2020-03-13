@@ -346,6 +346,142 @@ test('Invalid link reference definitions not recognized as such', () => {
   }
 })
 
+// HTML Block --------------------------------------------------------------------
+
+test('HTML block: script, pre, style recognized (case 1): <script>', () => {
+  const testCases = [
+    '   <script>\nXXXA\nXXXB </script>\nXXXC', 
+    '<SCRIPT type="text/javascript">XXXA</SCRiPT> XXXD\nXXXC', 
+    '   <pre>\nXXXA\nXXXB </pre>\nXXXC', 
+    '<PRE class="abc">XXXA</pRe> XXXB\nXXXC', 
+    '   <style>\nXXXA\nXXXB </style>\nXXXC', 
+    '<STYLE type="text/css">XXXA</STyLE>XXXB\nXXXC', 
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    for (let l = 0; l < editor.numLines() - 1; l++) {
+      expect(editor.lineType(l)).toMatch('TMHTMLBlock');
+    }
+    expect(editor.lineType(editor.numLines() - 1)).not.toMatch('TMHTMLBlock');
+  }
+});
+
+test('HTML block: comment (case 2): <!-- -->', () => {
+  const testCases = [
+    '<!-- Comment -->\nXXXC', 
+    '   <!-- \n Comment \n-->\nXXXC', 
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    for (let l = 0; l < editor.numLines() - 1; l++) {
+      expect(editor.lineType(l)).toMatch('TMHTMLBlock');
+    }
+    expect(editor.lineType(editor.numLines() - 1)).not.toMatch('TMHTMLBlock');
+  }
+});
+
+test('HTML block: processing instruction (case 3): <!-- -->', () => {
+  const testCases = [
+    '<? Processing instruction ?>\nXXXC', 
+    '   <? \n Processing instruction \n?>\nXXXC', 
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    for (let l = 0; l < editor.numLines() - 1; l++) {
+      expect(editor.lineType(l)).toMatch('TMHTMLBlock');
+    }
+    expect(editor.lineType(editor.numLines() - 1)).not.toMatch('TMHTMLBlock');
+  }
+});
+
+test('HTML block: document type (case 4): <!DOCTYPE html>', () => {
+  const testCases = [
+    '<!DOCTYPE html>\nXXXC', 
+    '   <!X \n Document type \n>\nXXXC', 
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    for (let l = 0; l < editor.numLines() - 1; l++) {
+      expect(editor.lineType(l)).toMatch('TMHTMLBlock');
+    }
+    expect(editor.lineType(editor.numLines() - 1)).not.toMatch('TMHTMLBlock');
+  }
+});
+
+test('HTML block: CDATA (case 5): <![CDATA[ ]]>', () => {
+  const testCases = [
+    '<![CDATA[ XXXA ]]>\nXXXC', 
+    '   <![CDATA[\nXXXA\nXXXB]]>XXXC\nXXXD', 
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    for (let l = 0; l < editor.numLines() - 1; l++) {
+      expect(editor.lineType(l)).toMatch('TMHTMLBlock');
+    }
+    expect(editor.lineType(editor.numLines() - 1)).not.toMatch('TMHTMLBlock');
+  }
+});
+
+test('HTML block: Specific HTML tag (case 6): <p> </p>', () => {
+  const testCases = [
+    '<p class="abc">\nXXXA\nXXXB\n', 
+    '   </HTML>XXXZ\nXXXA\nXXXB\n', 
+    '<br/>\n',
+    '<mAiN\nXXXA\nXXXB\n'
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    for (let l = 0; l < editor.numLines() - 1; l++) {
+      expect(editor.lineType(l)).toMatch('TMHTMLBlock');
+    }
+    expect(editor.lineType(editor.numLines() - 1)).not.toMatch('TMHTMLBlock');
+  }
+});
+
+test('HTML block: Generic tag (case 7): <ab-33>', () => {
+  const testCases = [
+    '<ab-33 class="abc">\nXXXA\nXXXB\n', 
+    // '   </W00T >\nXXXZ\nXXXA\nXXXB\n', 
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    for (let l = 0; l < editor.numLines() - 1; l++) {
+      expect(editor.lineType(l)).toMatch('TMHTMLBlock');
+    }
+    expect(editor.lineType(editor.numLines() - 1)).not.toMatch('TMHTMLBlock');
+  }
+});
+
+test('HTML block: Cases 1-6 can interrupt a paragraph', () => {
+  const testCases = [
+    'XXXA\n<script>',
+    'XXXA\n<!--',
+    'XXXA\n<?',
+    'XXXA\n<!DOCTYPE',
+    'XXXA\n<![CDATA[',
+    'XXXA\n<p>'
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    expect(editor.lineType(1)).toMatch('TMHTMLBlock');
+  }
+});
+
+test('HTML block: Case 7 can\'t interrupt a paragraph', () => {
+  const testCases = [
+    'XXXA\n<bla>',
+    '> XXXA\n<bla>',
+    '- XXXA\n<bla>',
+    '1. XXXA\n<bla>',
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    expect(editor.lineType(1)).not.toMatch('TMHTMLBlock');
+  }
+});
+
+
+
 // TODO Make this test pass
 // test('Indented lines following list item continue that list item: 1. Text\\n   continued', () => {
 //   const cases = [

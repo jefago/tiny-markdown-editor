@@ -19,6 +19,7 @@ const replacements = {
   HTMLCDATA: /<!\[CDATA\[.*?\]\]>/,
   HTMLAttribute: /\s+[A-Za-z_:][A-Za-z0-9_.:-]*(?:HTMLAttValue)?/,
   HTMLAttValue: /\s*=\s*(?:(?:'[^']*')|(?:"[^"]*")|(?:[^\s"'=<>`]+))/,
+  KnownTag: /address|article|aside|base|basefont|blockquote|body|caption|center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|h1|h2|h3|h4|h5|h6|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|nav|noframes|ol|optgroup|option|p|param|section|source|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul/
 }
 
 // From CommonMark.js. 
@@ -112,6 +113,18 @@ const lineGrammar = {
   }
 };
 
+/**
+ * HTML blocks have multiple different classes of opener and closer. This array defines all the cases
+ */
+var htmlBlockGrammar = [
+  { start: /^ {0,3}<(?:script|pre|style)(?:\s|>|$)/i, end: /(?:<\/script>|<\/pre>|<\/style>)/i, paraInterrupt: true },
+  { start: /^ {0,3}<!--/, end: /-->/, paraInterrupt: true },
+  { start: /^ {0,3}<\?/, end: /\?>/, paraInterrupt: true },
+  { start: /^ {0,3}<![A-Z]/, end: />/, paraInterrupt : true},
+  { start: /^ {0,3}<!\[CDATA\[/, end: /\]\]>/, paraInterrupt : true},
+  { start: /^ {0,3}(?:<|<\/)(?:KnownTag)(?:\s|>|\/>|$)/i, end: false, paraInterrupt: true},
+  { start: /^ {0,3}(?:HTMLOpenTag|HTMLCloseTag)\s*$/, end: false, paraInterrupt: false},
+];
 
 /**
  * Structure of the object:
@@ -155,15 +168,27 @@ var inlineGrammar = {
 };
 
 // Process replacements in regexps
-const rules =[...Object.keys(inlineGrammar)];
 const replacementRegexp = new RegExp(Object.keys(replacements).join('|'));
-for (let rule of rules) {
+
+// Inline
+const inlineRules =[...Object.keys(inlineGrammar)];
+for (let rule of inlineRules) {
   let re = inlineGrammar[rule].regexp.source;
   // Replace while there is something to replace. This means it also works over multiple levels (replacements containing replacements)
   while (re.match(replacementRegexp)) {
     re = re.replace(replacementRegexp, (string) => { return replacements[string].source; });
   }
   inlineGrammar[rule].regexp = new RegExp(re, inlineGrammar[rule].regexp.flags);
+};
+
+// HTML Block (only opening rule is processed currently)
+for (let rule of htmlBlockGrammar) {
+  let re = rule.start.source;
+  // Replace while there is something to replace. This means it also works over multiple levels (replacements containing replacements)
+  while (re.match(replacementRegexp)) {
+    re = re.replace(replacementRegexp, (string) => { return replacements[string].source; });
+  }
+  rule.start = new RegExp(re, rule.start.flags);
 };
 
 /**
@@ -178,4 +203,4 @@ function htmlescape(string) {
     .replace(/>/g, '&gt;');
 }
 
-export { lineGrammar, inlineGrammar, punctuationLeading, punctuationTrailing, htmlescape };
+export { lineGrammar, inlineGrammar, punctuationLeading, punctuationTrailing, htmlescape, htmlBlockGrammar };

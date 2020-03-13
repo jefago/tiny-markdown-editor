@@ -1,4 +1,4 @@
-import { inlineGrammar, lineGrammar, punctuationLeading, punctuationTrailing, htmlescape } from "./grammar";
+import { inlineGrammar, lineGrammar, punctuationLeading, punctuationTrailing, htmlescape, htmlBlockGrammar } from "./grammar";
 
 function stringifyObject(event) {
   let keys = [];
@@ -169,6 +169,8 @@ class TinyMDE {
   updateLineTypes() {
     let codeBlockType = false;
     let codeBlockSeqLength = 0;
+    let htmlBlock = false;
+
     for (let lineNum = 0; lineNum < this.lines.length; lineNum++) {
       let lineType = 'TMPara';
       let lineCapture = [this.lines[lineNum]];
@@ -208,6 +210,38 @@ class TinyMDE {
         } 
       }
 
+      // Check HTML block types
+      if (lineType == 'TMPara' && htmlBlock === false) {
+        for (let htmlBlockType of htmlBlockGrammar) {
+          if (this.lines[lineNum].match(htmlBlockType.start)) {
+            // Matching start condition. Check if this tag can start here (not all start conditions allow breaking a paragraph).
+            if (htmlBlockType.paraInterrupt || lineNum == 0 || !(this.lineTypes[lineNum-1] == 'TMPara' || this.lineTypes[lineNum-1] == 'TMUL' || this.lineTypes[lineNum-1] == 'TMOL' || this.lineTypes[lineNum-1] == 'TMBlockquote')) {
+              htmlBlock = htmlBlockType;
+              break;
+            }
+          }
+        }
+      }
+
+      if (htmlBlock !== false) {
+        lineType = 'TMHTMLBlock';
+        lineReplacement = '$0'; // No formatting in TMHTMLBlock
+        lineCapture = [this.lines[lineNum]]; // This should already be set but better safe than sorry
+
+        // Check if HTML block should be closed
+        if (htmlBlock.end) {
+          // Specific end condition
+          if (this.lines[lineNum].match(htmlBlock.end)) {
+            htmlBlock = false;
+          }
+        } else {
+          // No specific end condition, ends with blank line
+          if (lineNum == this.lines.length - 1 || this.lines[lineNum+1].match(lineGrammar.TMBlankLine.regexp)) {
+            htmlBlock = false;
+          }
+        }
+      }
+
       // Check all regexps if we haven't applied one of the code block types
       if (lineType == 'TMPara') {
         for (let type in lineGrammar) {
@@ -220,6 +254,8 @@ class TinyMDE {
           }
         }
       }
+
+     
 
       // If we've opened a code block, remember that
       if (lineType == 'TMCodeFenceBacktickOpen' || lineType == 'TMCodeFenceTildeOpen') {

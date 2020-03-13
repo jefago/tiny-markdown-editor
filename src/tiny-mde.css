@@ -131,8 +131,12 @@
   z-index:0;
 }
 
-.TMHTML {
+.TMHTML, .TMHTMLBlock {
   font-family:monospace;
   font-size:.9em;
   color:#8000ff;
+}
+
+.TMHTMLBlock {
+  color:#6000c0;
 }
