@@ -297,6 +297,54 @@ test('Link reference definition can follow after non-paragraph: # Heading\\n[ref
   }
 });
 
+test('Empty link reference definitions work', () => {
+  const testCases = [
+    '[ref]:',
+    '[ref]:""',
+    '[ref]:\'\'',
+    '[ref]:()',
+    '[ref]:<>',
+    '[ref]:<>""',
+    '[ref]:<>\'\'',
+    '[ref]:<>()',
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    expect(editor.lineType(0)).toMatch('TMLinkReferenceDefinition');
+  }
+});
+
+test('Escaping works in link destination and title of reference definition', () => {
+  const testCases = [
+    ['[ref]: <\\>>', '<\\>>', ''],
+    ['[ref]: XXXA "\\""', 'XXXA', '"\\""'],
+    ['[ref]: XXXA \'\\\'\'', 'XXXA', `'\\''`],
+    ['[ref]: XXXA (\\))', 'XXXA', '(\\))'],
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase[0]);
+    expect(editor.lineType(0)).toMatch('TMLinkReferenceDefinition');
+    expect(editor.lineHTML(0)).toMatch(classTagRegExp(testCase[1], 'TMLinkDestination'));
+    expect(editor.lineHTML(0)).toMatch(classTagRegExp(testCase[2], 'TMLinkTitle'));
+  }
+});
+
+test('Invalid link reference definitions not recognized as such', () => {
+  const testCases = [
+    '[ref]: A B', // Link destinations with whitespace need to be enclosed in <>
+    '[ref]: <A B \\>', // Closing angle bracket is escaped
+    '[ref] : XXXA', // No whitespace allowed after link label
+    '[ref]: XXXA (XXXA\\)', // Closing parenthesis is escaped
+    '[ref]: XXXA "XXXA\\"', // Closing quote is escaped
+    '[ref]: XXXA \'XXXA\\\'', // Closing quote is escaped
+    '[ref]: XXXA>', // Destination may not include < or >
+    '[ref]: XXXA "XXXB\'', // Delimiters of title have to be matched
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    expect(editor.lineType(0)).not.toMatch('TMLinkReferenceDefinition');
+  }
+})
 
 // TODO Make this test pass
 // test('Indented lines following list item continue that list item: 1. Text\\n   continued', () => {
