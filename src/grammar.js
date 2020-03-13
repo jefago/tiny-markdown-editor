@@ -106,7 +106,7 @@ const lineGrammar = {
   },
   TMLinkReferenceDefinition: {
     // TODO: Link destination can't include unbalanced parantheses, but we just ignore that here 
-    regexp: /^( {0,3}\[\s*)([^\s\]](?:[^\]]|\\\])*?)(\s*\]:\s*)((?:[^\s<]\S*)|(?:<(?:[^<>]|\\<|\\>)*>))?(\s*)((?:\((?:[^\(\(]|\\(|\\))*\))|(?:"(?:[^"]|\\")*")|(?:'(?:[^']|\\')*'))?(\s*)$/, // TODO the rest of the line can't quite have "any" format
+    regexp: /^( {0,3}\[\s*)([^\s\]](?:[^\]]|\\\])*?)(\s*\]:\s*)((?:[^\s<]\S*)|(?:<(?:[^<>\\]|\\.)*>))?(\s*)((?:\((?:[^\(\(\\]|\\.)*\))|(?:"(?:[^"\\]|\\.)*")|(?:'(?:[^'\\]|\\.)*'))?(\s*)$/, // TODO the rest of the line can't quite have "any" format
     replacement: '<span class="TMMark TMMark_TMLinkReferenceDefinition">$1</span><span class="TMLinkLabel TMLinkLabel_Definition">$2</span><span class="TMMark TMMark_TMLinkReferenceDefinition">$3</span><span class="TMLinkDestination">$4</span>$5<span class="TMLinkTitle">$6</span>$7',
     labelPlaceholder: 2 // this defines which placeholder in the above regex is the link "label"
   }
