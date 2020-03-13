@@ -98,8 +98,7 @@ test('Setext H1 marker after blank line is invalid: \\n\\n==', () => {
 });
 
 test('Setext H1 marker after the following blocks is invalid: code fence, ATX heading, block quote, thematic break, list item, or HTML block', () => {
-  // TODO Add HTML block
-  const previousBlocks = ['```\nXXXA\n```\n', '# XXXA\n', '> XXXA\n', '---\n', '- XXXA\n'];
+  const previousBlocks = ['```\nXXXA\n```\n', '# XXXA\n', '> XXXA\n', '---\n', '- XXXA\n', '<!-- Comment -->'];
   for (let block of previousBlocks) {
     let editor = initTinyMDE(`${block}===`);
     expect(editor.lineType(editor.numLines() - 1)).not.toMatch('TMSetextH1Marker');
@@ -158,7 +157,7 @@ test('Indented code can follow after non-paragraph: # Heading\\n    code', () =>
   const testCases = [
     '# Heading\n    Code',
     'Setext heading\n====\n    Code',
-    // '<pre>HTML block</pre>\n    Code', // TODO
+    '<pre>HTML block</pre>\n    Code', 
     '---\n    Code',
     '~~~\nFenced code\n~~~\n    Code',
     '[ref]: https://abc.de\n    Code',
@@ -286,7 +285,7 @@ test('Link reference definition can follow after non-paragraph: # Heading\\n[ref
   const testCases = [
     '# Heading\n[ref]: https://abc.de',
     'Setext heading\n====\n[ref]: https://abc.de',
-    // '<pre>HTML block</pre>\n[ref]: https://abc.de', // TODO
+    '<pre>HTML block</pre>\n[ref]: https://abc.de', 
     '---\n[ref]: https://abc.de',
     '~~~\nFenced code\n~~~\n[ref]: https://abc.de',
     '    Link reference definition\n[ref]: https://abc.de',
@@ -441,7 +440,7 @@ test('HTML block: Specific HTML tag (case 6): <p> </p>', () => {
 test('HTML block: Generic tag (case 7): <ab-33>', () => {
   const testCases = [
     '<ab-33 class="abc">\nXXXA\nXXXB\n', 
-    // '   </W00T >\nXXXZ\nXXXA\nXXXB\n', 
+    '   </W00T >\nXXXZ\nXXXA\nXXXB\n', 
   ];
   for (let testCase of testCases) {
     const editor = initTinyMDE(testCase);
