@@ -160,48 +160,47 @@ test('Code span binds more strongly than inline link: [this `code]()>`', () => {
 
 test(`HTML open tag recognized: <a foo="bar" bam = 'baz <em>"</em>' _boolean zoop:33=zoop:33 />`, () => {
   let html = `<a foo="bar" bam = 'baz <em>"</em>' _boolean zoop:33=zoop:33 />`;
-  let match = `<span[^>]*class\\s*=\\s*["']?[^"'>]*TMHTML[^>]*>${htmlescape(html)}<\\/span>`
-  expect(initTinyMDE(html).lineHTML(0)).toMatch(htmlRegExp(html));
+  expect(initTinyMDE(`XXXA ${html}`).lineHTML(0)).toMatch(htmlRegExp(html));
 })
 
 test(`Invalid HTML open tags NOT recognized: <__> <33> <a h*ref="hi"> <a href="hi'> <a href=hi'> < a> <a/ > <foo bar=baz bim!bop /> <a href='a'title=title>`, () => {
-  let html = `<__> <33> <a h*ref="hi"> <a href="hi'> <a href=hi'> < a> <a/ > <foo bar=baz bim!bop /> <a href='a'title=title>`;
+  let html = `XXXA <__> <33> <a h*ref="hi"> <a href="hi'> <a href=hi'> < a> <a/ > <foo bar=baz bim!bop /> <a href='a'title=title>`;
   expect(initTinyMDE(html).lineHTML(0)).not.toMatch('TMHTML');
 })
 
 test(`HTML close tag recognized: </html>`, () => {
-  expect(initTinyMDE('</XXXA>').lineHTML(0)).toMatch(htmlRegExp('</XXXA>'));
+  expect(initTinyMDE('XXXA </XXXA>').lineHTML(0)).toMatch(htmlRegExp('</XXXA>'));
 });
 
 test('HTML close tag can\'t have attributes: </tag a="b">', () => {
-  expect(initTinyMDE('</tag a="b">').lineHTML(0)).not.toMatch('TMHTML');
+  expect(initTinyMDE('XXXA </tag a="b">').lineHTML(0)).not.toMatch('TMHTML');
 });
 
 test(`HTML comments recognized: <!--comment--> `, () => {
-  expect(initTinyMDE('<!--XXXA-->').lineHTML(0)).toMatch(htmlRegExp('<!--XXXA-->'));
+  expect(initTinyMDE('XXXA <!--XXXA-->').lineHTML(0)).toMatch(htmlRegExp('<!--XXXA-->'));
 });
 
 test('Invalid HTML comments NOT recognized: <!-- not -- valid -->, <!---->', () => {
-  expect(initTinyMDE('<!-- not -- valid --> <!---->').lineHTML(0)).not.toMatch('TMHTML');
+  expect(initTinyMDE('XXXA <!-- not -- valid --> <!---->').lineHTML(0)).not.toMatch('TMHTML');
 });
 
 test('HTML processing instructions recognized: <? instruction ?>', () => {
-  expect(initTinyMDE('<?XXXA?>').lineHTML(0)).toMatch(htmlRegExp('<?XXXA?>'));
+  expect(initTinyMDE('XXXA <?XXXA?>').lineHTML(0)).toMatch(htmlRegExp('<?XXXA?>'));
 });
 
 test(`HTML declarations recognized:  <!DOCTYPE html>, <!DECLARE >, <!DO the OK@#( fwekof'230-2= πππ>`, () => {
   let tests = [`<!DOCTYPE html>`, `<!DECLARE >`, `<!DO the OK@#( fwekof'230-2= πππ>`];
   for (let test of tests) {
-    expect(initTinyMDE(test).lineHTML(0)).toMatch(htmlRegExp(test));
+    expect(initTinyMDE(`XXXA ${test}`).lineHTML(0)).toMatch(htmlRegExp(test));
   }
 });
 
 test(`Invalid HTML declaration NOT recognized: <!DOCTYPE>`, () => {
-  expect(initTinyMDE('<!DOCTYPE>').lineHTML(0)).not.toMatch('TMHTML');
+  expect(initTinyMDE('XXXA <!DOCTYPE>').lineHTML(0)).not.toMatch('TMHTML');
 });
 
 test(`HTML CDATA section recognized: <![CDATA[A]]B]]>`, () => {
-  expect(initTinyMDE('<![CDATA[A]]B]]>').lineHTML(0)).toMatch(htmlRegExp('<![CDATA[A]]B]]>'));
+  expect(initTinyMDE('XXXA <![CDATA[A]]B]]>').lineHTML(0)).toMatch(htmlRegExp('<![CDATA[A]]B]]>'));
 });
 
 test(`Email autolinks recognized: <abc@def.gh>`, () => {
