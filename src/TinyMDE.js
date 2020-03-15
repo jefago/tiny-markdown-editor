@@ -320,7 +320,11 @@ class TinyMDE {
     }
   }
 
+  /**
+   * Updates all line contents from the HTML, then re-applies formatting.
+   */
   updateLineContentsAndFormatting() {
+    // TODO: Only update all line types if current line's type has changed, otherwise, just re-process replacement for current line
     if (this.updateLineContents()) {
       this.updateFormatting();
     }
