@@ -6,7 +6,7 @@
 
 // }
 const replacements = {
-  ASCIIPunctuation: /[!"#$%&'()*+,\-\.\/:;<=>\?@\[\]^_`\{\|\}~]/,
+  ASCIIPunctuation: /[!"#$%&'()*+,\-\.\/:;<=>\?@\[\]^_`\{\|\}~\\]/,  // TODO test that backslash doesn't break anything
   NotTriggerChar: /[^`_*\[\]()<>!~]/,
   Scheme: /[A-Za-z][A-Za-z0-9\+\.\-]{1,31}/,
   Email: /[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*/, // From CommonMark spec
@@ -19,6 +19,7 @@ const replacements = {
   HTMLCDATA: /<!\[CDATA\[.*?\]\]>/,
   HTMLAttribute: /\s+[A-Za-z_:][A-Za-z0-9_.:-]*(?:HTMLAttValue)?/,
   HTMLAttValue: /\s*=\s*(?:(?:'[^']*')|(?:"[^"]*")|(?:[^\s"'=<>`]+))/,
+  KnownTag: /address|article|aside|base|basefont|blockquote|body|caption|center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|h1|h2|h3|h4|h5|h6|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|nav|noframes|ol|optgroup|option|p|param|section|source|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul/
 }
 
 // From CommonMark.js. 
@@ -33,44 +34,52 @@ const punctuationTrailing = new RegExp(/(?:[!"#$%&'()*+,\-./:;<=>?@\[\]\\^_`{|}~
  */ 
 const lineGrammar = { 
   TMH1: { 
-    regexp: /^( {0,3}#)((?:\s+)(?:.*?))((?:#\s*)?)$/, 
+    regexp: /^( {0,3}#)((?:\s+)(?:.*?))((?:\s+#+\s*)?)$/, 
     replacement: '<span class="TMMark TMMark_TMH1">$1</span>$$2<span class="TMMark TMMark_TMH1">$3</span>'
   },
   TMH2: { 
-    regexp: /^( {0,3}##)((?:\s+)(?:.*?))((?:##\s*)?)$/, 
+    regexp: /^( {0,3}##)((?:\s+)(?:.*?))((?:\s+#+\s*)?)$/, 
     replacement: '<span class="TMMark TMMark_TMH2">$1</span>$$2<span class="TMMark TMMark_TMH2">$3</span>'
   },
   TMH3: { 
-    regexp: /^( {0,3}###)((?:\s+)(?:.*?))((?:###\s*)?)$/, 
+    regexp: /^( {0,3}###)((?:\s+)(?:.*?))((?:\s+#+\s*)?)$/, 
     replacement: '<span class="TMMark TMMark_TMH3">$1</span>$$2<span class="TMMark TMMark_TMH3">$3</span>'
   },
   TMH4: { 
-    regexp: /^( {0,3}####)((?:\s+)(?:.*?))((?:####\s*)?)$/, 
+    regexp: /^( {0,3}####)((?:\s+)(?:.*?))((?:\s+#+\s*)?)$/, 
     replacement: '<span class="TMMark TMMark_TMH4">$1</span>$$2<span class="TMMark TMMark_TMH4">$3</span>'
   },
   TMH5: { 
-    regexp: /^( {0,3}#####)((?:\s+)(?:.*?))((?:#####\s*)?)$/, 
+    regexp: /^( {0,3}#####)((?:\s+)(?:.*?))((?:\s+#+\s*)?)$/, 
     replacement: '<span class="TMMark TMMark_TMH5">$1</span>$$2<span class="TMMark TMMark_TMH5">$3</span>'
   },
   TMH6: { 
-    regexp: /^( {0,3}######)((?:\s+)(?:.*?))((?:######\s*)?)$/, 
+    regexp: /^( {0,3}######)((?:\s+)(?:.*?))((?:\s+#+\s*)?)$/, 
     replacement: '<span class="TMMark TMMark_TMH6">$1</span>$$2<span class="TMMark TMMark_TMH6">$3</span>'
   },
   TMBlockquote: { 
-    regexp: /^( {0,3}>)( +.*)$/, 
+    regexp: /^( {0,3}>[ ]?)(.*)$/, 
     replacement: '<span class="TMMark TMMark_TMBlockquote">$1</span>$$2'
   },
   TMCodeFenceBacktickOpen: { 
-    regexp: /^( {0,3}```).*$/, 
-    replacement: '<span class="TMMark TMMark_TMCodeFenceBacktick">$0</span>'
+    regexp: /^( {0,3}(?<seq>````*)\s*)([^`]*?)(\s*)$/, 
+    replacement: '<span class="TMMark TMMark_TMCodeFenceBacktick">$1</span><span class="TMInfoString">$3</span>$4'
   },
   TMCodeFenceTildeOpen: { 
-    regexp: /^( {0,3}~~~).*$/, 
-    replacement: '<span class="TMMark TMMark_TMCodeFenceTilde">$0</span>'
+    regexp: /^( {0,3}(?<seq>~~~~*)\s*)(.*?)(\s*)$/, 
+    replacement: '<span class="TMMark TMMark_TMCodeFenceTilde">$1</span><span class="TMInfoString">$3</span>$4'
+  },
+  TMCodeFenceBacktickClose: { 
+    regexp: /^( {0,3}(?<seq>````*))(\s*)$/, 
+    replacement: '<span class="TMMark TMMark_TMCodeFenceBacktick">$1</span>$3'
+  },
+  TMCodeFenceTildeClose: { 
+    regexp: /^( {0,3}(?<seq>~~~~*))(\s*)$/, 
+    replacement: '<span class="TMMark TMMark_TMCodeFenceTilde">$1</span>$3'
   },
   TMBlankLine: { 
     regexp: /^([ \t]*)$/, 
-    replacement: '$0<br>'
+    replacement: '$0'
   },
   TMSetextH1Marker: { 
     regexp: /^ {0,3}=+\s*$/, 
@@ -85,24 +94,38 @@ const lineGrammar = {
     replacement: '<span class="TMMark TMMark_TMHR">$0</span>'
   },
   TMUL: { 
-    regexp: /^( {0,3}[+*-] )(.*)$/, 
+    regexp: /^( {0,3}[+*-] {1,4})(.*)$/, 
     replacement: '<span class="TMMark TMMark_TMUL">$1</span>$$2'
   },
   TMOL: { 
-    regexp: /^( {0,3}\d{1,9}[.)] )(.*)$/, 
+    regexp: /^( {0,3}\d{1,9}[.)] {1,4})(.*)$/, 
     replacement: '<span class="TMMark TMMark_TMOL">$1</span>$$2'
   },
+  // TODO: This is currently preventing sublists (and any content within list items, really) from working
   TMIndentedCode: { 
     regexp: /^(    |\t)(.*)$/, 
     replacement: '<span class="TMMark TMMark_TMIndentedCode">$1</span>$2'
   },
   TMLinkReferenceDefinition: {
-    regexp: /^( {0,3}\[\s*)([^\s\]](?:[^\]]|\\\])*?)(\s*\]:)(.*)$/, // TODO the rest of the line can't quite have "any" format
-    replacement: '<span class="TMMark TMMark_TMLinkReferenceDefinition">$1</span><span class="TMLinkLabel TMLinkLabel_Definition">$2</span><span class="TMMark TMMark_TMLinkReferenceDefinition">$3</span>$4',
+    // TODO: Link destination can't include unbalanced parantheses, but we just ignore that here 
+    regexp: /^( {0,3}\[\s*)([^\s\]](?:[^\]]|\\\])*?)(\s*\]:\s*)((?:[^\s<>]+)|(?:<(?:[^<>\\]|\\.)*>))?(\s*)((?:\((?:[^\(\)\\]|\\.)*\))|(?:"(?:[^"\\]|\\.)*")|(?:'(?:[^'\\]|\\.)*'))?(\s*)$/, 
+    replacement: '<span class="TMMark TMMark_TMLinkReferenceDefinition">$1</span><span class="TMLinkLabel TMLinkLabel_Definition">$2</span><span class="TMMark TMMark_TMLinkReferenceDefinition">$3</span><span class="TMLinkDestination">$4</span>$5<span class="TMLinkTitle">$6</span>$7',
     labelPlaceholder: 2 // this defines which placeholder in the above regex is the link "label"
   }
 };
 
+/**
+ * HTML blocks have multiple different classes of opener and closer. This array defines all the cases
+ */
+var htmlBlockGrammar = [
+  { start: /^ {0,3}<(?:script|pre|style)(?:\s|>|$)/i, end: /(?:<\/script>|<\/pre>|<\/style>)/i, paraInterrupt: true },
+  { start: /^ {0,3}<!--/, end: /-->/, paraInterrupt: true },
+  { start: /^ {0,3}<\?/, end: /\?>/, paraInterrupt: true },
+  { start: /^ {0,3}<![A-Z]/, end: />/, paraInterrupt : true},
+  { start: /^ {0,3}<!\[CDATA\[/, end: /\]\]>/, paraInterrupt : true},
+  { start: /^ {0,3}(?:<|<\/)(?:KnownTag)(?:\s|>|\/>|$)/i, end: false, paraInterrupt: true},
+  { start: /^ {0,3}(?:HTMLOpenTag|HTMLCloseTag)\s*$/, end: false, paraInterrupt: false},
+];
 
 /**
  * Structure of the object:
@@ -146,17 +169,27 @@ var inlineGrammar = {
 };
 
 // Process replacements in regexps
-const rules =[...Object.keys(inlineGrammar)];
 const replacementRegexp = new RegExp(Object.keys(replacements).join('|'));
-console.log(replacementRegexp.source);
-for (let rule of rules) {
+
+// Inline
+const inlineRules =[...Object.keys(inlineGrammar)];
+for (let rule of inlineRules) {
   let re = inlineGrammar[rule].regexp.source;
   // Replace while there is something to replace. This means it also works over multiple levels (replacements containing replacements)
   while (re.match(replacementRegexp)) {
     re = re.replace(replacementRegexp, (string) => { return replacements[string].source; });
   }
-  console.log(`${rule}: /${re}/${inlineGrammar[rule].regexp.flags}`);
   inlineGrammar[rule].regexp = new RegExp(re, inlineGrammar[rule].regexp.flags);
+};
+
+// HTML Block (only opening rule is processed currently)
+for (let rule of htmlBlockGrammar) {
+  let re = rule.start.source;
+  // Replace while there is something to replace. This means it also works over multiple levels (replacements containing replacements)
+  while (re.match(replacementRegexp)) {
+    re = re.replace(replacementRegexp, (string) => { return replacements[string].source; });
+  }
+  rule.start = new RegExp(re, rule.start.flags);
 };
 
 /**
@@ -171,4 +204,4 @@ function htmlescape(string) {
     .replace(/>/g, '&gt;');
 }
 
-export { lineGrammar, inlineGrammar, punctuationLeading, punctuationTrailing, htmlescape };
+export { lineGrammar, inlineGrammar, punctuationLeading, punctuationTrailing, htmlescape, htmlBlockGrammar };

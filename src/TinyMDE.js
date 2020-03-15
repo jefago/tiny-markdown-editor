@@ -1,4 +1,4 @@
-import { inlineGrammar, lineGrammar, punctuationLeading, punctuationTrailing, htmlescape } from "./grammar";
+import { inlineGrammar, lineGrammar, punctuationLeading, punctuationTrailing, htmlescape, htmlBlockGrammar } from "./grammar";
 
 function stringifyObject(event) {
   let keys = [];
@@ -84,8 +84,8 @@ class TinyMDE {
    */
   setContent(content) {
     // Delete any existing content
-    for (let e of this.lineElements) {
-      e.parentElement.removeChild(e);
+    while (this.e.firstChild) {
+      this.e.removeChild(this.e.firstChild);
     }
     this.lineElements = [];
 
@@ -97,6 +97,14 @@ class TinyMDE {
     }
     this.lineTypes = new Array(this.lines.length);
     this.updateFormatting();
+  }
+
+  /**
+   * Gets the editor content as a Markdown string.
+   * @returns {string} The editor content as a markdown string
+   */
+  getContent() {
+    return this.lines.join('\n');
   }
 
   /**
@@ -147,8 +155,9 @@ class TinyMDE {
    */
   applyLineTypes() {
     for (let lineNum = 0; lineNum < this.lines.length; lineNum++) {
+      let contentHTML = this.replace(this.lineReplacements[lineNum], this.lineCaptures[lineNum]);
       this.lineElements[lineNum].className = this.lineTypes[lineNum];
-      this.lineElements[lineNum].innerHTML = this.replace(this.lineReplacements[lineNum], this.lineCaptures[lineNum]);
+      this.lineElements[lineNum].innerHTML = (contentHTML == '' ? '<br />' : contentHTML); // Prevent empty elements which can't be selected etc.
     }    
   }
 
@@ -158,38 +167,79 @@ class TinyMDE {
    * Updates this.lineTypes, this.lineCaptures, and this.lineReplacements.
    */
   updateLineTypes() {
+    let codeBlockType = false;
+    let codeBlockSeqLength = 0;
+    let htmlBlock = false;
+
     for (let lineNum = 0; lineNum < this.lines.length; lineNum++) {
       let lineType = 'TMPara';
       let lineCapture = [this.lines[lineNum]];
       let lineReplacement = '$$0'; // Default replacement for paragraph: Inline format the entire line
 
+
       // Check ongoing code blocks
-      if (lineNum > 0 && (this.lineTypes[lineNum - 1] == 'TMCodeFenceBacktickOpen' || this.lineTypes[lineNum - 1] == 'TMFencedCodeBacktick')) {
+      // if (lineNum > 0 && (this.lineTypes[lineNum - 1] == 'TMCodeFenceBacktickOpen' || this.lineTypes[lineNum - 1] == 'TMFencedCodeBacktick')) {
+      if (codeBlockType == 'TMCodeFenceBacktickOpen') {
         // We're in a backtick-fenced code block, check if the current line closes it
-        let capture = lineGrammar.TMCodeFenceBacktickOpen.regexp.exec(this.lines[lineNum]);
-        if (capture) {
+        let capture = lineGrammar.TMCodeFenceBacktickClose.regexp.exec(this.lines[lineNum]);
+        if (capture && capture.groups['seq'].length >= codeBlockSeqLength) {
           lineType = 'TMCodeFenceBacktickClose';
-          lineReplacement = lineGrammar.TMCodeFenceBacktickOpen.replacement;
+          lineReplacement = lineGrammar.TMCodeFenceBacktickClose.replacement;
           lineCapture = capture;
+          codeBlockType = false;
         } else {
           lineType = 'TMFencedCodeBacktick';
           lineReplacement = '$0';
           lineCapture = [this.lines[lineNum]];
         } 
       }
-      if (lineNum > 0 && (this.lineTypes[lineNum - 1] == 'TMCodeFenceTildeOpen' || this.lineTypes[lineNum - 1] == 'TMFencedCodeTilde')) {
+      // if (lineNum > 0 && (this.lineTypes[lineNum - 1] == 'TMCodeFenceTildeOpen' || this.lineTypes[lineNum - 1] == 'TMFencedCodeTilde')) {
+      else if (codeBlockType == 'TMCodeFenceTildeOpen') {
         // We're in a tilde-fenced code block
-        let capture = lineGrammar.TMCodeFenceTildeOpen.regexp.exec(this.lines[lineNum]);
-        if (capture)  {
+        let capture = lineGrammar.TMCodeFenceTildeClose.regexp.exec(this.lines[lineNum]);
+        if (capture && capture.groups['seq'].length >= codeBlockSeqLength)  {
           lineType = 'TMCodeFenceTildeClose';
-          lineReplacement = lineGrammar.TMCodeFenceTildeOpen.replacement;
+          lineReplacement = lineGrammar.TMCodeFenceTildeClose.replacement;
           lineCapture = capture;
+          codeBlockType = false;
         }
         else {
           lineType = 'TMFencedCodeTilde';
           lineReplacement = '$0';
           lineCapture = [this.lines[lineNum]];
         } 
+      }
+
+      // Check HTML block types
+      if (lineType == 'TMPara' && htmlBlock === false) {
+        for (let htmlBlockType of htmlBlockGrammar) {
+          if (this.lines[lineNum].match(htmlBlockType.start)) {
+            // Matching start condition. Check if this tag can start here (not all start conditions allow breaking a paragraph).
+            if (htmlBlockType.paraInterrupt || lineNum == 0 || !(this.lineTypes[lineNum-1] == 'TMPara' || this.lineTypes[lineNum-1] == 'TMUL' || this.lineTypes[lineNum-1] == 'TMOL' || this.lineTypes[lineNum-1] == 'TMBlockquote')) {
+              htmlBlock = htmlBlockType;
+              break;
+            }
+          }
+        }
+      }
+
+      if (htmlBlock !== false) {
+        lineType = 'TMHTMLBlock';
+        lineReplacement = '$0'; // No formatting in TMHTMLBlock
+        lineCapture = [this.lines[lineNum]]; // This should already be set but better safe than sorry
+
+        // Check if HTML block should be closed
+        if (htmlBlock.end) {
+          // Specific end condition
+          if (this.lines[lineNum].match(htmlBlock.end)) {
+            htmlBlock = false;
+          }
+        } else {
+          // No specific end condition, ends with blank line
+          if (lineNum == this.lines.length - 1 || this.lines[lineNum+1].match(lineGrammar.TMBlankLine.regexp)) {
+            htmlBlock = false;
+          }
+        }
       }
 
       // Check all regexps if we haven't applied one of the code block types
@@ -203,6 +253,26 @@ class TinyMDE {
             break;
           }
         }
+      }
+
+     
+
+      // If we've opened a code block, remember that
+      if (lineType == 'TMCodeFenceBacktickOpen' || lineType == 'TMCodeFenceTildeOpen') {
+        codeBlockType = lineType;
+        codeBlockSeqLength = lineCapture.groups['seq'].length;
+      }
+
+      // Link reference definition and indented code can't interrupt a paragraph
+      if (
+        (lineType == 'TMIndentedCode' || lineType == 'TMLinkReferenceDefinition') 
+        && lineNum > 0 
+        && (this.lineTypes[lineNum-1] == 'TMPara' || this.lineTypes[lineNum-1] == 'TMUL' || this.lineTypes[lineNum-1] == 'TMOL' || this.lineTypes[lineNum-1] == 'TMBlockquote')
+      ) {
+        // Fall back to TMPara
+        lineType = 'TMPara';
+        lineCapture = [this.lines[lineNum]];
+        lineReplacement = '$$0';
       }
 
       // Setext H2 markers that can also be interpreted as an empty list item should be regarded as such (as per CommonMark spec)
@@ -240,7 +310,7 @@ class TinyMDE {
             this.lineCaptures[headingLine] = [this.lines[headingLine]];
 
             headingLine--;
-          } while(headingLine > 0 && this.lineTypes[headingLine] == 'TMPara'); 
+          } while(headingLine >= 0 && this.lineTypes[headingLine] == 'TMPara'); 
         }
       }
       // Lastly, save the line style to be applied later
@@ -279,7 +349,7 @@ class TinyMDE {
     let linkDetails = []; // If matched, this will be an array: [whitespace + link destination delimiter, link destination, link destination delimiter, whitespace, link title delimiter, link title, link title delimiter + whitespace]. All can be empty strings.
 
   
-    textOuter: while (currentOffset < originalString.length && !linkText) {
+    textOuter: while (currentOffset < originalString.length && linkText === false /* empty string is okay */) {
       let string = originalString.substr(currentOffset);
   
       // Capture any escapes and code blocks at current position, they bind more strongly than links
@@ -333,7 +403,7 @@ class TinyMDE {
     }
   
     // Did we find a link text (i.e., find a matching closing bracket?)
-    if (!linkText) return false; // Nope
+    if (linkText === false) return false; // Nope
   
     // So far, so good. We've got a valid link text. Let's see what type of link this is
     let nextChar = currentOffset < originalString.length ? originalString.substr(currentOffset, 1) : ''; 
@@ -531,7 +601,7 @@ class TinyMDE {
 
     }
 
-    if (linkRef) {
+    if (linkRef !== false) {
       // Ref link; check that linkRef is valid
       let valid = false;
       for (let label of this.linkLabels) {
@@ -564,7 +634,7 @@ class TinyMDE {
       }
 
       return {
-        output: `<span class="TMMark TMMark_${type}">${opener}</span><span class="${type}">${this.processInlineStyles(linkText)}</span><span class="TMMark TMMark_${type}">](${linkDetails[0]}</span><span class="TMLinkDestination">${linkDetails[1]}</span><span class="TMMark TMMark_${type}">${linkDetails[2]}${linkDetails[3]}${linkDetails[4]}</span><span class="TMLinkTitle">${linkDetails[5]}</span><span class="TMMark TMMark_${type}">${linkDetails[6]})</span>`,
+        output: `<span class="TMMark TMMark_${type}">${opener}</span><span class="${type}">${this.processInlineStyles(linkText)}</span><span class="TMMark TMMark_${type}">](${linkDetails[0]}</span><span class="${type}Destination">${linkDetails[1]}</span><span class="TMMark TMMark_${type}">${linkDetails[2]}${linkDetails[3]}${linkDetails[4]}</span><span class="${type}Title">${linkDetails[5]}</span><span class="TMMark TMMark_${type}">${linkDetails[6]})</span>`,
         charCount: currentOffset
       }
     }
@@ -903,18 +973,21 @@ class TinyMDE {
   // }
 
   log(message, details) {
-    let e = document.createElement('details');
-    let s = document.createElement('summary');
-    let t = document.createTextNode(message);
-    s.appendChild(t);
-    e.appendChild(s);
-    let c = document.createElement('code');
-    let p = document.createElement('pre');
-    t = document.createTextNode(details);
-    c.appendChild(t);
-    p.appendChild(c);
-    e.appendChild(p);
-    document.getElementById('log').appendChild(e);
+    // TODO Remove logging
+    if (document.getElementById('log')) {
+      let e = document.createElement('details');
+      let s = document.createElement('summary');
+      let t = document.createTextNode(message);
+      s.appendChild(t);
+      e.appendChild(s);
+      let c = document.createElement('code');
+      let p = document.createElement('pre');
+      t = document.createTextNode(details);
+      c.appendChild(t);
+      p.appendChild(c);
+      e.appendChild(p);
+      document.getElementById('log').appendChild(e);
+    }
     
   }
 
