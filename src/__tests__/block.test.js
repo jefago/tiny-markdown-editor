@@ -349,11 +349,11 @@ test('Invalid link reference definitions not recognized as such', () => {
 
 test('HTML block: script, pre, style recognized (case 1): <script>', () => {
   const testCases = [
-    '   <script>\nXXXA\nXXXB </script>\nXXXC', 
+    '   <script>\nXXXA\n\n\nXXXB </script>\nXXXC', 
     '<SCRIPT type="text/javascript">XXXA</SCRiPT> XXXD\nXXXC', 
-    '   <pre>\nXXXA\nXXXB </pre>\nXXXC', 
+    '   <pre>\nXXXA\n\n\nXXXB </pre>\nXXXC', 
     '<PRE class="abc">XXXA</pRe> XXXB\nXXXC', 
-    '   <style>\nXXXA\nXXXB </style>\nXXXC', 
+    '   <style>\nXXXA\n\n\nXXXB </style>\nXXXC', 
     '<STYLE type="text/css">XXXA</STyLE>XXXB\nXXXC', 
   ];
   for (let testCase of testCases) {
@@ -368,7 +368,7 @@ test('HTML block: script, pre, style recognized (case 1): <script>', () => {
 test('HTML block: comment (case 2): <!-- -->', () => {
   const testCases = [
     '<!-- Comment -->\nXXXC', 
-    '   <!-- \n Comment \n-->\nXXXC', 
+    '   <!-- \n Comment \n\n\n-->\nXXXC', 
   ];
   for (let testCase of testCases) {
     const editor = initTinyMDE(testCase);
@@ -382,7 +382,7 @@ test('HTML block: comment (case 2): <!-- -->', () => {
 test('HTML block: processing instruction (case 3): <!-- -->', () => {
   const testCases = [
     '<? Processing instruction ?>\nXXXC', 
-    '   <? \n Processing instruction \n?>\nXXXC', 
+    '   <? \n Processing instruction \n\n\n?>\nXXXC', 
   ];
   for (let testCase of testCases) {
     const editor = initTinyMDE(testCase);
@@ -396,7 +396,7 @@ test('HTML block: processing instruction (case 3): <!-- -->', () => {
 test('HTML block: document type (case 4): <!DOCTYPE html>', () => {
   const testCases = [
     '<!DOCTYPE html>\nXXXC', 
-    '   <!X \n Document type \n>\nXXXC', 
+    '   <!X \n Document type \n\n\n>\nXXXC', 
   ];
   for (let testCase of testCases) {
     const editor = initTinyMDE(testCase);
@@ -410,7 +410,7 @@ test('HTML block: document type (case 4): <!DOCTYPE html>', () => {
 test('HTML block: CDATA (case 5): <![CDATA[ ]]>', () => {
   const testCases = [
     '<![CDATA[ XXXA ]]>\nXXXC', 
-    '   <![CDATA[\nXXXA\nXXXB]]>XXXC\nXXXD', 
+    '   <![CDATA[\nXXXA\n\n\nXXXB]]>XXXC\nXXXD', 
   ];
   for (let testCase of testCases) {
     const editor = initTinyMDE(testCase);
@@ -479,7 +479,110 @@ test('HTML block: Case 7 can\'t interrupt a paragraph', () => {
   }
 });
 
+test('HTML block: Invalid cases not recognized', () => {
+  const testCases = [
+    '<bla', // Incomplete open tag
+    '<bla><p>', // Open tag not alone on its line
+    '    <p>', // Too much indentation
+    '</bla a="b">', // Invalid closing tag
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    expect(editor.lineType(0)).not.toMatch('TMHTMLBlock');
+  }
+});
 
+// List items -----------------------------------------------
+test('Simple unordered list items recognized: - item', () => {
+  const testCases = [
+    '- XXXA',
+    '   -    XXXA',
+    '* XXXA',
+    '   *    XXXA',
+    '+ XXXA',
+    '   +    XXXA',
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    expect(editor.lineType(0)).toMatch('TMUL');
+  }
+});
+
+
+
+test('Empty unordered list items recognized: - ', () => {
+  const testCases = [
+    '- ',
+    '   -    ',
+    '* ',
+    '   *    ',
+    '+ ',
+    '   +    ',
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    expect(editor.lineType(0)).toMatch('TMUL');
+  }
+});
+
+test('Simple ordered list items recognized: 1. item', () => {
+  const testCases = [
+    '1. XXXA',
+    '   123456789.    XXXA',
+    '0. XXXA',
+    '1) XXXA',
+    '   123456789)    XXXA',
+    '0) XXXA',
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    expect(editor.lineType(0)).toMatch('TMOL');
+  }
+});
+
+test('Empty ordered list items recognized: 1. ', () => {
+  const testCases = [
+    '1. ',
+    '   123456789.    ',
+    '0. ',
+    '1) ',
+    '   123456789)    ',
+    '0) ',
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    expect(editor.lineType(0)).toMatch('TMOL');
+  }
+});
+
+test('Line item content parsed as Markdown: - *em*', () => {
+  const testCases = [
+    '- *XXXA*',
+    '* *XXXA*',
+    '+ *XXXA*',
+    '1) *XXXA*',
+    '1. *XXXA*',
+  ];
+  for (let testCase of testCases) {
+    const editor = initTinyMDE(testCase);
+    expect(editor.lineType(0)).toMatch(/TM[OU]L/);
+    expect(editor.lineHTML(0)).toMatch(classTagRegExp('XXXA', 'TMEm', 'em'));
+  }
+});
+
+// TODO Make this test pass
+// test('Sublists recognized: - ', () => {
+//   const testCases = [
+//     '- A\n- B\n  - C\n    - D\n    - E',
+//     '1. A\n2. B\n   1) C\n      1. d'
+//   ];
+//   for (let testCase of testCases) {
+//     const editor = initTinyMDE(testCase);
+//     for (let l = 0; l < editor.numLines(); l++) {
+//       expect(editor.lineType(l)).toMatch(/TM[OU]L/);
+//     }
+//   }
+// });
 
 // TODO Make this test pass
 // test('Indented lines following list item continue that list item: 1. Text\\n   continued', () => {
@@ -499,28 +602,16 @@ test('HTML block: Case 7 can\'t interrupt a paragraph', () => {
 //   }
 // });
 
+// Blockquote -----------------------------------------------------------------------
 
+test("Basic blockquote works: > Quote", () => {
+  expect(initTinyMDE('> Quote').lineType(0)).toMatch('TMBlockquote');
+})
 
-// Indentations from 0 to 3
-// H1
-// ==
-// ~~~
-// Code
-// block
-// ~~~
-// [ref]: https://www.jefago.com
-// [ref link]: </this has spaces> "and a title"
-// [  link label  ]: "Only title, spaces in the label"
+test('Space after > can be omitted: >Quote', () => {
+  expect(initTinyMDE('>Quote').lineType(0)).toMatch('TMBlockquote');
+})
+
 
 
 // > Quote and
-//     Indented code block
-
-//   * * * 
-  
-// - UL
-// - UL (and an empty one below)
-// - 
-
-// 1) OL
-// 2) OL

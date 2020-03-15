@@ -101,6 +101,7 @@ const lineGrammar = {
     regexp: /^( {0,3}\d{1,9}[.)] {1,4})(.*)$/, 
     replacement: '<span class="TMMark TMMark_TMOL">$1</span>$$2'
   },
+  // TODO: This is currently preventing sublists (and any content within list items, really) from working
   TMIndentedCode: { 
     regexp: /^(    |\t)(.*)$/, 
     replacement: '<span class="TMMark TMMark_TMIndentedCode">$1</span>$2'
