@@ -612,6 +612,11 @@ test('Space after > can be omitted: >Quote', () => {
   expect(initTinyMDE('>Quote').lineType(0)).toMatch('TMBlockquote');
 })
 
+test('Blockquote content parsed as markdown: > *em*', () => {
+  const editor = initTinyMDE('> *XXXA*');
+  expect(editor.lineType(0)).toMatch('TMBlockquote');
+  expect(editor.lineHTML(0)).toMatch(classTagRegExp('XXXA', 'TMEm', 'em'));
+});
 
 
 // > Quote and
