@@ -11,3 +11,5 @@ test('sets up correctly when passed an element', () => {
   let tinyMDE = new TinyMDE({element: document.getElementById('container')});
   expect(document.getElementById('container').firstChild.className).toBe('TinyMDE');
 });
+
+// TODO: Tests for passing content, setContent()
