@@ -24,8 +24,8 @@
     ]
   },
   "devDependencies": {
-    "@babel/core": "^7.8.6",
-    "@babel/preset-env": "^7.8.6",
+    "@babel/core": "^7.8.7",
+    "@babel/preset-env": "^7.8.7",
     "core-js": "^3.6.4",
     "cssnano": "^4.1.10",
     "del": "^5.1.0",
@@ -38,8 +38,8 @@
     "gulp-terser": "^1.2.0",
     "jest": "^25.1.0",
     "jest-cli": "^25.1.0",
-    "rollup": "^1.31.1",
-    "rollup-plugin-babel": "^4.3.3",
-    "terser": "^4.6.4"
+    "rollup": "^1.32.1",
+    "rollup-plugin-babel": "^4.4.0",
+    "terser": "^4.6.6"
   }
 }
