@@ -58,7 +58,7 @@ const lineGrammar = {
     replacement: '<span class="TMMark TMMark_TMH6">$1</span>$$2<span class="TMMark TMMark_TMH6">$3</span>'
   },
   TMBlockquote: { 
-    regexp: /^( {0,3}>)( +.*)$/, 
+    regexp: /^( {0,3}>[ ]?)(.*)$/, 
     replacement: '<span class="TMMark TMMark_TMBlockquote">$1</span>$$2'
   },
   TMCodeFenceBacktickOpen: { 
