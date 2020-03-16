@@ -59,6 +59,11 @@ class TinyMDE {
     this.linkLabels = [];
     this.lineDirty = [];
 
+    this.listeners = {
+      content: [],
+      selection: [],
+    };
+
     let element = props.element;
     this.textarea = props.textarea;
 
@@ -128,6 +133,7 @@ class TinyMDE {
     }
     this.lineTypes = new Array(this.lines.length);
     this.updateFormatting();
+    this.fireChange();
   }
 
   /**
@@ -363,11 +369,6 @@ class TinyMDE {
   updateLineContentsAndFormatting() {
     this.clearDirtyFlag();
     this.updateLineContents();
-    // let dirtyLines = 0;
-    // for (let d of this.lineDirty) {
-    //   if (d) dirtyLines++;
-    // }
-    // this.log(`Dirty lines: ${dirtyLines}`, JSON.stringify(this.lineDirty));
     this.updateFormatting();
   }
 
@@ -853,7 +854,7 @@ class TinyMDE {
    * @returns true if contents changed
    */
   updateLineContents() {
-    this.lineDirty = []; 
+    // this.lineDirty = []; 
     // Check if we have changed anything about the number of lines (inserted or deleted a paragraph)
     // < 0 means line(s) removed; > 0 means line(s) added
     let lineDelta = this.e.childElementCount - this.lines.length;
@@ -1060,6 +1061,7 @@ class TinyMDE {
       this.updateLineContentsAndFormatting();  
     }
     if (sel) this.setSelection(sel);
+    this.fireChange();
   }
 
   handleSelectionChangeEvent(event) {
@@ -1148,6 +1150,36 @@ class TinyMDE {
 
     this.updateFormatting();
     this.setSelection(focus);
+    this.fireChange();
+  }
+
+  /**
+   * Fires a change event. Updates the linked textarea and notifies any event listeners.
+   */
+  fireChange() {
+    if (!this.textarea && !this.listeners.change.length) return;
+    const content = this.getContent();
+    if (this.textarea) this.textarea.value = content;
+    for (listener in this.listeners.change) {
+      listener({
+        content: content,
+        linesDirty: this.linesDirty,
+      });
+    }
+  }
+
+  /**
+   * Adds an event listener.
+   * @param {string} type The type of event to listen to. Can be 'change' or 'selection'
+   * @param {*} listener Function of the type (event) => {} to be called when the event occurs.
+   */
+  addEventListener(type, listener) {
+    if (type.match(/^(?:change|input)$/i)) {
+      this.listeners.change.push(listener);
+    }
+    if (type.match(/^(?:selection|selectionchange)$/i)) {
+      this.listeners.selection.push(listener);
+    }
   }
 
   log(message, details) {
