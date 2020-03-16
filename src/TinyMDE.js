@@ -1,5 +1,12 @@
 import { inlineGrammar, lineGrammar, punctuationLeading, punctuationTrailing, htmlescape, htmlBlockGrammar } from "./grammar";
 
+function assert(condition) {
+  if (!condition) {
+    console.log('Assertion false');
+    throw "Assertion false";
+  }
+}
+
 function stringifyObject(event) {
   let keys = [];
   let obj = event;
@@ -115,13 +122,13 @@ class TinyMDE {
   /**
    * This is the main method to update the formatting (from this.lines to HTML output)
    */
-  updateFormatting(dirty = true) {
-    if (dirty === true) {
-      this.lineDirty = [];
-      for (let l = 0; l < this.lines.length; l++) {
-        this.lineDirty.push(true);
-      }
-    }
+  updateFormatting(/*dirty = true*/) {
+    // if (dirty === true) {
+    //   this.lineDirty = [];
+    //   for (let l = 0; l < this.lines.length; l++) {
+    //     this.lineDirty.push(true);
+    //   }
+    // }
     // First, parse line types. This will update this.lineTypes, this.lineReplacements, and this.lineCaptures
     // We don't apply the formatting yet
     this.updateLineTypes();
@@ -346,6 +353,7 @@ class TinyMDE {
    * Updates all line contents from the HTML, then re-applies formatting.
    */
   updateLineContentsAndFormatting() {
+    this.clearDirtyFlag();
     this.updateLineContents();
     let dirtyLines = 0;
     for (let d of this.lineDirty) {
@@ -876,14 +884,17 @@ class TinyMDE {
       let dirtyToAdd = [];
       for (let l = 0; l < linesToDelete + lineDelta; l++) {
         linesToAdd.push(this.lineElements[firstChangedLine + l].textContent);
-        blankLinesToAdd.push('');
-        dirtyToAdd.push(true);
+        // blankLinesToAdd.push('');
+        // dirtyToAdd.push(true);
       }
 
-      this.lines.splice(firstChangedLine, linesToDelete, ...linesToAdd);
-      this.lineTypes.splice(firstChangedLine, linesToDelete, ...blankLinesToAdd);
-      // this.lineHTML.splice(firstChangedLine, linesToDelete, ...blankLinesToAdd);
-      this.lineDirty.splice(firstChangedLine, linesToDelete, ...dirtyToAdd);
+      // this.lines.splice(firstChangedLine, linesToDelete, ...linesToAdd);
+      // this.lineTypes.splice(firstChangedLine, linesToDelete, ...blankLinesToAdd);
+      // // this.lineHTML.splice(firstChangedLine, linesToDelete, ...blankLinesToAdd);
+      // this.lineDirty.splice(firstChangedLine, linesToDelete, ...dirtyToAdd);
+      this.spliceLines(firstChangedLine, linesToDelete, linesToAdd, false);
+      
+      assert(this.lines.length == this.lineElements.length);
 
 
       // dirty = true;
@@ -1002,13 +1013,15 @@ class TinyMDE {
     this.updateFormatting();
   }
 
-  getSelection() {
+  getSelection(getAnchor = false) {
     const selection = window.getSelection();
-    let node = selection.focusNode;
+    let node = (getAnchor ? selection.anchorNode : selection.focusNode);
+    let col = node.nodeType === Node.TEXT_NODE ? (getAnchor ? selection.anchorOffset : selection.focusOffset) : 0;
+
     if (node == this.e) {
-      return {row: 0, col: selection.focusOffset};
+      return {row: 0, col: col};
     }
-    let col = node.nodeType === Node.TEXT_NODE ? selection.focusOffset : 0;
+    
     while (node && node.parentNode != this.e) {
       if (node.previousSibling) {
         node = node.previousSibling;
@@ -1100,7 +1113,6 @@ class TinyMDE {
         // Prevent the user from accidentally deleting the last line
         this.e.innerHTML = `<div>${this.e.textContent}</div>`;
       }
-      this.clearDirtyFlag();
       this.updateLineContentsAndFormatting();  
     }
     
@@ -1112,6 +1124,35 @@ class TinyMDE {
     // this.log(`SELECTIONCHANGE`, `EVENT\n${stringifyEvent(event)}\n\nSELECTION\n${stringifyEvent(document.getSelection())}\n`);
   }
 
+  spliceLines(startLine, linesToDelete = 0, linesToInsert = [], adjustLineElements = true) {
+
+    if (adjustLineElements) {
+      for (let i = 0; i < linesToDelete; i++) {
+        this.e.removeChild(this.e.childNodes[startLine]);
+      }
+    }
+    
+    
+    let insertedBlank = [];
+    let insertedDirty = [];
+
+    for (let i = 0; i < linesToInsert.length; i++) {
+      insertedBlank.push('');
+      insertedDirty.push(true);
+      if (adjustLineElements) {
+        if (this.e.childNodes[startLine]) this.e.insertBefore(document.createElement('div'),this.e.childNodes[startLine]);
+        else this.e.appendChild(document.createElement('div'));
+      }
+    }
+
+    this.lines.splice(startLine, linesToDelete, ...linesToInsert);
+    this.lineTypes.splice(startLine, linesToDelete, ...insertedBlank);
+    this.lineDirty.splice(startLine, linesToDelete, ...insertedDirty);
+  }
+
+  /**
+   * Event handler for the "paste" event
+   */
   handlePaste(event) {
     event.preventDefault();
   
@@ -1119,10 +1160,58 @@ class TinyMDE {
     let text = (event.originalEvent || event).clipboardData.getData('text/plain');
 
     // insert text manually
-    document.execCommand("insertText", false, text);
-    let sel = this.getSelection();
-    this.updateLineContentsAndFormatting();
-    if (sel) this.setSelection(sel);
+    let anchor = this.getSelection(true);
+    let focus = this.getSelection(false);
+    let beginning, end;
+
+    if (!focus) {
+      focus = { row: this.lines.length, col: this.lines[this.lines.length - 1].length }; // Insert at end
+    }
+    if (!anchor) {
+      anchor = focus;
+    }
+
+    if (anchor.row < focus.row || (anchor.row == focus.row && anchor.col <= focus.col)) {
+      beginning = anchor;
+      end = focus;
+    } else {
+      beginning = focus;
+      end = anchor;
+    }
+
+
+
+    this.log(`Paste at ${anchor ? anchor.row : '-'}:${anchor ? anchor.col : '-'} – ${focus ? focus.row : '-'}:${focus ? focus.col : '-'}`)
+
+
+    // TODO instead of insertText, manually put it in this.lines
+    let insertedLines = text.split(/(?:\r\n|\r|\n)/);
+
+    let lineBefore = this.lines[beginning.row].substr(0, beginning.col);
+    let lineEnd = this.lines[end.row].substr(end.col);
+
+    insertedLines[0] = lineBefore.concat(insertedLines[0]);
+    let endColPos = insertedLines[insertedLines.length - 1].length;
+    insertedLines[insertedLines.length - 1] = insertedLines[insertedLines.length - 1].concat(lineEnd);
+
+    this.spliceLines(beginning.row, 1 + end.row - beginning.row, insertedLines);
+    assert(this.lines.length == this.lineElements.length);
+
+    // this.lines.splice(beginning.row, 1 + end.row - beginning.row, ...insertedLines);
+    // this.lineTypes.splice(beginning.row, 1 + end.row - beginning.row, ...insertedBlank);
+    // this.lineDirty.splice(beginning.row, 1 + end.row - beginning.row, ...insertedDirty);
+    
+    focus.row = beginning.row + insertedLines.length - 1;
+    focus.col = endColPos;
+
+
+
+    // document.execCommand("insertText", false, text);
+    // let sel = this.getSelection();
+
+    // this.updateLineContentsAndFormatting();
+    this.updateFormatting();
+    this.setSelection(focus);
   
     // Prevent regular paste
     // return false;
