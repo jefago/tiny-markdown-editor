@@ -60,3 +60,21 @@ test('Content can be set using setContent()', () => {
   expect(tinyMDE.getContent()).toEqual(content);
 });
 
+test('Linked textarea updated on setContent()', () => {
+  let textarea = document.createElement('textarea');
+  document.body.appendChild(textarea);
+  const content = '# XXXA\nXXXB *XXXC*';
+  const tinyMDE = new TinyMDE({element: 'container', textarea: textarea});
+  tinyMDE.setContent(content);
+  expect(tinyMDE.getContent()).toEqual(content);
+  expect(textarea.value).toEqual(content);
+})
+
+test('Change event listeners called on setContent()', () => {
+  const content = '# XXXA\nXXXB *XXXC*';
+  const tinyMDE = new TinyMDE({element: 'container'});
+  const handler = jest.fn();
+  tinyMDE.addEventListener('change', handler);
+  tinyMDE.setContent(content);
+  expect(handler).toHaveBeenCalled();
+});

@@ -60,7 +60,7 @@ class TinyMDE {
     this.lineDirty = [];
 
     this.listeners = {
-      content: [],
+      change: [],
       selection: [],
     };
 
@@ -1160,7 +1160,7 @@ class TinyMDE {
     if (!this.textarea && !this.listeners.change.length) return;
     const content = this.getContent();
     if (this.textarea) this.textarea.value = content;
-    for (listener in this.listeners.change) {
+    for (let listener of this.listeners.change) {
       listener({
         content: content,
         linesDirty: this.linesDirty,
