@@ -57,7 +57,6 @@ class TinyMDE {
     this.lineReplacements = [];
     this.linkLabels = [];
     this.lineDirty = [];
-    // this.lineHTML = [];
 
     if (props.element && !props.element.tagName) {
       props.element = document.getElementById(props.element);
@@ -98,16 +97,14 @@ class TinyMDE {
     while (this.e.firstChild) {
       this.e.removeChild(this.e.firstChild);
     }
-    // this.lineElements = [];
-
     this.lines = content.split(/(?:\r\n|\r|\n)/);
+    this.lineDirty = [];
     for (let lineNum = 0; lineNum < this.lines.length; lineNum++) {
       let le = document.createElement('div');
       this.e.appendChild(le);
-      // this.lineElements.push(le);
+      this.lineDirty.push(true);
     }
     this.lineTypes = new Array(this.lines.length);
-    // this.lineHTML = new Array(this.lines.length);
     this.updateFormatting();
   }
 
@@ -122,13 +119,7 @@ class TinyMDE {
   /**
    * This is the main method to update the formatting (from this.lines to HTML output)
    */
-  updateFormatting(/*dirty = true*/) {
-    // if (dirty === true) {
-    //   this.lineDirty = [];
-    //   for (let l = 0; l < this.lines.length; l++) {
-    //     this.lineDirty.push(true);
-    //   }
-    // }
+  updateFormatting() {
     // First, parse line types. This will update this.lineTypes, this.lineReplacements, and this.lineCaptures
     // We don't apply the formatting yet
     this.updateLineTypes();
@@ -177,9 +168,7 @@ class TinyMDE {
         // this.lineHTML[lineNum] = (contentHTML == '' ? '<br />' : contentHTML); // Prevent empty elements which can't be selected etc.
         this.lineElements[lineNum].className = this.lineTypes[lineNum];
         this.lineElements[lineNum].innerHTML = (contentHTML == '' ? '<br />' : contentHTML); // Prevent empty elements which can't be selected etc.
-        // TODO what to do with junk that got inserted through pasting?
       }
-
     }    
   }
 
@@ -197,7 +186,6 @@ class TinyMDE {
       let lineType = 'TMPara';
       let lineCapture = [this.lines[lineNum]];
       let lineReplacement = '$$0'; // Default replacement for paragraph: Inline format the entire line
-
 
       // Check ongoing code blocks
       // if (lineNum > 0 && (this.lineTypes[lineNum - 1] == 'TMCodeFenceBacktickOpen' || this.lineTypes[lineNum - 1] == 'TMFencedCodeBacktick')) {
@@ -277,8 +265,6 @@ class TinyMDE {
         }
       }
 
-     
-
       // If we've opened a code block, remember that
       if (lineType == 'TMCodeFenceBacktickOpen' || lineType == 'TMCodeFenceTildeOpen') {
         codeBlockType = lineType;
@@ -355,14 +341,12 @@ class TinyMDE {
   updateLineContentsAndFormatting() {
     this.clearDirtyFlag();
     this.updateLineContents();
-    let dirtyLines = 0;
-    for (let d of this.lineDirty) {
-      if (d) dirtyLines++;
-    }
-    this.log(`Dirty lines: ${dirtyLines}`, JSON.stringify(this.lineDirty));
-    // if () {
-    this.updateFormatting(false /* TODO Clean this up */);
+    // let dirtyLines = 0;
+    // for (let d of this.lineDirty) {
+    //   if (d) dirtyLines++;
     // }
+    // this.log(`Dirty lines: ${dirtyLines}`, JSON.stringify(this.lineDirty));
+    this.updateFormatting();
   }
 
   /**
@@ -817,7 +801,6 @@ class TinyMDE {
         string = string.substr(cap[0].length);
         offset += cap[0].length;
         processed += inlineGrammar.default.replacement
-          // .replace(/\$\$([1-9])/g, (str, p1) => processInlineStyles(cap[p1])) // todo recursive calling
           .replace(/\$([1-9])/g, (str, p1) => htmlescape(cap[p1]));
         continue outer; 
       }
@@ -854,8 +837,6 @@ class TinyMDE {
     let lineDelta = this.e.childElementCount - this.lines.length;
     if (lineDelta) {
       // yup. Let's try how much we can salvage (find out which lines from beginning and end were unchanged)
-      // this.lineTypes = [];
-      
       // Find lines from the beginning that haven't changed...
       let firstChangedLine = 0;
       while (
@@ -866,6 +847,7 @@ class TinyMDE {
         firstChangedLine++;
       }
 
+      // End also from the end
       let lastChangedLine = -1;
       while (
           -lastChangedLine < this.lines.length 
@@ -880,97 +862,29 @@ class TinyMDE {
       if (linesToDelete < 0) linesToDelete = 0;
 
       let linesToAdd = [];
-      let blankLinesToAdd = [];
-      let dirtyToAdd = [];
       for (let l = 0; l < linesToDelete + lineDelta; l++) {
         linesToAdd.push(this.lineElements[firstChangedLine + l].textContent);
-        // blankLinesToAdd.push('');
-        // dirtyToAdd.push(true);
       }
-
-      // this.lines.splice(firstChangedLine, linesToDelete, ...linesToAdd);
-      // this.lineTypes.splice(firstChangedLine, linesToDelete, ...blankLinesToAdd);
-      // // this.lineHTML.splice(firstChangedLine, linesToDelete, ...blankLinesToAdd);
-      // this.lineDirty.splice(firstChangedLine, linesToDelete, ...dirtyToAdd);
       this.spliceLines(firstChangedLine, linesToDelete, linesToAdd, false);
       
       assert(this.lines.length == this.lineElements.length);
 
-
-      // dirty = true;
-      // delta = 1 
-      // a b c d e f g  (lines.ln = 7)
-      // a b c X d e f g (e.ln = 8)
-      // firstChangedLine = 3
-      // lastChangedLine = -5
-      // firstChangedLine - 1 = 2
-      // lines.ln + lastChangedLine + 1 = 3
-      // Insert between 2 and 3
-      // Array.splice(firstChangedLine /* 3 */, lines.ln + lastChangedLine + 1 - firstChangedLine /* 0 */, ...(new Array(delta)))
-
-      // delta = -1
-      // a b c d e f g (lines.ln = 7)
-      // a b c e f g (e.ln = 6)
-      // firstChangedLine = 3
-      // lastChangedLine = -4
-      // firstChangedLine - 1 = 2
-      // lines.ln + lastChangedLine + 1 = 4
-      // Array.splice(firstChangedLine /* 3 */, lines.ln + lastChangedLine + 1 -firstChangedLine /* 1 */)
-
-
-      // delta = 1
-      // a b cd e f g h (lines.ln = 7)
-      // a b c d e f g h (e.ln = 8)
-      // firstChangedLine = 2
-      // lastChangedLine = -5
-      // lines.ln + lastChangedLine + 1 = 3
-      // Array.splice(firstChangedLine /* 2 */, lines.ln + lastChangedLine + 1 - firstChangedLine /* 1 */, ...(new Array(delta + 1)) )
-
-      // delta = -1
-      // a b c d e f g (lines.ln = 7)
-      // a b cd e f g (e.ln = 6)
-      // firstChangedLine = 2
-      // lastChangedLine = -4
-      // lines.ln + lastChangedLine + 1 = 4
-      // Array.splice(2, 2, ...(new Array(delta + 2 = 1)))
-
-      // delta = 1
-      // a a a a a a a (lines.ln = 7)
-      // a a a a a a a a (e.ln = 8)
-      // firstChangedLine = 7
-      // lastChangedLine = -8
-      // lines.ln + lastChangedLine + 1 = 0
-
-      // delta = -1
-      // a a a a a a a (lines.ln = 7)
-      // a a a a a a (e.ln = 6)
-      // firstChangedLine = 6
-      // lastChangedLine = -7
-
-
-
-
-      // this.lines = new Array(this.lineElements.length);
-
     } else {
+      // No lines added or removed
       for (let line = 0; line < this.lineElements.length; line++) {
         let e = this.lineElements[line];
         let ct = e.textContent;
         if (this.lines[line] !== ct) {
           // Line changed, update it
           this.lines[line] = ct;
-          this.lineDirty[line] = true; //.push(true)
-          // dirty = true;
-        } /*else {
-          dirty.push(false);
-        }*/
+          this.lineDirty[line] = true; 
+        } 
       }
     }
-    // return dirty;
   }
 
   /**
-   * 
+   * Processes a new paragraph.
    * @param sel The current selection
    */
   processNewParagraph(sel) {
@@ -982,11 +896,9 @@ class TinyMDE {
         case 'TMOL': continuableType = 'TMOL'; break;
         case 'TMIndentedCode': continuableType = 'TMIndentedCode'; break;
       }
-     // TODO we could understand here where the line was added and update this.lines, this.lineStyles accordingly
     }
 
     // Update lines from content
-    // let dirty = this.updateLineContents();
     this.updateLineContents();
     if (continuableType) {
       // Check if the previous line was non-empty
@@ -1013,6 +925,12 @@ class TinyMDE {
     this.updateFormatting();
   }
 
+  /**
+   * Gets the current position of the selection counted by row and column of the editor Markdown content (as opposed to the position in the DOM).
+   * 
+   * @param {boolean} getAnchor if set to true, gets the selection anchor (start point of the selection), otherwise gets the focus (end point).
+   * @return {object} An object representing the selection, with properties col and row.
+   */
   getSelection(getAnchor = false) {
     const selection = window.getSelection();
     let node = (getAnchor ? selection.anchorNode : selection.focusNode);
@@ -1047,9 +965,13 @@ class TinyMDE {
     return {row: row, col: col};
   }
 
-  setSelection(para) {
-    if (!para) return;
-    let {row, col} = para; 
+  /**
+   * Sets the selection based on rows and columns within the editor Markdown content.
+   * @param {object} selection Object representing the selection, needs to have properties row and col.
+   */
+  setSelection(selection) {
+    if (!selection) return;
+    let {row, col} = selection; 
     if (row >= this.lineElements.length) {
       // Selection past the end of text, set selection to end of text
       row = this.lineElements.length - 1;
@@ -1094,9 +1016,9 @@ class TinyMDE {
     node = parentNode.firstChild ? parentNode.firstChild : parentNode;
     range.selectNode(node);
     range.collapse(true);
-    let selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
+    let windowSelection = window.getSelection();
+    windowSelection.removeAllRanges();
+    windowSelection.addRange(range);
   }
 
   /** 
@@ -1115,23 +1037,30 @@ class TinyMDE {
       }
       this.updateLineContentsAndFormatting();  
     }
-    
     if (sel) this.setSelection(sel);
-
   }
 
   handleSelectionChangeEvent(event) {
     // this.log(`SELECTIONCHANGE`, `EVENT\n${stringifyEvent(event)}\n\nSELECTION\n${stringifyEvent(document.getSelection())}\n`);
   }
 
+  /**
+   * Convenience function to "splice" new lines into the arrays this.lines, this.lineDirty, this.lineTypes, and the DOM elements 
+   * underneath the editor element.
+   * This method is essentially Array.splice, only that the third parameter takes an un-spread array (and the forth parameter)
+   * determines whether the DOM should also be adjusted.
+   * 
+   * @param {int} startLine Position at which to start changing the array of lines
+   * @param {int} linesToDelete Number of lines to delete
+   * @param {array} linesToInsert Array of strings representing the lines to be inserted
+   * @param {boolean} adjustLineElements If true, then <div> elements are also inserted in the DOM at the respective position
+   */
   spliceLines(startLine, linesToDelete = 0, linesToInsert = [], adjustLineElements = true) {
-
     if (adjustLineElements) {
       for (let i = 0; i < linesToDelete; i++) {
         this.e.removeChild(this.e.childNodes[startLine]);
       }
     }
-    
     
     let insertedBlank = [];
     let insertedDirty = [];
@@ -1179,12 +1108,7 @@ class TinyMDE {
       end = anchor;
     }
 
-
-
-    this.log(`Paste at ${anchor ? anchor.row : '-'}:${anchor ? anchor.col : '-'} – ${focus ? focus.row : '-'}:${focus ? focus.col : '-'}`)
-
-
-    // TODO instead of insertText, manually put it in this.lines
+    // this.log(`Paste at ${anchor ? anchor.row : '-'}:${anchor ? anchor.col : '-'} – ${focus ? focus.row : '-'}:${focus ? focus.col : '-'}`)
     let insertedLines = text.split(/(?:\r\n|\r|\n)/);
 
     let lineBefore = this.lines[beginning.row].substr(0, beginning.col);
@@ -1196,30 +1120,13 @@ class TinyMDE {
 
     this.spliceLines(beginning.row, 1 + end.row - beginning.row, insertedLines);
     assert(this.lines.length == this.lineElements.length);
-
-    // this.lines.splice(beginning.row, 1 + end.row - beginning.row, ...insertedLines);
-    // this.lineTypes.splice(beginning.row, 1 + end.row - beginning.row, ...insertedBlank);
-    // this.lineDirty.splice(beginning.row, 1 + end.row - beginning.row, ...insertedDirty);
     
     focus.row = beginning.row + insertedLines.length - 1;
     focus.col = endColPos;
 
-
-
-    // document.execCommand("insertText", false, text);
-    // let sel = this.getSelection();
-
-    // this.updateLineContentsAndFormatting();
     this.updateFormatting();
     this.setSelection(focus);
-  
-    // Prevent regular paste
-    // return false;
   }
-
-  // handleKeydownEvent(event) {
-  //   this.log(`KEYDOWN`, stringifyEvent(event));
-  // }
 
   log(message, details) {
     // TODO Remove logging
