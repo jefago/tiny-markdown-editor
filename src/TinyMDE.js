@@ -50,6 +50,7 @@ class TinyMDE {
 
   constructor(props = {}) {    
     this.e = null;
+    this.textarea = null;
     this.lines = [];
     this.lineElements = [];
     this.lineTypes = [];
@@ -58,15 +59,30 @@ class TinyMDE {
     this.linkLabels = [];
     this.lineDirty = [];
 
-    if (props.element && !props.element.tagName) {
-      props.element = document.getElementById(props.element);
+    let element = props.element;
+    this.textarea = props.textarea;
+
+    if (this.textarea && !this.textarea.tagName) {
+      this.textarea = document.getElementById(this.textarea);
     }
-    if (!props.element) {
-      props.element = document.createElement('div');
-      document.getElementsByTagName('body')[0].appendChild(props.element);
+
+    if (element && !element.tagName) {
+      element = document.getElementById(props.element);
     }
-    this.createEditorElement(props.element);
-    this.setContent(props.content || '# Hello TinyMDE!\nEdit **here**');
+    if (!element) {
+      element = document.getElementsByTagName('body')[0]; 
+    }
+    if (element.tagName == 'TEXTAREA') {
+      this.textarea = element;
+      element = this.textarea.parentNode; 
+    }
+
+    if (this.textarea) {
+      this.textarea.style.display = 'none';
+    }
+
+    this.createEditorElement(element);
+    this.setContent(props.content || (this.textarea ? this.textarea.value : false) || '# Hello TinyMDE!\nEdit **here**');
   }
 
   /**
@@ -80,7 +96,13 @@ class TinyMDE {
     // The following is important for formatting purposes, but also since otherwise the browser replaces subsequent spaces with  &nbsp; &nbsp;
     // That breaks a lot of stuff, so we do this here and not in CSS—therefore, you don't have to remember to but this in the CSS file
     this.e.style.whiteSpace = 'pre-wrap'; 
-    element.appendChild(this.e);
+    if (this.textarea && this.textarea.parentNode == element && this.textarea.nextSibling) {
+      element.insertBefore(this.e, this.textarea.nextSibling);
+    }
+    else {
+      element.appendChild(this.e);
+    }
+
     this.e.addEventListener("input", (e) => this.handleInputEvent(e));
     // this.e.addEventListener("keydown", (e) => this.handleKeydownEvent(e));
     document.addEventListener("selectionchange", (e) => this.handleSelectionChangeEvent(e));

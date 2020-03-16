@@ -8,10 +8,8 @@
   </head>
   <body>
     <h1>TinyMDE demo</h1>
-    <div id="tinymde" style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0"></div>
-    <div id="log" style="width:100%; background-color:black; color:white; height:200px; overflow-y:scroll; font-family:monospace"></div>
-    <script>
-      tinyMDE = new TinyMDE({element: 'tinymde', content: `# Hello TinyMDE
+    <div id="tinymde" style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0">
+      <textarea id="txt"># Hello TinyMDE
 [ref]: https://www.jefago.com
 [ref link]: </this has spaces> "and a title"
 
@@ -98,7 +96,11 @@ block
 - 
 
 1) OL
-2) OL`});
+2) OL</textarea>
+    </div>
+    <div id="log" style="width:100%; background-color:black; color:white; height:200px; overflow-y:scroll; font-family:monospace"></div>
+    <script>
+      tinyMDE = new TinyMDE({element: 'tinymde', textarea: 'txt'});
     </script>
     <button onclick="document.getElementById('log').innerHTML = ''">Clear log</button>
   </body>
