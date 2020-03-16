@@ -48,6 +48,7 @@ class TinyMDE {
     this.lineCaptures = [];
     this.lineReplacements = [];
     this.linkLabels = [];
+    this.lineHTML = [];
 
     if (props.element && !props.element.tagName) {
       props.element = document.getElementById(props.element);
@@ -76,6 +77,7 @@ class TinyMDE {
     // this.e.addEventListener("keydown", (e) => this.handleKeydownEvent(e));
     document.addEventListener("selectionchange", (e) => this.handleSelectionChangeEvent(e));
     this.e.addEventListener("paste", (e) => this.handlePaste(e));
+    this.lineElements = this.e.childNodes; // this will automatically update
   }
 
   /**
@@ -87,15 +89,16 @@ class TinyMDE {
     while (this.e.firstChild) {
       this.e.removeChild(this.e.firstChild);
     }
-    this.lineElements = [];
+    // this.lineElements = [];
 
     this.lines = content.split(/(?:\r\n|\r|\n)/);
     for (let lineNum = 0; lineNum < this.lines.length; lineNum++) {
       let le = document.createElement('div');
       this.e.appendChild(le);
-      this.lineElements.push(le);
+      // this.lineElements.push(le);
     }
     this.lineTypes = new Array(this.lines.length);
+    this.lineHTML = new Array(this.lines.length);
     this.updateFormatting();
   }
 
@@ -110,14 +113,20 @@ class TinyMDE {
   /**
    * This is the main method to update the formatting (from this.lines to HTML output)
    */
-  updateFormatting() {
+  updateFormatting(dirty = false) {
+    if (dirty === false) {
+      dirty = [];
+      for (let l = 0; l < this.lines.length; l++) {
+        dirty.push(true);
+      }
+    }
     // First, parse line types. This will update this.lineTypes, this.lineReplacements, and this.lineCaptures
     // We don't apply the formatting yet
-    this.updateLineTypes();
+    this.updateLineTypes(dirty);
     // Collect any valid link labels from link reference definitions—we need that for formatting to determine what's a valid link
     this.updateLinkLabels();
     // Now, apply the formatting
-    this.applyLineTypes();
+    this.applyLineTypes(dirty);
   }
 
   /**
@@ -130,7 +139,6 @@ class TinyMDE {
         this.linkLabels.push(this.lineCaptures[l][lineGrammar.TMLinkReferenceDefinition.labelPlaceholder]);
       }
     }
-    this.log(`Link labels`, stringifyObject(this.linkLabels));
   }
 
   /**
@@ -153,11 +161,15 @@ class TinyMDE {
    * Applies the line types (from this.lineTypes as well as the capture result in this.lineReplacements and this.lineCaptures) 
    * and processes inline formatting for all lines.
    */
-  applyLineTypes() {
+  applyLineTypes(dirty) {
     for (let lineNum = 0; lineNum < this.lines.length; lineNum++) {
-      let contentHTML = this.replace(this.lineReplacements[lineNum], this.lineCaptures[lineNum]);
+      if (dirty[lineNum]) {
+        let contentHTML = this.replace(this.lineReplacements[lineNum], this.lineCaptures[lineNum]);
+        this.lineHTML[lineNum] = (contentHTML == '' ? '<br />' : contentHTML); // Prevent empty elements which can't be selected etc.
+      }
       this.lineElements[lineNum].className = this.lineTypes[lineNum];
-      this.lineElements[lineNum].innerHTML = (contentHTML == '' ? '<br />' : contentHTML); // Prevent empty elements which can't be selected etc.
+      this.lineElements[lineNum].innerHTML = this.lineHTML[lineNum];
+
     }    
   }
 
@@ -165,8 +177,10 @@ class TinyMDE {
    * Determines line types for all lines based on the line / block grammar. Captures the results of the respective line
    * grammar regular expressions.
    * Updates this.lineTypes, this.lineCaptures, and this.lineReplacements.
+   * @param {array} dirty An array with an entry for each line, designating whether that line needs updating. 
+   *                      Currently, this method only writes that array (marking lines as dirty) and doesn't read it.
    */
-  updateLineTypes() {
+  updateLineTypes(dirty) {
     let codeBlockType = false;
     let codeBlockSeqLength = 0;
     let htmlBlock = false;
@@ -304,8 +318,12 @@ class TinyMDE {
         } else {
           // Valid setext marker. Change types of preceding para lines
           let headingLine = lineNum - 1;
+          const headingLineType = (lineType == 'TMSetextH1Marker' ? 'TMSetextH1' : 'TMSetextH2');
           do {
-            this.lineTypes[headingLine] = (lineType == 'TMSetextH1Marker' ? 'TMSetextH1' : 'TMSetextH2');
+            if (this.lineTypes[headingLineType] != headingLineType) {
+              this.lineTypes[headingLine] = headingLineType; 
+              dirty[headingLineType] = true;
+            }
             this.lineReplacements[headingLine] = '$$0';
             this.lineCaptures[headingLine] = [this.lines[headingLine]];
 
@@ -314,7 +332,10 @@ class TinyMDE {
         }
       }
       // Lastly, save the line style to be applied later
-      this.lineTypes[lineNum] = lineType;
+      if (this.lineTypes[lineNum] != lineType) {
+        this.lineTypes[lineNum] = lineType;
+        dirty[lineNum] = true;
+      }
       this.lineReplacements[lineNum] = lineReplacement;
       this.lineCaptures[lineNum] = lineCapture;
     }
@@ -325,9 +346,15 @@ class TinyMDE {
    */
   updateLineContentsAndFormatting() {
     // TODO: Only update all line types if current line's type has changed, otherwise, just re-process replacement for current line
-    if (this.updateLineContents()) {
-      this.updateFormatting();
+    let dirty = this.updateLineContents();
+    let dirtyLines = 0;
+    for (let d of dirty) {
+      if (d) dirtyLines++;
     }
+    this.log(`Dirty lines: ${dirtyLines}`, JSON.stringify(dirty));
+    // if () {
+    this.updateFormatting(dirty);
+    // }
   }
 
   /**
@@ -803,27 +830,131 @@ class TinyMDE {
    * @returns true if contents changed
    */
   updateLineContents() {
-    let dirty = false;
+    let dirty = []; 
     // Check if we have changed anything about the number of lines (inserted or deleted a paragraph)
-    if (this.lines.length != this.e.childElementCount) {
-      // yup. Recalculate everything
-      this.lineElements = this.e.childNodes;
-      this.lines = Array(this.lineElements.length);
-      this.lineTypes = [];
-      dirty = true;
-    }
-    for (let line = 0; line < this.lineElements.length; line++) {
-      let e = this.lineElements[line];
-      let ct = e.textContent;
-      if (this.lines[line] !== ct) {
-        // Line changed, update it
-        this.lines[line] = ct;
-        dirty = true;
+    // < 0 means line(s) removed; > 0 means line(s) added
+    let lineDelta = this.e.childElementCount - this.lines.length;
+    if (lineDelta) {
+      // yup. Let's try how much we can salvage (find out which lines from beginning and end were unchanged)
+      // this.lineTypes = [];
+      dirty = new Array(this.lines.length);
+      for (let i = 0; i < dirty.length; i++) {
+        dirty[i] = false;
+      }
+      // Find lines from the beginning that haven't changed...
+      let firstChangedLine = 0;
+      while (
+          firstChangedLine <= this.lines.length 
+          && firstChangedLine <= this.lineElements.length
+          && this.lines[firstChangedLine] == this.lineElements[firstChangedLine].textContent
+      ) {
+        firstChangedLine++;
+      }
+
+      let lastChangedLine = -1;
+      while (
+          -lastChangedLine < this.lines.length 
+          && -lastChangedLine < this.lineElements.length
+          && this.lines[this.lines.length + lastChangedLine] == this.lineElements[this.lineElements.length + lastChangedLine].textContent
+      ) {
+        lastChangedLine--;
+      }
+
+      let linesToDelete = this.lines.length + lastChangedLine + 1 - firstChangedLine;
+      if (linesToDelete < -lineDelta) linesToDelete = -lineDelta;
+      if (linesToDelete < 0) linesToDelete = 0;
+
+      let linesToAdd = [];
+      let blankLinesToAdd = [];
+      let dirtyToAdd = [];
+      for (let l = 0; l < linesToDelete + lineDelta; l++) {
+        linesToAdd.push(this.lineElements[firstChangedLine + l].textContent);
+        blankLinesToAdd.push('');
+        dirtyToAdd.push(true);
+      }
+
+      this.lines.splice(firstChangedLine, linesToDelete, ...linesToAdd);
+      this.lineTypes.splice(firstChangedLine, linesToDelete, ...blankLinesToAdd);
+      this.lineHTML.splice(firstChangedLine, linesToDelete, ...blankLinesToAdd);
+      dirty.splice(firstChangedLine, linesToDelete, ...dirtyToAdd);
+
+
+      // dirty = true;
+      // delta = 1 
+      // a b c d e f g  (lines.ln = 7)
+      // a b c X d e f g (e.ln = 8)
+      // firstChangedLine = 3
+      // lastChangedLine = -5
+      // firstChangedLine - 1 = 2
+      // lines.ln + lastChangedLine + 1 = 3
+      // Insert between 2 and 3
+      // Array.splice(firstChangedLine /* 3 */, lines.ln + lastChangedLine + 1 - firstChangedLine /* 0 */, ...(new Array(delta)))
+
+      // delta = -1
+      // a b c d e f g (lines.ln = 7)
+      // a b c e f g (e.ln = 6)
+      // firstChangedLine = 3
+      // lastChangedLine = -4
+      // firstChangedLine - 1 = 2
+      // lines.ln + lastChangedLine + 1 = 4
+      // Array.splice(firstChangedLine /* 3 */, lines.ln + lastChangedLine + 1 -firstChangedLine /* 1 */)
+
+
+      // delta = 1
+      // a b cd e f g h (lines.ln = 7)
+      // a b c d e f g h (e.ln = 8)
+      // firstChangedLine = 2
+      // lastChangedLine = -5
+      // lines.ln + lastChangedLine + 1 = 3
+      // Array.splice(firstChangedLine /* 2 */, lines.ln + lastChangedLine + 1 - firstChangedLine /* 1 */, ...(new Array(delta + 1)) )
+
+      // delta = -1
+      // a b c d e f g (lines.ln = 7)
+      // a b cd e f g (e.ln = 6)
+      // firstChangedLine = 2
+      // lastChangedLine = -4
+      // lines.ln + lastChangedLine + 1 = 4
+      // Array.splice(2, 2, ...(new Array(delta + 2 = 1)))
+
+      // delta = 1
+      // a a a a a a a (lines.ln = 7)
+      // a a a a a a a a (e.ln = 8)
+      // firstChangedLine = 7
+      // lastChangedLine = -8
+      // lines.ln + lastChangedLine + 1 = 0
+
+      // delta = -1
+      // a a a a a a a (lines.ln = 7)
+      // a a a a a a (e.ln = 6)
+      // firstChangedLine = 6
+      // lastChangedLine = -7
+
+
+
+
+      // this.lines = new Array(this.lineElements.length);
+
+    } else {
+      for (let line = 0; line < this.lineElements.length; line++) {
+        let e = this.lineElements[line];
+        let ct = e.textContent;
+        if (this.lines[line] !== ct) {
+          // Line changed, update it
+          this.lines[line] = ct;
+          dirty.push(true)
+          // dirty = true;
+        } else {
+          dirty.push(false);
+        }
       }
     }
     return dirty;
   }
 
+  /**
+   * 
+   * @param sel The current selection
+   */
   processNewParagraph(sel) {
     let continuableType = false;
     // Let's see if we need to continue a list
@@ -833,9 +964,11 @@ class TinyMDE {
         case 'TMOL': continuableType = 'TMOL'; break;
         case 'TMIndentedCode': continuableType = 'TMIndentedCode'; break;
       }
+     // TODO we could understand here where the line was added and update this.lines, this.lineStyles accordingly
     }
+
     // Update lines from content
-    this.updateLineContents();
+    let dirty = this.updateLineContents();
     if (continuableType) {
       // Check if the previous line was non-empty
       let capture = lineGrammar[continuableType].regexp.exec(this.lines[sel.row - 1]);
@@ -849,14 +982,16 @@ class TinyMDE {
             capture[1] = capture[1].replace(/\d{1,9}/, (result) => { return parseInt(result[0]) + 1});
           }
           this.lines[sel.row] = `${capture[1]}${this.lines[sel.row]}`;
+          dirty[sel.row] = true;
           sel.col = capture[1].length;
         } else {
           // Previous line has no content, remove the continuable type from the previous row
           this.lines[sel.row - 1] = '';
+          dirty[sel.row - 1] = true;
         }     
       }
     }
-    this.updateFormatting();
+    this.updateFormatting(dirty);
   }
 
   getSelection() {
@@ -903,7 +1038,6 @@ class TinyMDE {
     while (node != parentNode) {
       if (!childrenComplete && node.nodeType === Node.TEXT_NODE) {
         if (node.nodeValue.length >= col) {
-          this.log(`Selection at node, offset ${col}`, stringifyObject(node));
           range.selectNode(node);
           range.setStart(node, col);
           range.setEnd(node, col);
@@ -944,7 +1078,7 @@ class TinyMDE {
     if (event.inputType == 'insertParagraph' && sel) {
       this.processNewParagraph(sel);
     } else {
-      this.log(`INPUT at ${sel ? sel.row : '-'}:${sel ? sel.col : '-'}`, `EVENT\n${stringifyObject(event)}\n`);
+      // this.log(`INPUT at ${sel ? sel.row : '-'}:${sel ? sel.col : '-'}`, `EVENT\n${stringifyObject(event)}\n`);
       this.updateLineContentsAndFormatting();  
     }
     
