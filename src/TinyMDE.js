@@ -1,5 +1,12 @@
 import { inlineGrammar, lineGrammar, punctuationLeading, punctuationTrailing, htmlescape, htmlBlockGrammar } from "./grammar";
 
+const commands = {
+  bold: {type: 'inline', className: 'TMStrong', pre: '**', post: '**'},
+  italic: {type: 'inline', className: 'TMEm', pre: '**', post: '**'},
+  h1: {type: 'line', className: 'TMH1', set: {pattern: /^(.*)$/, replacement: '# $1'}, unset: {pattern: /^( {0,3}#)((?:\s+)(?:.*?))((?:\s+#+\s*)?)$/, replacement: '$2'}},
+  h2: {type: 'line', className: 'TMH2', set: {pattern: /^(.*)$/, replacement: '## $1'}, unset: {pattern: /^( {0,3}##)((?:\s+)(?:.*?))((?:\s+#+\s*)?)$/, replacement: '$2'}},
+};
+
 function assert(condition) {
   if (!condition) {
     console.log('Assertion false');
@@ -982,7 +989,9 @@ class TinyMDE {
     }
 
     let row = 0;
-    if (node.dataset && node.dataset.lineNum) {
+    // Check if we can read a line number from the data-line-num attribute.
+    // The last condition is a security measure since inserting a new paragraph copies the previous rows' line number
+    if (node.dataset && node.dataset.lineNum && (!node.previousSibling || node.previousSibling.dataset.lineNum != node.dataset.lineNum )) {
       row = node.dataset.lineNum;
     } else {
       while (node.previousSibling) {
@@ -990,7 +999,7 @@ class TinyMDE {
         node = node.previousSibling;
       }
     }
-    return {row: row, col: col};
+    return {row: row, col: col, node: startNode};
   }
 
   /**
@@ -1163,6 +1172,33 @@ class TinyMDE {
   }
 
   /**
+   * Returns the state (true / false) of all commands.
+   * @param sel A selection. If not given, assumes the current focus.
+   */
+  getCommandState(sel = null) {
+    if (!sel) sel = this.getSelection();
+    let commandState = {};
+    for (let cmd in commands) {
+      if (commands[cmd].type == 'inline') {
+        let node = sel.node;
+        commandState[cmd] = false;
+        // Ascend through DOM to see if we find a matching element
+        while (node && node != this.e) {
+          if (node.className && node.className.includes(commands[cmd].className)) {
+            commandState[cmd] = true;
+            break;
+          }
+          node = node.parentNode;
+        }
+      } 
+      if (commands[cmd].type == 'line') {
+        commandState[cmd] = sel && (this.lineTypes[sel.row] == commands[cmd].className);
+      }
+    }
+    return commandState;
+  }
+
+  /**
    * Fires a change event. Updates the linked textarea and notifies any event listeners.
    */
   fireChange() {
@@ -1183,9 +1219,12 @@ class TinyMDE {
   fireSelection() {
     if (this.listeners.selection && this.listeners.selection.length) {
       let sel = this.getSelection();
+      let commandState = this.getCommandState(sel);
+      this.log('COMMAND STATE', stringifyObject(commandState));
       for (let listener of this.listeners.selection) {
         listener({
           focus: sel,
+          commandState: commandState,
         });
       }
     }
