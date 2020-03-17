@@ -197,6 +197,7 @@ class TinyMDE {
         this.lineElements[lineNum].className = this.lineTypes[lineNum];
         this.lineElements[lineNum].innerHTML = (contentHTML == '' ? '<br />' : contentHTML); // Prevent empty elements which can't be selected etc.
       }
+      this.lineElements[lineNum].dataset.lineNum = lineNum;
     }    
   }
 
@@ -956,34 +957,38 @@ class TinyMDE {
    */
   getSelection(getAnchor = false) {
     const selection = window.getSelection();
-    let node = (getAnchor ? selection.anchorNode : selection.focusNode);
+    let startNode = (getAnchor ? selection.anchorNode : selection.focusNode);
+    let node = startNode;
     let col = node.nodeType === Node.TEXT_NODE ? (getAnchor ? selection.anchorOffset : selection.focusOffset) : 0;
 
     if (node == this.e) {
       return {row: 0, col: col};
     }
-    
+
+    // First, make sure we're actually in the editor.
     while (node && node.parentNode != this.e) {
+      node = node.parentNode;
+    }
+    if (node == null) return null;
+    
+    node = startNode;
+    while (node.parentNode != this.e) {
       if (node.previousSibling) {
         node = node.previousSibling;
         col += node.textContent.length;
       } else {
-        if (node.parentNode.nodeType == Node.ELEMENT_NODE) {
-          node = node.parentNode;
-        } else {
-          // Prevent ascending to <html>
-          node = null;
-        }
+        node = node.parentNode;
       }
     }
-    // Check that the selection was inside our text. If not, we'd have ascended to the root of the DOM (node == null)
-    if (!node) {
-      return null;
-    }
+
     let row = 0;
-    while (node.previousSibling) {
-      row++;
-      node = node.previousSibling;
+    if (node.dataset && node.dataset.lineNum) {
+      row = node.dataset.lineNum;
+    } else {
+      while (node.previousSibling) {
+        row++;
+        node = node.previousSibling;
+      }
     }
     return {row: row, col: col};
   }
@@ -1064,8 +1069,12 @@ class TinyMDE {
     this.fireChange();
   }
 
+  /**
+   * Event handler for "selectionchange" events.
+   * @param event The event
+   */
   handleSelectionChangeEvent(event) {
-    // this.log(`SELECTIONCHANGE`, `EVENT\n${stringifyEvent(event)}\n\nSELECTION\n${stringifyEvent(document.getSelection())}\n`);
+    this.fireSelection();
   }
 
   /**
@@ -1165,6 +1174,20 @@ class TinyMDE {
         content: content,
         linesDirty: this.linesDirty,
       });
+    }
+  }
+
+  /**
+   * Fires a "selection changed" event.
+   */
+  fireSelection() {
+    if (this.listeners.selection && this.listeners.selection.length) {
+      let sel = this.getSelection();
+      for (let listener of this.listeners.selection) {
+        listener({
+          focus: sel,
+        });
+      }
     }
   }
 

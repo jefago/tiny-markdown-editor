@@ -98,12 +98,14 @@ block
 1) OL
 2) OL</textarea>
     </div>
+    <div id="status" style="text-align:right">- : -</div>
     <div id="log" style="width:100%; background-color:black; color:white; height:200px; overflow-y:scroll; font-family:monospace"></div>
     <script>
       tinyMDE = new TinyMDE({element: 'tinymde', textarea: 'txt'});
-      tinyMDE.addEventListener('change', (e) => {document.getElementById('out').textContent = e.content;});
+      tinyMDE.addEventListener('selection', (e) => { 
+        document.getElementById('status').innerHTML = `${e.focus ? e.focus.row : '–'} : ${e.focus ? e.focus.col : '–'}`; 
+      })
     </script>
     <button onclick="document.getElementById('log').innerHTML = ''">Clear log</button>
-    <pre id="out"></pre>
   </body>
 </html>
