@@ -1173,26 +1173,65 @@ class TinyMDE {
 
   /**
    * Returns the state (true / false) of all commands.
-   * @param sel A selection. If not given, assumes the current focus.
+   * @param focus Focus of the selection. If not given, assumes the current focus.
    */
-  getCommandState(sel = null) {
-    if (!sel) sel = this.getSelection();
+  getCommandState(focus = null, anchor = null) {
+    if (!focus) focus = this.getSelection(false);
+    if (!anchor) anchor = this.getSelection(true);
+    if (focus && !anchor) anchor = focus; 
     let commandState = {};
     for (let cmd in commands) {
       if (commands[cmd].type == 'inline') {
-        let node = sel.node;
-        commandState[cmd] = false;
-        // Ascend through DOM to see if we find a matching element
-        while (node && node != this.e) {
-          if (node.className && node.className.includes(commands[cmd].className)) {
-            commandState[cmd] = true;
-            break;
+        if (!focus || focus.row != anchor.row) {
+          commandState[cmd] = null;
+        } else {
+          // Focus and anchor on same row
+          // Ascend through DOM to see if we find a matching element
+          let nodeFromFocus = focus.node;
+          while (nodeFromFocus && nodeFromFocus != this.e) {
+            if (nodeFromFocus.className && nodeFromFocus.className.includes(commands[cmd].className)) {
+              break;
+            }
+            nodeFromFocus = nodeFromFocus.parentNode;
           }
-          node = node.parentNode;
+          if (!nodeFromFocus || nodeFromFocus == this.e) {
+            // State is false at focus node, no need to check anchor
+            commandState[cmd] = false;
+          } else {
+            if (focus.col == anchor.col) {
+              // State is true at focus, and anchor == focus
+              commandState[cmd] = true;
+            } else {
+              // State is true at focus, anchor != focus. Check if both embedded in the same node
+              let nodeFromAnchor = anchor.node;
+              while (nodeFromAnchor && nodeFromAnchor != this.e) {
+                if (nodeFromAnchor.className && nodeFromAnchor.className.includes(commands[cmd].className)) {
+                  break;
+                }
+                nodeFromAnchor = nodeFromAnchor.parentNode;
+              }
+              if (nodeFromAnchor == nodeFromFocus) commandState[cmd] = true;
+              else commandState[cmd] = false;
+            }
+          }
         }
       } 
       if (commands[cmd].type == 'line') {
-        commandState[cmd] = sel && (this.lineTypes[sel.row] == commands[cmd].className);
+        if (!focus) {
+          commandState[cmd] = null;
+        } else {
+          let startLine = focus.row < anchor.row ? focus.row : anchor.row;
+          let state = this.lineTypes[focus.row] == commands[cmd].className;
+          
+          for (let line = startLine; line <= focus.row || line <= anchor.row; line ++) {
+            if ((this.lineTypes[line] == commands[cmd].className) != state) {
+              state = null;
+              break;
+            }
+          }
+          commandState[cmd] = state;
+        }
+        
       }
     }
     return commandState;
@@ -1218,12 +1257,13 @@ class TinyMDE {
    */
   fireSelection() {
     if (this.listeners.selection && this.listeners.selection.length) {
-      let sel = this.getSelection();
-      let commandState = this.getCommandState(sel);
-      this.log('COMMAND STATE', stringifyObject(commandState));
+      let focus = this.getSelection(false);
+      let anchor = this.getSelection(true);
+      let commandState = this.getCommandState(focus, anchor);
       for (let listener of this.listeners.selection) {
         listener({
-          focus: sel,
+          focus: focus,
+          anchor: anchor,
           commandState: commandState,
         });
       }
