@@ -1,11 +1,5 @@
-import { inlineGrammar, lineGrammar, punctuationLeading, punctuationTrailing, htmlescape, htmlBlockGrammar } from "./grammar";
+import { inlineGrammar, lineGrammar, punctuationLeading, punctuationTrailing, htmlescape, htmlBlockGrammar, commands } from "./grammar";
 
-const commands = {
-  bold: {type: 'inline', className: 'TMStrong', pre: '**', post: '**'},
-  italic: {type: 'inline', className: 'TMEm', pre: '**', post: '**'},
-  h1: {type: 'line', className: 'TMH1', set: {pattern: /^(.*)$/, replacement: '# $1'}, unset: {pattern: /^( {0,3}#)((?:\s+)(?:.*?))((?:\s+#+\s*)?)$/, replacement: '$2'}},
-  h2: {type: 'line', className: 'TMH2', set: {pattern: /^(.*)$/, replacement: '## $1'}, unset: {pattern: /^( {0,3}##)((?:\s+)(?:.*?))((?:\s+#+\s*)?)$/, replacement: '$2'}},
-};
 
 function assert(condition) {
   if (!condition) {
@@ -53,7 +47,7 @@ function stringifyObject(event) {
   }, '') + '}';
 }
 
-class TinyMDE {
+class Editor {
 
   constructor(props = {}) {    
     this.e = null;
@@ -1306,4 +1300,4 @@ class TinyMDE {
 
 }
 
-export default TinyMDE;
+export default Editor;

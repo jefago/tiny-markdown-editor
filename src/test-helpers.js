@@ -1,8 +1,8 @@
-import TinyMDE from './TinyMDE';
+import {Editor} from './';
 
 global.initTinyMDE = (content) => {
   document.body.innerHTML = '<div id="container"></div>';
-  let tinyMDE = new TinyMDE({element: 'container', content: content});
+  let tinyMDE = new Editor({element: 'container', content: content});
   return {
     editorInstance: () => tinyMDE,
     editorElement: () => document.getElementById('container').firstChild,

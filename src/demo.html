@@ -101,7 +101,7 @@ block
     <div id="status" style="text-align:right">- : -</div>
     <div id="log" style="width:100%; background-color:black; color:white; height:200px; overflow-y:scroll; font-family:monospace"></div>
     <script>
-      tinyMDE = new TinyMDE({element: 'tinymde', textarea: 'txt'});
+      tinyMDE = new TinyMDE.Editor({element: 'tinymde', textarea: 'txt'});
       tinyMDE.addEventListener('selection', (e) => { 
         let st = `${e.focus ? e.focus.row : '–'} : ${e.focus ? e.focus.col : '–'}`;
         for (let command in e.commandState) {

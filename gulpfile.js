@@ -10,12 +10,11 @@ const sourcemaps = require('gulp-sourcemaps');
 const jestCLI = require('jest-cli');
 const del = require('del');
 
-const rollupConfig = (production) => { return {
-  input: './src/TinyMDE.js',
+const rollupConfig = (inputFile) => { return {
+  input: inputFile,
   output : {
     format: 'umd',
     name: 'TinyMDE',
-    // sourcemap: production ? false : 'inline', // TODO this doesn't work yet
   },
   plugins: [babel()]
 }};
@@ -27,7 +26,7 @@ const test = () => jestCLI.run([]);
 const jsMax = () => 
   gulp.src('./src/*.js')
     .pipe(sourcemaps.init())
-    .pipe(rollup(rollupConfig(false)))
+    .pipe(rollup(rollupConfig('./src/index.js')))
     .pipe(sourcemaps.write())
     .pipe(rename('tiny-mde.js'))
     .pipe(size({ showFiles: true }))
@@ -35,7 +34,7 @@ const jsMax = () =>
 
 const jsMin = () => 
   gulp.src('./src/*.js')
-    .pipe(rollup(rollupConfig(true)))
+    .pipe(rollup(rollupConfig('./src/index.js')))
     .pipe(terser())
     .pipe(rename('tiny-mde.min.js'))
     .pipe(size({ showFiles: true }))
