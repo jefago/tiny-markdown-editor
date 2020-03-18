@@ -40,7 +40,15 @@ const jsMin = () =>
     .pipe(size({ showFiles: true }))
     .pipe(gulp.dest('./dist'));
 
-const js = gulp.series(jsMax, jsMin);
+const jsTiny = () => 
+  gulp.src('./src/*.js')
+    .pipe(rollup(rollupConfig('./src/tiny.js')))
+    .pipe(terser())
+    .pipe(rename('tiny-mde.tiny.js'))
+    .pipe(size({ showFiles: true }))
+    .pipe(gulp.dest('./dist'));
+
+const js = gulp.series(jsMax, jsMin, jsTiny);
 
 const html = () => 
   gulp.src('./src/demo.html')
