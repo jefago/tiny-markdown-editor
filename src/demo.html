@@ -8,8 +8,7 @@
   </head>
   <body>
     <h1>TinyMDE demo</h1>
-    <div id="tinymde" style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0">
-      <textarea id="txt"># Hello TinyMDE
+        <textarea id="txt"># Hello TinyMDE
 [ref]: https://www.jefago.com
 [ref link]: </this has spaces> "and a title"
 
@@ -97,7 +96,8 @@ block
 
 1) OL
 2) OL</textarea>
-    </div>
+    <div id="tinymde_commandbar"></div>
+    <div id="tinymde" style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0"></div>
     <div id="status" style="text-align:right">- : -</div>
     <div id="log" style="width:100%; background-color:black; color:white; height:200px; overflow-y:scroll; font-family:monospace"></div>
     <script>
@@ -108,8 +108,12 @@ block
           st = st.concat(` ${command}: ${e.commandState[command]}`);
         }
         document.getElementById('status').innerHTML = st; 
-      })
+      });
+
+      cmdBar = new TinyMDE.CommandBar({element: 'tinymde_commandbar'});
+      tinyMDE.addEventListener('selection', (e) => cmdBar.handleSelection(e));
     </script>
     <button onclick="document.getElementById('log').innerHTML = ''">Clear log</button>
+
   </body>
 </html>

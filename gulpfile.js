@@ -4,6 +4,7 @@ const size = require('gulp-size');
 const babel = require('rollup-plugin-babel');
 const postcss = require('gulp-postcss');
 const cssnano = require('cssnano');
+const autoprefixer = require('autoprefixer');
 const terser = require('gulp-terser');
 const rename = require('gulp-rename');
 const sourcemaps = require('gulp-sourcemaps');
@@ -56,7 +57,7 @@ const html = () =>
 
 const css = () =>
   gulp.src('./src/tiny-mde.css')
-    // .pipe(postcss[cssnano()])
+    .pipe(postcss([ autoprefixer()]))
     .pipe(rename('tiny-mde.min.css'))
     .pipe(gulp.dest('./dist'));
 
