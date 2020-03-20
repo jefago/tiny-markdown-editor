@@ -111,7 +111,7 @@ block
       });
 
       cmdBar = new TinyMDE.CommandBar({element: 'tinymde_commandbar'});
-      tinyMDE.addEventListener('selection', (e) => cmdBar.handleSelection(e));
+      cmdBar.setEditor(tinyMDE);
     </script>
     <button onclick="document.getElementById('log').innerHTML = ''">Clear log</button>
 

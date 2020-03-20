@@ -168,6 +168,7 @@ class Editor {
         this.linkLabels.push(this.lineCaptures[l][lineGrammar.TMLinkReferenceDefinition.labelPlaceholder]);
       }
     }
+    this.log('LINK LABELS', JSON.stringify(this.linkLabels));
   }
 
   /**
@@ -960,6 +961,8 @@ class Editor {
     const selection = window.getSelection();
     let startNode = (getAnchor ? selection.anchorNode : selection.focusNode);
     let node = startNode;
+    if (!node) return null;
+    
     let col = node.nodeType === Node.TEXT_NODE ? (getAnchor ? selection.anchorOffset : selection.focusOffset) : 0;
 
     if (node == this.e) {
@@ -1170,10 +1173,30 @@ class Editor {
    * @param focus Focus of the selection. If not given, assumes the current focus.
    */
   getCommandState(focus = null, anchor = null) {
+    let commandState = {};
     if (!focus) focus = this.getSelection(false);
     if (!anchor) anchor = this.getSelection(true);
-    if (focus && !anchor) anchor = focus; 
-    let commandState = {};
+    if (!focus) {
+      for (let cmd in commands) {
+        commandState[cmd] = null;
+      }
+      return commandState;
+    }
+    if (!anchor) anchor = focus; 
+    
+    let start, end;
+    if (anchor.row < focus.row || (anchor.row == focus.row && anchor.col < focus.col)) {
+      start = anchor;
+      end = focus;
+    } else {
+      start = focus;
+      end = anchor;
+    }
+    if (end.row > start.row && end.col == 0) {
+      end.row--;
+      end.col = this.lines[end.row].length; // Selection to beginning of next line is said to end at the beginning of the last line
+    }
+
     for (let cmd in commands) {
       if (commands[cmd].type == 'inline') {
         if (!focus || focus.row != anchor.row) {
@@ -1214,10 +1237,9 @@ class Editor {
         if (!focus) {
           commandState[cmd] = null;
         } else {
-          let startLine = focus.row < anchor.row ? focus.row : anchor.row;
-          let state = this.lineTypes[focus.row] == commands[cmd].className;
+          let state = this.lineTypes[start.row] == commands[cmd].className;
           
-          for (let line = startLine; line <= focus.row || line <= anchor.row; line ++) {
+          for (let line = start.row; line <= end.row; line ++) {
             if ((this.lineTypes[line] == commands[cmd].className) != state) {
               state = null;
               break;
@@ -1229,6 +1251,41 @@ class Editor {
       }
     }
     return commandState;
+  }
+
+  /**
+   * Sets a command state
+   * @param {string} command 
+   * @param {boolean} state 
+   */
+  setCommandState(command, state) {
+    if (commands[command].type == 'inline') {
+
+    } else if (commands[command].type == 'line') {
+      let anchor = this.getSelection(true);
+      let focus = this.getSelection(false);
+      if (!anchor) anchor = focus;
+      if (!focus) return;
+      this.clearDirtyFlag();
+      let start = anchor.row > focus.row ? focus : anchor;
+      let end =  anchor.row > focus.row ? anchor : focus;
+      if (end.row > start.row && end.col == 0) {
+        end.row--;
+      }
+
+      for (let line = start.row; line <= end.row; line++) {
+        if (state && this.lineTypes[line] != commands[command].className) {
+          this.lines[line] = this.lines[line].replace(commands[command].set.pattern, commands[command].set.replacement);
+          this.lineDirty[line] = true;
+        }
+        if (!state && this.lineTypes[line] == commands[command].className) {
+          this.lines[line] = this.lines[line].replace(commands[command].unset.pattern, commands[command].unset.replacement);
+          this.lineDirty[line] = true;
+        }
+      }
+      this.updateFormatting();
+      this.setSelection(focus);
+    }
   }
 
   /**

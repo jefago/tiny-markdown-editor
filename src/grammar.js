@@ -207,8 +207,8 @@ function htmlescape(string) {
 const commands = {
   bold: {type: 'inline', className: 'TMStrong', pre: '**', post: '**'},
   italic: {type: 'inline', className: 'TMEm', pre: '**', post: '**'},
-  h1: {type: 'line', className: 'TMH1', set: {pattern: /^(.*)$/, replacement: '# $1'}, unset: {pattern: /^( {0,3}#)((?:\s+)(?:.*?))((?:\s+#+\s*)?)$/, replacement: '$2'}},
-  h2: {type: 'line', className: 'TMH2', set: {pattern: /^(.*)$/, replacement: '## $1'}, unset: {pattern: /^( {0,3}##)((?:\s+)(?:.*?))((?:\s+#+\s*)?)$/, replacement: '$2'}},
+  h1: {type: 'line', className: 'TMH1', set: {pattern: /^( {0,3}(?:(?:#+|[0-9]{1,9}[).]|[>\-*+])\s+)?)(.*)$/, replacement: '# $2'}, unset: {pattern: /^( {0,3}#\s+)(.*?)((?:\s+#+\s*)?)$/, replacement: '$2'}},
+  h2: {type: 'line', className: 'TMH2', set: {pattern: /^( {0,3}(?:(?:#+|[0-9]{1,9}[).]|[>\-*+])\s+)?)(.*)$/, replacement: '## $2'}, unset: {pattern: /^( {0,3}##\s+)(.*?)((?:\s+#+\s*)?)$/, replacement: '$2'}},
 };
 
 export { lineGrammar, inlineGrammar, punctuationLeading, punctuationTrailing, htmlescape, htmlBlockGrammar, commands };
