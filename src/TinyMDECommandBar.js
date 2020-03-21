@@ -1,4 +1,5 @@
 import { commands } from "./grammar";
+import svg from './svg/svg';
 
 class CommandBar {
   constructor(props) {
@@ -30,8 +31,8 @@ class CommandBar {
       } else {
         this.buttons[command] = document.createElement('div');
         this.buttons[command].className = 'TMCommandButton TMCommandButton_Disabled';
-        if (command == 'h1') this.buttons[command].innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4.762 4.762" height="18" width="18"><path d="M.794.53s0-.265.264-.265h.265c.264 0 .264.264.264.264v1.588h1.588V.529s0-.264.265-.264h.264c.265 0 .265.264.265.264v3.704s0 .265-.265.265H3.44c-.265 0-.265-.265-.265-.265V2.646H1.587v1.587s0 .265-.264.265h-.265c-.264 0-.264-.265-.264-.265z"/></svg>`;
-        else this.buttons[command].textContent = command.substr(0, 2);
+        if (svg[command]) this.buttons[command].innerHTML = svg[command];
+        else this.buttons[command].textContent = command.substr(0, 1).toUpperCase();
         this.buttons[command].addEventListener('click', (e) => this.handleClick(command, e));
         this.e.appendChild(this.buttons[command]);
       }

@@ -10,6 +10,12 @@ const rename = require('gulp-rename');
 const sourcemaps = require('gulp-sourcemaps');
 const jestCLI = require('jest-cli');
 const del = require('del');
+const fs = require('fs');
+const path = require('path');
+
+const util = require('util');
+const readfile = util.promisify(fs.readFile);
+const writefile = util.promisify(fs.writeFile);
 
 const rollupConfig = (inputFile) => { return {
   input: inputFile,
@@ -25,7 +31,7 @@ const clean = () => del(['./dist']);
 const test = () => jestCLI.run([]); 
 
 const jsMax = () => 
-  gulp.src('./src/*.js')
+  gulp.src('./src/**/*.js')
     .pipe(sourcemaps.init())
     .pipe(rollup(rollupConfig('./src/index.js')))
     .pipe(sourcemaps.write())
@@ -34,7 +40,7 @@ const jsMax = () =>
     .pipe(gulp.dest('./dist'));
 
 const jsMin = () => 
-  gulp.src('./src/*.js')
+  gulp.src('./src/**/*.js')
     .pipe(rollup(rollupConfig('./src/index.js')))
     .pipe(terser())
     .pipe(rename('tiny-mde.min.js'))
@@ -62,15 +68,36 @@ const css = () =>
     .pipe(gulp.dest('./dist'));
 
 const watch = () => {
-  gulp.watch('./src/*.js', jsMax);
+  gulp.watch('./src/svg/*.svg', svg);
+  gulp.watch('./src/**/*.js', jsMax);
   gulp.watch('./src/*.css', css);
   gulp.watch('./src/*.html', html);
 }
 
-const build = gulp.series(clean, test, js, css, html);
+const svg = () => {
+  const dirEntries = fs.readdirSync(path.join('.', 'src', 'svg'), {withFileTypes: true});
+  let promises = [];
+  for (entry of dirEntries) {
+    if (entry.isFile() && entry.name.match(/\.svg$/i)) {
+      let fn = entry.name;
+      promises.push(
+        readfile(path.join('.', 'src', 'svg', fn), {encoding: 'utf8'})
+        .then((buffer) => {
+          // console.log(entry.name + ': ' + buffer.toString().replace(/([`\$\\])/g, '\\$1'));
+          return `${fn.replace(/^(.*)\.svg$/i, '$1')}: \`${buffer.toString().replace(/([`\$\\])/g, '\\$1')}\``;
+        })
+      );
+    }
+  }
+  return Promise.all(promises)
+    .then((values) => writefile(path.join('.', 'src', 'svg', 'svg.js'), `const svg = \{\n  ${values.join(',\n  ')}\n\};\n\nexport default svg;`, {encoding: 'utf8'}));
+}
 
-const dev = gulp.series(clean, jsMax, css, html, watch);
+const build = gulp.series(clean, test, svg, js, css, html);
+
+const dev = gulp.series(clean, svg, jsMax, css, html, watch);
 
 exports.default = build;
 exports.dev = dev;
 exports.test = test;
+exports.svg = svg;

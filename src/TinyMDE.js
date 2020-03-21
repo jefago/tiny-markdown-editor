@@ -989,7 +989,7 @@ class Editor {
     // Check if we can read a line number from the data-line-num attribute.
     // The last condition is a security measure since inserting a new paragraph copies the previous rows' line number
     if (node.dataset && node.dataset.lineNum && (!node.previousSibling || node.previousSibling.dataset.lineNum != node.dataset.lineNum )) {
-      row = node.dataset.lineNum;
+      row = parseInt(node.dataset.lineNum);
     } else {
       while (node.previousSibling) {
         row++;
@@ -1000,12 +1000,12 @@ class Editor {
   }
 
   /**
-   * Sets the selection based on rows and columns within the editor Markdown content.
-   * @param {object} selection Object representing the selection, needs to have properties row and col.
+   * Computes DOM node and offset within that node from a position expressed as row and column.
+   * @param {int} row Row (line number)
+   * @param {int} col Column
+   * @returns An object with two properties: node and offset. offset may be null;
    */
-  setSelection(selection) {
-    if (!selection) return;
-    let {row, col} = selection; 
+  computeNodeAndOffset(row, col) {
     if (row >= this.lineElements.length) {
       // Selection past the end of text, set selection to end of text
       row = this.lineElements.length - 1;
@@ -1023,14 +1023,7 @@ class Editor {
     while (node != parentNode) {
       if (!childrenComplete && node.nodeType === Node.TEXT_NODE) {
         if (node.nodeValue.length >= col) {
-          range.selectNode(node);
-          range.setStart(node, col);
-          range.setEnd(node, col);
-          range.collapse(false); // TODO do we need this with a simple selection?
-          let selection = window.getSelection();
-          selection.removeAllRanges();
-          selection.addRange(range);
-          return;
+          return({node: node, offset: col});
         } else {
           col -= node.nodeValue.length;
         }
@@ -1048,8 +1041,35 @@ class Editor {
 
     // Somehow, the position was invalid; just keep it at the beginning of the line
     node = parentNode.firstChild ? parentNode.firstChild : parentNode;
-    range.selectNode(node);
-    range.collapse(true);
+    return({node: node, offset: 0});
+  }
+
+  /**
+   * Sets the selection based on rows and columns within the editor Markdown content.
+   * @param {object} focus Object representing the selection, needs to have properties row and col.
+   */
+  setSelection(focus, anchor = null) {
+    if (!focus) return;
+
+    let range = document.createRange();
+
+    let {node: focusNode, offset: focusOffset} = this.computeNodeAndOffset(focus.row, focus.col);
+    let anchorNode = null, anchorOffset = null;
+    if (anchor && (anchor.row != focus.row || anchor.col != focus.col)) {
+      let {node, offset} = this.computeNodeAndOffset(anchor.row, anchor.col);
+      anchorNode = node;
+      anchorOffset = offset;
+    }
+
+    // if (focusOffset !== null) {
+    if (anchorNode) range.setStart(anchorNode, anchorOffset);
+    else range.setStart(focusNode, focusOffset);
+    range.setEnd(focusNode, focusOffset);
+    // } else {
+    //   range.selectNode(focusNode);
+    //   range.collapse(true);
+    // }
+    
     let windowSelection = window.getSelection();
     windowSelection.removeAllRanges();
     windowSelection.addRange(range);
@@ -1284,7 +1304,7 @@ class Editor {
         }
       }
       this.updateFormatting();
-      this.setSelection(focus);
+      this.setSelection({row: end.row, col: this.lines[end.row].length}, {row: start.row, col: 0});
     }
   }
 

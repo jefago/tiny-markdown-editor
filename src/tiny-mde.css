@@ -180,7 +180,7 @@
 .TMCommandButton_Active {
   /* border:1px inset #c0c0c0; */
   font-weight:bold;
-  color:white;
+  color:#000080;
   background-color: #c0c0ff;
   fill:#000080;
 }
