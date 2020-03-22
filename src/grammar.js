@@ -205,8 +205,11 @@ function htmlescape(string) {
 }
 
 const commands = {
-  bold: {type: 'inline', className: 'TMStrong', pre: '**', post: '**'},
-  italic: {type: 'inline', className: 'TMEm', pre: '**', post: '**'},
+  // Replacements for unset are '' by default
+  bold: {type: 'inline', className: 'TMStrong', set: {pre: '**', post: '**'}, unset: {prePattern: /(?:\*\*|__)$/, postPattern: /^(?:\*\*|__)/}}, 
+  italic: {type: 'inline', className: 'TMEm', set: {pre: '*', post: '*'}, unset: {prePattern: /(?:\*|_)$/, postPattern: /^(?:\*|_)/}},
+  code: {type: 'inline', className: 'TMCode', set: {pre: '`', post: '`'}, unset: {prePattern: /`+$/, postPattern: /^`+/}}, // FIXME this doesn't ensure balanced backticks right now
+  // strikethrough: {type: 'inline', className: 'TMStrikethrough', set: {pre: '~~', post: '~~'}, unset: {prePattern:/~~$/, postPattern: /^~~/ }},
   h1: {type: 'line', className: 'TMH1', set: {pattern: /^( {0,3}(?:(?:#+|[0-9]{1,9}[).]|[>\-*+])\s+)?)(.*)$/, replacement: '# $2'}, unset: {pattern: /^( {0,3}#\s+)(.*?)((?:\s+#+\s*)?)$/, replacement: '$2'}},
   h2: {type: 'line', className: 'TMH2', set: {pattern: /^( {0,3}(?:(?:#+|[0-9]{1,9}[).]|[>\-*+])\s+)?)(.*)$/, replacement: '## $2'}, unset: {pattern: /^( {0,3}##\s+)(.*?)((?:\s+#+\s*)?)$/, replacement: '$2'}},
 };

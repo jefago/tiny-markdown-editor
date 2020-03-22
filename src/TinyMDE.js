@@ -960,29 +960,20 @@ class Editor {
   getSelection(getAnchor = false) {
     const selection = window.getSelection();
     let startNode = (getAnchor ? selection.anchorNode : selection.focusNode);
+    if (!startNode) return null;
+    let offset = startNode.nodeType === Node.TEXT_NODE ? (getAnchor ? selection.anchorOffset : selection.focusOffset) : 0;
+  
+    if (startNode == this.e) {
+      return {row: 0, col: offset};
+    }
+
+    let col = this.computeColumn(startNode, offset);    
+    if (col === null) return null; // We are outside of the editor
+
+    // Find the row node
     let node = startNode;
-    if (!node) return null;
-    
-    let col = node.nodeType === Node.TEXT_NODE ? (getAnchor ? selection.anchorOffset : selection.focusOffset) : 0;
-
-    if (node == this.e) {
-      return {row: 0, col: col};
-    }
-
-    // First, make sure we're actually in the editor.
-    while (node && node.parentNode != this.e) {
-      node = node.parentNode;
-    }
-    if (node == null) return null;
-    
-    node = startNode;
-    while (node.parentNode != this.e) {
-      if (node.previousSibling) {
-        node = node.previousSibling;
-        col += node.textContent.length;
-      } else {
-        node = node.parentNode;
-      }
+    while (node.parentElement != this.e) {
+      node = node.parentElement;
     }
 
     let row = 0;
@@ -1000,12 +991,39 @@ class Editor {
   }
 
   /**
+   * Computes a column within an editor line from a node and offset within that node.
+   * @param {Node} startNode The node
+   * @param {int} offset THe selection
+   * @returns {int} the column, or null if the node is not inside the editor
+   */
+  computeColumn(startNode, offset) {
+    let node = startNode;
+    let col = offset;
+    // First, make sure we're actually in the editor.
+    while (node && node.parentNode != this.e) {
+      node = node.parentNode;
+    }
+    if (node == null) return null;
+    
+    node = startNode;
+    while (node.parentNode != this.e) {
+      if (node.previousSibling) {
+        node = node.previousSibling;
+        col += node.textContent.length;
+      } else {
+        node = node.parentNode;
+      }
+    }
+    return col;
+  }
+
+  /**
    * Computes DOM node and offset within that node from a position expressed as row and column.
    * @param {int} row Row (line number)
    * @param {int} col Column
    * @returns An object with two properties: node and offset. offset may be null;
    */
-  computeNodeAndOffset(row, col) {
+  computeNodeAndOffset(row, col, bindRight = false) {
     if (row >= this.lineElements.length) {
       // Selection past the end of text, set selection to end of text
       row = this.lineElements.length - 1;
@@ -1017,13 +1035,22 @@ class Editor {
     const parentNode = this.lineElements[row];
     let node = parentNode.firstChild;
 
-    let range = document.createRange();
     let childrenComplete = false;
+    // default return value
+    let rv = {node: parentNode.firstChild ? parentNode.firstChild : parentNode, offset: 0};
 
     while (node != parentNode) {
       if (!childrenComplete && node.nodeType === Node.TEXT_NODE) {
         if (node.nodeValue.length >= col) {
-          return({node: node, offset: col});
+          if (bindRight && node.nodeValue.length == col) {
+            // Selection is at the end of this text node, but we are binding right (prefer an offset of 0 in the next text node)
+            // Remember return value in case we don't find another text node
+            rv = {node: node, offset: col};
+            col = 0;
+
+          } else {
+            return({node: node, offset: col});
+          }
         } else {
           col -= node.nodeValue.length;
         }
@@ -1039,9 +1066,9 @@ class Editor {
       }
     }
 
-    // Somehow, the position was invalid; just keep it at the beginning of the line
-    node = parentNode.firstChild ? parentNode.firstChild : parentNode;
-    return({node: node, offset: 0});
+    // Either, the position was invalid and we just return the default return value
+    // Or we are binding right and the selection is at the end of the line
+    return rv;
   }
 
   /**
@@ -1053,10 +1080,10 @@ class Editor {
 
     let range = document.createRange();
 
-    let {node: focusNode, offset: focusOffset} = this.computeNodeAndOffset(focus.row, focus.col);
+    let {node: focusNode, offset: focusOffset} = this.computeNodeAndOffset(focus.row, focus.col, (anchor && anchor.row == focus.row && anchor.col > focus.col)); // Bind selection right if anchor is in the same row and behind the focus
     let anchorNode = null, anchorOffset = null;
     if (anchor && (anchor.row != focus.row || anchor.col != focus.col)) {
-      let {node, offset} = this.computeNodeAndOffset(anchor.row, anchor.col);
+      let {node, offset} = this.computeNodeAndOffset(anchor.row, anchor.col, focus.row == anchor.row && focus.col > anchor.col);
       anchorNode = node;
       anchorOffset = offset;
     }
@@ -1189,6 +1216,58 @@ class Editor {
   }
 
   /**
+   * Computes the (lowest in the DOM tree) common ancestor of two DOM nodes.
+   * @param {Node} node1 the first node
+   * @param {Node} node2 the second node
+   * @returns {Node} The commen ancestor node, or null if there is no common ancestor
+   */
+  computeCommonAncestor(node1, node2) {
+    if (!node1 || !node2) return null;
+    if (node1 == node2) return node1;
+    const ancestry = (node) => {
+      let ancestry = [];
+      while (node) {
+        ancestry.unshift(node);
+        node = node.parentNode;
+      }
+      return ancestry;
+    }
+
+    const ancestry1 = ancestry(node1);
+    const ancestry2 = ancestry(node2);
+
+    if (ancestry1[0] != ancestry2[0]) return null;
+    let i;
+    for (i = 0; ancestry1[i] == ancestry2[i]; i++);
+    return ancestry1[i-1];
+  }
+
+  /**
+   * Finds the (lowest in the DOM tree) enclosing DOM node with a given class.
+   * @param {object} focus The focus selection object
+   * @param {object} anchor The anchor selection object
+   * @param {string} className The class name to find
+   * @returns {Node} The enclosing DOM node with the respective class (inside the editor), if there is one; null otherwise.
+   */
+  computeEnclosingMarkupNode(focus, anchor, className) {
+    let node = null;
+    if (!focus) return null;
+    if (!anchor) {
+      node = focus.node;
+    } else {
+      if (focus.row != anchor.row) return null;
+      node = this.computeCommonAncestor(focus.node, anchor.node);
+    }
+    if (!node) return null;
+    while (node != this.e) {
+      if (node.className && node.className.includes(className)) return node;
+      node = node.parentNode;
+    }
+    // Ascended all the way to the editor element
+    return null;
+  }
+
+  /**
    * Returns the state (true / false) of all commands.
    * @param focus Focus of the selection. If not given, assumes the current focus.
    */
@@ -1219,38 +1298,11 @@ class Editor {
 
     for (let cmd in commands) {
       if (commands[cmd].type == 'inline') {
+
         if (!focus || focus.row != anchor.row) {
           commandState[cmd] = null;
         } else {
-          // Focus and anchor on same row
-          // Ascend through DOM to see if we find a matching element
-          let nodeFromFocus = focus.node;
-          while (nodeFromFocus && nodeFromFocus != this.e) {
-            if (nodeFromFocus.className && nodeFromFocus.className.includes(commands[cmd].className)) {
-              break;
-            }
-            nodeFromFocus = nodeFromFocus.parentNode;
-          }
-          if (!nodeFromFocus || nodeFromFocus == this.e) {
-            // State is false at focus node, no need to check anchor
-            commandState[cmd] = false;
-          } else {
-            if (focus.col == anchor.col) {
-              // State is true at focus, and anchor == focus
-              commandState[cmd] = true;
-            } else {
-              // State is true at focus, anchor != focus. Check if both embedded in the same node
-              let nodeFromAnchor = anchor.node;
-              while (nodeFromAnchor && nodeFromAnchor != this.e) {
-                if (nodeFromAnchor.className && nodeFromAnchor.className.includes(commands[cmd].className)) {
-                  break;
-                }
-                nodeFromAnchor = nodeFromAnchor.parentNode;
-              }
-              if (nodeFromAnchor == nodeFromFocus) commandState[cmd] = true;
-              else commandState[cmd] = false;
-            }
-          }
+          commandState[cmd] = !!this.computeEnclosingMarkupNode(focus, anchor, commands[cmd].className);
         }
       } 
       if (commands[cmd].type == 'line') {
@@ -1280,6 +1332,36 @@ class Editor {
    */
   setCommandState(command, state) {
     if (commands[command].type == 'inline') {
+      let anchor = this.getSelection(true);
+      let focus = this.getSelection(false);
+      if (!anchor) anchor = focus;
+      if (anchor.row != focus.row) return;
+      let markupNode = this.computeEnclosingMarkupNode(focus, anchor, commands[command].className);
+      this.clearDirtyFlag();
+      this.lineDirty[focus.row] = true;
+      if (markupNode) {
+        const startCol = this.computeColumn(markupNode, 0);
+        const len = markupNode.textContent.length;
+        const left = this.lines[focus.row].substr(0, startCol).replace(commands[command].unset.prePattern, '');
+        const mid = this.lines[focus.row].substr(startCol, len);
+        const right = this.lines[focus.row].substr(startCol + len).replace(commands[command].unset.postPattern, '');
+        this.lines[focus.row] = left.concat(mid, right);
+        anchor.col = left.length;
+        focus.col = anchor.col + len;
+      } else {
+        // Just insert markup before and after and hope for the best. 
+        const startCol = focus.col < anchor.col ? focus.col : anchor.col;
+        const endCol =  focus.col < anchor.col ? anchor.col : focus.col;
+        const left = this.lines[focus.row].substr(0, startCol).concat(commands[command].set.pre);
+        const mid = endCol == startCol ? ' ' : this.lines[focus.row].substr(startCol, endCol - startCol); // Insert space for empty selection
+        const right = commands[command].set.post.concat(this.lines[focus.row].substr(endCol));
+        this.lines[focus.row] = left.concat(mid, right);
+        anchor.col = left.length;
+        focus.col = anchor.col + mid.length;
+        // TODO clean this up so that markup remains properly nested
+      }
+      this.updateFormatting();
+      this.setSelection(focus, anchor);
 
     } else if (commands[command].type == 'line') {
       let anchor = this.getSelection(true);
