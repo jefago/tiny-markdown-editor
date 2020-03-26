@@ -1377,7 +1377,7 @@ class Editor {
 
       for (let line = start.row; line <= end.row; line++) {
         if (state && this.lineTypes[line] != commands[command].className) {
-          this.lines[line] = this.lines[line].replace(commands[command].set.pattern, commands[command].set.replacement);
+          this.lines[line] = this.lines[line].replace(commands[command].set.pattern, commands[command].set.replacement.replace('$#', (line - start.row + 1)));
           this.lineDirty[line] = true;
         }
         if (!state && this.lineTypes[line] == commands[command].className) {
