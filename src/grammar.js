@@ -212,6 +212,9 @@ const commands = {
   // strikethrough: {type: 'inline', className: 'TMStrikethrough', set: {pre: '~~', post: '~~'}, unset: {prePattern:/~~$/, postPattern: /^~~/ }},
   h1: {type: 'line', className: 'TMH1', set: {pattern: /^( {0,3}(?:(?:#+|[0-9]{1,9}[).]|[>\-*+])\s+)?)(.*)$/, replacement: '# $2'}, unset: {pattern: /^( {0,3}#\s+)(.*?)((?:\s+#+\s*)?)$/, replacement: '$2'}},
   h2: {type: 'line', className: 'TMH2', set: {pattern: /^( {0,3}(?:(?:#+|[0-9]{1,9}[).]|[>\-*+])\s+)?)(.*)$/, replacement: '## $2'}, unset: {pattern: /^( {0,3}##\s+)(.*?)((?:\s+#+\s*)?)$/, replacement: '$2'}},
+  ul: {type: 'line', className: 'TMUL', set: {pattern: /^( {0,3}(?:(?:#+|[0-9]{1,9}[).]|[>\-*+])\s+)?)(.*)$/, replacement: '- $2'}, unset: {pattern: /^( {0,3}[+*-] {1,4})(.*)$/, replacement: '$2'}},
+  ol: {type: 'line', className: 'TMOL', set: {pattern: /^( {0,3}(?:(?:#+|[0-9]{1,9}[).]|[>\-*+])\s+)?)(.*)$/, replacement: '1. $2'}, unset: {pattern: /^( {0,3}\d{1,9}[.)] {1,4})(.*)$/, replacement: '$2'}}, // TODO increase numbering for each line
+  blockquote: {type: 'line', className: 'TMBlockquote', set: {pattern: /^( {0,3}(?:(?:#+|[0-9]{1,9}[).]|[>\-*+])\s+)?)(.*)$/, replacement: '> $2'}, unset: {pattern: /^( {0,3}>[ ]?)(.*)$/, replacement: '$2'}}, // TODO increase numbering for each line
 };
 
 export { lineGrammar, inlineGrammar, punctuationLeading, punctuationTrailing, htmlescape, htmlBlockGrammar, commands };
