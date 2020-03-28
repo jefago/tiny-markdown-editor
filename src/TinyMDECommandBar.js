@@ -1,5 +1,6 @@
 import { commands } from "./grammar";
 import svg from './svg/svg';
+import { stringifyObject } from "./TinyMDE";
 
 class CommandBar {
   constructor(props) {
@@ -42,6 +43,7 @@ class CommandBar {
 
   handleClick(command, event) {
     if (!this.editor) return;
+    this.editor.log(`Button click: ${command}`, `Selection: ${stringifyObject(this.editor.getSelection())}`);
     event.preventDefault();
     if (this.state[command] === false) this.editor.setCommandState(command, true);
     else this.editor.setCommandState(command, false);

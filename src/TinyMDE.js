@@ -168,7 +168,7 @@ class Editor {
         this.linkLabels.push(this.lineCaptures[l][lineGrammar.TMLinkReferenceDefinition.labelPlaceholder]);
       }
     }
-    this.log('LINK LABELS', JSON.stringify(this.linkLabels));
+    // this.log('LINK LABELS', JSON.stringify(this.linkLabels));
   }
 
   /**
@@ -1505,3 +1505,4 @@ class Editor {
 }
 
 export default Editor;
+export {stringifyObject};
