@@ -102,6 +102,8 @@ class Editor {
     // The following is important for formatting purposes, but also since otherwise the browser replaces subsequent spaces with  &nbsp; &nbsp;
     // That breaks a lot of stuff, so we do this here and not in CSS—therefore, you don't have to remember to but this in the CSS file
     this.e.style.whiteSpace = 'pre-wrap'; 
+    // Avoid formatting (B / I / U) popping up on iOS
+    this.e.style.webkitUserModify = 'read-write-plaintext-only';
     if (this.textarea && this.textarea.parentNode == element && this.textarea.nextSibling) {
       element.insertBefore(this.e, this.textarea.nextSibling);
     }
@@ -1155,6 +1157,9 @@ class Editor {
     if (event.inputType == 'insertParagraph' && sel) {
       this.clearDirtyFlag();
       this.processNewParagraph(sel);
+    // } else if (event.inputType == 'formatBold' && sel) {
+      // TODO This would be a way to use the browser commands...
+
     } else {
       this.log(`INPUT at ${sel ? sel.row : '-'}:${sel ? sel.col : '-'}`, `EVENT\n${stringifyObject(event)}\n\nDATA\n${stringifyObject(event.data)}`);
       if (this.e.childElementCount == 0) {
