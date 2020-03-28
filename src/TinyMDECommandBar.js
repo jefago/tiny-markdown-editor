@@ -33,7 +33,7 @@ class CommandBar {
         this.buttons[command].className = 'TMCommandButton TMCommandButton_Disabled';
         if (svg[command]) this.buttons[command].innerHTML = svg[command];
         else this.buttons[command].textContent = command.substr(0, 1).toUpperCase();
-        this.buttons[command].addEventListener('click', (e) => this.handleClick(command, e));
+        this.buttons[command].addEventListener('mousedown', (e) => this.handleClick(command, e));
         this.e.appendChild(this.buttons[command]);
       }
     }
