@@ -820,6 +820,51 @@ class Editor {
         offset += cap[0].length;
         continue outer;
       }
+
+      // Check for strikethrough delimiter
+      cap = /^~~/.exec(string);
+      if (cap) {
+        let consumed = false;
+        let stackPointer = stack.length - 1;
+        // See if we can find a matching opening delimiter, move down through the stack
+        while (!consumed && stackPointer >= 0) {
+          if (stack[stackPointer].delimiter == '~') {
+            // We found a matching delimiter, let's construct the formatted string
+
+            // Firstly, if we skipped any stack levels, pop them immediately (non-matching delimiters)
+            while (stackPointer < stack.length - 1) {
+              const entry = stack.pop();
+              processed = `${entry.output}${entry.delimString.substr(0, entry.count)}${processed}`;
+            }
+
+            // Then, format the string
+            processed = `<span class="TMMark">~~</span><del class="TMStrikethrough">${processed}</del><span class="TMMark">~~</span>`;
+            let entry = stack.pop();
+            processed = `${entry.output}${processed}`
+            consumed = true;
+          } else {
+            // This stack level's delimiter type doesn't match the current delimiter type
+            // Go down one level in the stack
+            stackPointer--;
+          }
+        }
+        
+        // If there are still delimiters left, and the delimiter run can open, push it on the stack
+        if (!consumed) {
+          stack.push({
+            delimiter: '~',
+            delimString: '~~',
+            count: 2,
+            output: processed
+          });
+          processed = ''; // Current formatted output has been pushed on the stack and will be prepended when the stack gets popped
+        }
+
+        offset += cap[0].length;
+        string = string.substr(cap[0].length); 
+        continue outer;
+      }
+      
   
       // Process 'default' rule
       cap = inlineGrammar.default.regexp.exec(string);

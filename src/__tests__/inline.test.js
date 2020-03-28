@@ -101,6 +101,32 @@ test('Emphasis delimiters can be mixed and matched', () => {
   expect(initTinyMDE('__*Mixed* and matched__').lineHTML(0)).toMatch(/<strong[^>]*>.*<em[^>]*>Mixed<\/em>.*and matched<\/strong>/);
 })
 
+// Strikethrough ----------------------------------------------------
+test('correctly parses ~~ strikethrough', () => {
+  expect(initTinyMDE('~~strikethrough~~').lineHTML(0)).toMatch(/<del[^>]*>strikethrough<\/del>/);
+});
+
+test('Strikethrough can be nested inside emphasis: *A ~~B~~ C*', () => {
+  const html = initTinyMDE('*XXXA ~~XXXB~~ XXXC*').lineHTML(0);
+  expect(html).toMatch(classTagRegExp('XXXB', 'TMStrikethrough', 'del'));
+  expect(html).toMatch(/<em[^>]*>/); // Ensure the emphasis is processed also
+});
+
+test('Strikethrough does not need to be left or right flanking: ~~ A ~~', () => {
+  expect(initTinyMDE('~~ XXXA ~~').lineHTML(0)).toMatch(classTagRegExp(' XXXA ', 'TMStrikethrough', 'del'));
+});
+
+test('Emphasis and strikethrough bind left to right: *A ~~B* C~~', () => {
+  const tinyMDE = initTinyMDE('*XXXA ~~XXXB* XXXC~~\n~~XXXA *XXXB~~ XXXC*');
+  expect(tinyMDE.lineHTML(0)).toMatch(/<em.*>/);
+  expect(tinyMDE.lineHTML(0)).not.toMatch(/<del.*>/);
+  expect(tinyMDE.lineHTML(1)).not.toMatch(/<em.*>/);
+  expect(tinyMDE.lineHTML(1)).toMatch(/<del.*>/);
+});
+
+
+// Escape ----------------------------------------------------
+
 test('ASCII punctuation can be backslash-escaped', () => {
   let punctuation =  ['!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/', ':', ';', '<', '=', '>', '?', '@', '[', '\\', ']', '^', '_', '`', '{', '|', '}', '~'];
   for (let p of punctuation) {
