@@ -1,8 +1,17 @@
-import { inlineGrammar, lineGrammar, punctuationLeading, punctuationTrailing, htmlescape, htmlBlockGrammar } from "./grammar";
+import { inlineGrammar, lineGrammar, punctuationLeading, punctuationTrailing, htmlescape, htmlBlockGrammar, commands } from "./grammar";
+
+
+function assert(condition) {
+  if (!condition) {
+    console.log('Assertion false');
+    throw "Assertion false";
+  }
+}
 
 function stringifyObject(event) {
   let keys = [];
   let obj = event;
+  if (!event) return 'null';
 
   do {
     Object.getOwnPropertyNames(obj).forEach(function(prop) {
@@ -38,26 +47,48 @@ function stringifyObject(event) {
   }, '') + '}';
 }
 
-class TinyMDE {
+class Editor {
 
   constructor(props = {}) {    
     this.e = null;
+    this.textarea = null;
     this.lines = [];
     this.lineElements = [];
     this.lineTypes = [];
     this.lineCaptures = [];
     this.lineReplacements = [];
     this.linkLabels = [];
+    this.lineDirty = [];
 
-    if (props.element && !props.element.tagName) {
-      props.element = document.getElementById(props.element);
+    this.listeners = {
+      change: [],
+      selection: [],
+    };
+
+    let element = props.element;
+    this.textarea = props.textarea;
+
+    if (this.textarea && !this.textarea.tagName) {
+      this.textarea = document.getElementById(this.textarea);
     }
-    if (!props.element) {
-      props.element = document.createElement('div');
-      document.getElementsByTagName('body')[0].appendChild(props.element);
+
+    if (element && !element.tagName) {
+      element = document.getElementById(props.element);
     }
-    this.createEditorElement(props.element);
-    this.setContent(props.content || '# Hello TinyMDE!\nEdit **here**');
+    if (!element) {
+      element = document.getElementsByTagName('body')[0]; 
+    }
+    if (element.tagName == 'TEXTAREA') {
+      this.textarea = element;
+      element = this.textarea.parentNode; 
+    }
+
+    if (this.textarea) {
+      this.textarea.style.display = 'none';
+    }
+
+    this.createEditorElement(element);
+    this.setContent(props.content || (this.textarea ? this.textarea.value : false) || '# Hello TinyMDE!\nEdit **here**');
   }
 
   /**
@@ -71,11 +102,18 @@ class TinyMDE {
     // The following is important for formatting purposes, but also since otherwise the browser replaces subsequent spaces with  &nbsp; &nbsp;
     // That breaks a lot of stuff, so we do this here and not in CSS—therefore, you don't have to remember to but this in the CSS file
     this.e.style.whiteSpace = 'pre-wrap'; 
-    element.appendChild(this.e);
+    if (this.textarea && this.textarea.parentNode == element && this.textarea.nextSibling) {
+      element.insertBefore(this.e, this.textarea.nextSibling);
+    }
+    else {
+      element.appendChild(this.e);
+    }
+
     this.e.addEventListener("input", (e) => this.handleInputEvent(e));
     // this.e.addEventListener("keydown", (e) => this.handleKeydownEvent(e));
     document.addEventListener("selectionchange", (e) => this.handleSelectionChangeEvent(e));
     this.e.addEventListener("paste", (e) => this.handlePaste(e));
+    this.lineElements = this.e.childNodes; // this will automatically update
   }
 
   /**
@@ -87,16 +125,16 @@ class TinyMDE {
     while (this.e.firstChild) {
       this.e.removeChild(this.e.firstChild);
     }
-    this.lineElements = [];
-
     this.lines = content.split(/(?:\r\n|\r|\n)/);
+    this.lineDirty = [];
     for (let lineNum = 0; lineNum < this.lines.length; lineNum++) {
       let le = document.createElement('div');
       this.e.appendChild(le);
-      this.lineElements.push(le);
+      this.lineDirty.push(true);
     }
     this.lineTypes = new Array(this.lines.length);
     this.updateFormatting();
+    this.fireChange();
   }
 
   /**
@@ -130,7 +168,7 @@ class TinyMDE {
         this.linkLabels.push(this.lineCaptures[l][lineGrammar.TMLinkReferenceDefinition.labelPlaceholder]);
       }
     }
-    this.log(`Link labels`, stringifyObject(this.linkLabels));
+    this.log('LINK LABELS', JSON.stringify(this.linkLabels));
   }
 
   /**
@@ -155,9 +193,13 @@ class TinyMDE {
    */
   applyLineTypes() {
     for (let lineNum = 0; lineNum < this.lines.length; lineNum++) {
-      let contentHTML = this.replace(this.lineReplacements[lineNum], this.lineCaptures[lineNum]);
-      this.lineElements[lineNum].className = this.lineTypes[lineNum];
-      this.lineElements[lineNum].innerHTML = (contentHTML == '' ? '<br />' : contentHTML); // Prevent empty elements which can't be selected etc.
+      if (this.lineDirty[lineNum]) {
+        let contentHTML = this.replace(this.lineReplacements[lineNum], this.lineCaptures[lineNum]);
+        // this.lineHTML[lineNum] = (contentHTML == '' ? '<br />' : contentHTML); // Prevent empty elements which can't be selected etc.
+        this.lineElements[lineNum].className = this.lineTypes[lineNum];
+        this.lineElements[lineNum].innerHTML = (contentHTML == '' ? '<br />' : contentHTML); // Prevent empty elements which can't be selected etc.
+      }
+      this.lineElements[lineNum].dataset.lineNum = lineNum;
     }    
   }
 
@@ -175,7 +217,6 @@ class TinyMDE {
       let lineType = 'TMPara';
       let lineCapture = [this.lines[lineNum]];
       let lineReplacement = '$$0'; // Default replacement for paragraph: Inline format the entire line
-
 
       // Check ongoing code blocks
       // if (lineNum > 0 && (this.lineTypes[lineNum - 1] == 'TMCodeFenceBacktickOpen' || this.lineTypes[lineNum - 1] == 'TMFencedCodeBacktick')) {
@@ -255,8 +296,6 @@ class TinyMDE {
         }
       }
 
-     
-
       // If we've opened a code block, remember that
       if (lineType == 'TMCodeFenceBacktickOpen' || lineType == 'TMCodeFenceTildeOpen') {
         codeBlockType = lineType;
@@ -304,8 +343,12 @@ class TinyMDE {
         } else {
           // Valid setext marker. Change types of preceding para lines
           let headingLine = lineNum - 1;
+          const headingLineType = (lineType == 'TMSetextH1Marker' ? 'TMSetextH1' : 'TMSetextH2');
           do {
-            this.lineTypes[headingLine] = (lineType == 'TMSetextH1Marker' ? 'TMSetextH1' : 'TMSetextH2');
+            if (this.lineTypes[headingLineType] != headingLineType) {
+              this.lineTypes[headingLine] = headingLineType; 
+              this.lineDirty[headingLineType] = true;
+            }
             this.lineReplacements[headingLine] = '$$0';
             this.lineCaptures[headingLine] = [this.lines[headingLine]];
 
@@ -314,7 +357,10 @@ class TinyMDE {
         }
       }
       // Lastly, save the line style to be applied later
-      this.lineTypes[lineNum] = lineType;
+      if (this.lineTypes[lineNum] != lineType) {
+        this.lineTypes[lineNum] = lineType;
+        this.lineDirty[lineNum] = true;
+      }
       this.lineReplacements[lineNum] = lineReplacement;
       this.lineCaptures[lineNum] = lineCapture;
     }
@@ -324,10 +370,9 @@ class TinyMDE {
    * Updates all line contents from the HTML, then re-applies formatting.
    */
   updateLineContentsAndFormatting() {
-    // TODO: Only update all line types if current line's type has changed, otherwise, just re-process replacement for current line
-    if (this.updateLineContents()) {
-      this.updateFormatting();
-    }
+    this.clearDirtyFlag();
+    this.updateLineContents();
+    this.updateFormatting();
   }
 
   /**
@@ -775,6 +820,51 @@ class TinyMDE {
         offset += cap[0].length;
         continue outer;
       }
+
+      // Check for strikethrough delimiter
+      cap = /^~~/.exec(string);
+      if (cap) {
+        let consumed = false;
+        let stackPointer = stack.length - 1;
+        // See if we can find a matching opening delimiter, move down through the stack
+        while (!consumed && stackPointer >= 0) {
+          if (stack[stackPointer].delimiter == '~') {
+            // We found a matching delimiter, let's construct the formatted string
+
+            // Firstly, if we skipped any stack levels, pop them immediately (non-matching delimiters)
+            while (stackPointer < stack.length - 1) {
+              const entry = stack.pop();
+              processed = `${entry.output}${entry.delimString.substr(0, entry.count)}${processed}`;
+            }
+
+            // Then, format the string
+            processed = `<span class="TMMark">~~</span><del class="TMStrikethrough">${processed}</del><span class="TMMark">~~</span>`;
+            let entry = stack.pop();
+            processed = `${entry.output}${processed}`
+            consumed = true;
+          } else {
+            // This stack level's delimiter type doesn't match the current delimiter type
+            // Go down one level in the stack
+            stackPointer--;
+          }
+        }
+        
+        // If there are still delimiters left, and the delimiter run can open, push it on the stack
+        if (!consumed) {
+          stack.push({
+            delimiter: '~',
+            delimString: '~~',
+            count: 2,
+            output: processed
+          });
+          processed = ''; // Current formatted output has been pushed on the stack and will be prepended when the stack gets popped
+        }
+
+        offset += cap[0].length;
+        string = string.substr(cap[0].length); 
+        continue outer;
+      }
+      
   
       // Process 'default' rule
       cap = inlineGrammar.default.regexp.exec(string);
@@ -782,7 +872,6 @@ class TinyMDE {
         string = string.substr(cap[0].length);
         offset += cap[0].length;
         processed += inlineGrammar.default.replacement
-          // .replace(/\$\$([1-9])/g, (str, p1) => processInlineStyles(cap[p1])) // todo recursive calling
           .replace(/\$([1-9])/g, (str, p1) => htmlescape(cap[p1]));
         continue outer; 
       }
@@ -798,32 +887,77 @@ class TinyMDE {
     return processed;
   }
 
+  /** 
+   * Clears the line dirty flag (resets it to an array of false)
+   */
+  clearDirtyFlag() {
+    this.lineDirty = new Array(this.lines.length);
+    for (let i = 0; i < this.lineDirty.length; i++) {
+      this.lineDirty[i] = false;
+    }
+  }
+
   /**
    * Updates the class properties (lines, lineElements) from the DOM.
    * @returns true if contents changed
    */
   updateLineContents() {
-    let dirty = false;
+    // this.lineDirty = []; 
     // Check if we have changed anything about the number of lines (inserted or deleted a paragraph)
-    if (this.lines.length != this.e.childElementCount) {
-      // yup. Recalculate everything
-      this.lineElements = this.e.childNodes;
-      this.lines = Array(this.lineElements.length);
-      this.lineTypes = [];
-      dirty = true;
-    }
-    for (let line = 0; line < this.lineElements.length; line++) {
-      let e = this.lineElements[line];
-      let ct = e.textContent;
-      if (this.lines[line] !== ct) {
-        // Line changed, update it
-        this.lines[line] = ct;
-        dirty = true;
+    // < 0 means line(s) removed; > 0 means line(s) added
+    let lineDelta = this.e.childElementCount - this.lines.length;
+    if (lineDelta) {
+      // yup. Let's try how much we can salvage (find out which lines from beginning and end were unchanged)
+      // Find lines from the beginning that haven't changed...
+      let firstChangedLine = 0;
+      while (
+          firstChangedLine <= this.lines.length 
+          && firstChangedLine <= this.lineElements.length
+          && this.lines[firstChangedLine] == this.lineElements[firstChangedLine].textContent
+      ) {
+        firstChangedLine++;
+      }
+
+      // End also from the end
+      let lastChangedLine = -1;
+      while (
+          -lastChangedLine < this.lines.length 
+          && -lastChangedLine < this.lineElements.length
+          && this.lines[this.lines.length + lastChangedLine] == this.lineElements[this.lineElements.length + lastChangedLine].textContent
+      ) {
+        lastChangedLine--;
+      }
+
+      let linesToDelete = this.lines.length + lastChangedLine + 1 - firstChangedLine;
+      if (linesToDelete < -lineDelta) linesToDelete = -lineDelta;
+      if (linesToDelete < 0) linesToDelete = 0;
+
+      let linesToAdd = [];
+      for (let l = 0; l < linesToDelete + lineDelta; l++) {
+        linesToAdd.push(this.lineElements[firstChangedLine + l].textContent);
+      }
+      this.spliceLines(firstChangedLine, linesToDelete, linesToAdd, false);
+      
+      assert(this.lines.length == this.lineElements.length);
+
+    } else {
+      // No lines added or removed
+      for (let line = 0; line < this.lineElements.length; line++) {
+        let e = this.lineElements[line];
+        let ct = e.textContent;
+        if (this.lines[line] !== ct) {
+          // Line changed, update it
+          this.lines[line] = ct;
+          this.lineDirty[line] = true; 
+        } 
       }
     }
-    return dirty;
   }
 
+  /**
+   * Processes a new paragraph.
+   * @param sel The current selection
+   */
   processNewParagraph(sel) {
     let continuableType = false;
     // Let's see if we need to continue a list
@@ -834,6 +968,7 @@ class TinyMDE {
         case 'TMIndentedCode': continuableType = 'TMIndentedCode'; break;
       }
     }
+
     // Update lines from content
     this.updateLineContents();
     if (continuableType) {
@@ -849,21 +984,74 @@ class TinyMDE {
             capture[1] = capture[1].replace(/\d{1,9}/, (result) => { return parseInt(result[0]) + 1});
           }
           this.lines[sel.row] = `${capture[1]}${this.lines[sel.row]}`;
+          this.lineDirty[sel.row] = true;
           sel.col = capture[1].length;
         } else {
           // Previous line has no content, remove the continuable type from the previous row
           this.lines[sel.row - 1] = '';
+          this.lineDirty[sel.row - 1] = true;
         }     
       }
     }
     this.updateFormatting();
   }
 
-  getSelection() {
+  /**
+   * Gets the current position of the selection counted by row and column of the editor Markdown content (as opposed to the position in the DOM).
+   * 
+   * @param {boolean} getAnchor if set to true, gets the selection anchor (start point of the selection), otherwise gets the focus (end point).
+   * @return {object} An object representing the selection, with properties col and row.
+   */
+  getSelection(getAnchor = false) {
     const selection = window.getSelection();
-    let node = selection.focusNode;
-    let col = node.nodeType === Node.TEXT_NODE ? selection.focusOffset : 0;
+    let startNode = (getAnchor ? selection.anchorNode : selection.focusNode);
+    if (!startNode) return null;
+    let offset = startNode.nodeType === Node.TEXT_NODE ? (getAnchor ? selection.anchorOffset : selection.focusOffset) : 0;
+  
+    if (startNode == this.e) {
+      return {row: 0, col: offset};
+    }
+
+    let col = this.computeColumn(startNode, offset);    
+    if (col === null) return null; // We are outside of the editor
+
+    // Find the row node
+    let node = startNode;
+    while (node.parentElement != this.e) {
+      node = node.parentElement;
+    }
+
+    let row = 0;
+    // Check if we can read a line number from the data-line-num attribute.
+    // The last condition is a security measure since inserting a new paragraph copies the previous rows' line number
+    if (node.dataset && node.dataset.lineNum && (!node.previousSibling || node.previousSibling.dataset.lineNum != node.dataset.lineNum )) {
+      row = parseInt(node.dataset.lineNum);
+    } else {
+      while (node.previousSibling) {
+        row++;
+        node = node.previousSibling;
+      }
+    }
+    return {row: row, col: col, node: startNode};
+  }
+
+  /**
+   * Computes a column within an editor line from a node and offset within that node.
+   * @param {Node} startNode The node
+   * @param {int} offset THe selection
+   * @returns {int} the column, or null if the node is not inside the editor
+   */
+  computeColumn(startNode, offset) {
+    let node = startNode;
+    let col = offset;
+    // First, make sure we're actually in the editor.
     while (node && node.parentNode != this.e) {
+      node = node.parentNode;
+    }
+    if (node == null) return null;
+    
+    node = startNode;
+    while (node.parentNode != this.e) {
       if (node.previousSibling) {
         node = node.previousSibling;
         col += node.textContent.length;
@@ -871,21 +1059,16 @@ class TinyMDE {
         node = node.parentNode;
       }
     }
-    // Check that the selection was inside our text. If not, we'd have ascended to the root of the DOM (node == null)
-    if (!node) {
-      return null;
-    }
-    let row = 0;
-    while (node.previousSibling) {
-      row++;
-      node = node.previousSibling;
-    }
-    return {row: row, col: col};
+    return col;
   }
 
-  setSelection(para) {
-    if (!para) return;
-    let {row, col} = para; 
+  /**
+   * Computes DOM node and offset within that node from a position expressed as row and column.
+   * @param {int} row Row (line number)
+   * @param {int} col Column
+   * @returns An object with two properties: node and offset. offset may be null;
+   */
+  computeNodeAndOffset(row, col, bindRight = false) {
     if (row >= this.lineElements.length) {
       // Selection past the end of text, set selection to end of text
       row = this.lineElements.length - 1;
@@ -897,21 +1080,22 @@ class TinyMDE {
     const parentNode = this.lineElements[row];
     let node = parentNode.firstChild;
 
-    let range = document.createRange();
     let childrenComplete = false;
+    // default return value
+    let rv = {node: parentNode.firstChild ? parentNode.firstChild : parentNode, offset: 0};
 
     while (node != parentNode) {
       if (!childrenComplete && node.nodeType === Node.TEXT_NODE) {
         if (node.nodeValue.length >= col) {
-          this.log(`Selection at node, offset ${col}`, stringifyObject(node));
-          range.selectNode(node);
-          range.setStart(node, col);
-          range.setEnd(node, col);
-          range.collapse(false); // TODO do we need this with a simple selection?
-          let selection = window.getSelection();
-          selection.removeAllRanges();
-          selection.addRange(range);
-          return;
+          if (bindRight && node.nodeValue.length == col) {
+            // Selection is at the end of this text node, but we are binding right (prefer an offset of 0 in the next text node)
+            // Remember return value in case we don't find another text node
+            rv = {node: node, offset: col};
+            col = 0;
+
+          } else {
+            return({node: node, offset: col});
+          }
         } else {
           col -= node.nodeValue.length;
         }
@@ -927,13 +1111,40 @@ class TinyMDE {
       }
     }
 
-    // Somehow, the position was invalid; just keep it at the beginning of the line
-    node = parentNode.firstChild ? parentNode.firstChild : parentNode;
-    range.selectNode(node);
-    range.collapse(true);
-    let selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
+    // Either, the position was invalid and we just return the default return value
+    // Or we are binding right and the selection is at the end of the line
+    return rv;
+  }
+
+  /**
+   * Sets the selection based on rows and columns within the editor Markdown content.
+   * @param {object} focus Object representing the selection, needs to have properties row and col.
+   */
+  setSelection(focus, anchor = null) {
+    if (!focus) return;
+
+    let range = document.createRange();
+
+    let {node: focusNode, offset: focusOffset} = this.computeNodeAndOffset(focus.row, focus.col, (anchor && anchor.row == focus.row && anchor.col > focus.col)); // Bind selection right if anchor is in the same row and behind the focus
+    let anchorNode = null, anchorOffset = null;
+    if (anchor && (anchor.row != focus.row || anchor.col != focus.col)) {
+      let {node, offset} = this.computeNodeAndOffset(anchor.row, anchor.col, focus.row == anchor.row && focus.col > anchor.col);
+      anchorNode = node;
+      anchorOffset = offset;
+    }
+
+    // if (focusOffset !== null) {
+    if (anchorNode) range.setStart(anchorNode, anchorOffset);
+    else range.setStart(focusNode, focusOffset);
+    range.setEnd(focusNode, focusOffset);
+    // } else {
+    //   range.selectNode(focusNode);
+    //   range.collapse(true);
+    // }
+    
+    let windowSelection = window.getSelection();
+    windowSelection.removeAllRanges();
+    windowSelection.addRange(range);
   }
 
   /** 
@@ -942,20 +1153,66 @@ class TinyMDE {
   handleInputEvent(event) {
     let sel = this.getSelection();
     if (event.inputType == 'insertParagraph' && sel) {
+      this.clearDirtyFlag();
       this.processNewParagraph(sel);
     } else {
-      this.log(`INPUT at ${sel ? sel.row : '-'}:${sel ? sel.col : '-'}`, `EVENT\n${stringifyObject(event)}\n`);
+      this.log(`INPUT at ${sel ? sel.row : '-'}:${sel ? sel.col : '-'}`, `EVENT\n${stringifyObject(event)}\n\nDATA\n${stringifyObject(event.data)}`);
+      if (this.e.childElementCount == 0) {
+        // Prevent the user from accidentally deleting the last line
+        this.e.innerHTML = `<div>${this.e.textContent}</div>`;
+      }
       this.updateLineContentsAndFormatting();  
     }
-    
     if (sel) this.setSelection(sel);
-
+    this.fireChange();
   }
 
+  /**
+   * Event handler for "selectionchange" events.
+   * @param event The event
+   */
   handleSelectionChangeEvent(event) {
-    // this.log(`SELECTIONCHANGE`, `EVENT\n${stringifyEvent(event)}\n\nSELECTION\n${stringifyEvent(document.getSelection())}\n`);
+    this.fireSelection();
   }
 
+  /**
+   * Convenience function to "splice" new lines into the arrays this.lines, this.lineDirty, this.lineTypes, and the DOM elements 
+   * underneath the editor element.
+   * This method is essentially Array.splice, only that the third parameter takes an un-spread array (and the forth parameter)
+   * determines whether the DOM should also be adjusted.
+   * 
+   * @param {int} startLine Position at which to start changing the array of lines
+   * @param {int} linesToDelete Number of lines to delete
+   * @param {array} linesToInsert Array of strings representing the lines to be inserted
+   * @param {boolean} adjustLineElements If true, then <div> elements are also inserted in the DOM at the respective position
+   */
+  spliceLines(startLine, linesToDelete = 0, linesToInsert = [], adjustLineElements = true) {
+    if (adjustLineElements) {
+      for (let i = 0; i < linesToDelete; i++) {
+        this.e.removeChild(this.e.childNodes[startLine]);
+      }
+    }
+    
+    let insertedBlank = [];
+    let insertedDirty = [];
+
+    for (let i = 0; i < linesToInsert.length; i++) {
+      insertedBlank.push('');
+      insertedDirty.push(true);
+      if (adjustLineElements) {
+        if (this.e.childNodes[startLine]) this.e.insertBefore(document.createElement('div'),this.e.childNodes[startLine]);
+        else this.e.appendChild(document.createElement('div'));
+      }
+    }
+
+    this.lines.splice(startLine, linesToDelete, ...linesToInsert);
+    this.lineTypes.splice(startLine, linesToDelete, ...insertedBlank);
+    this.lineDirty.splice(startLine, linesToDelete, ...insertedDirty);
+  }
+
+  /**
+   * Event handler for the "paste" event
+   */
   handlePaste(event) {
     event.preventDefault();
   
@@ -963,18 +1220,267 @@ class TinyMDE {
     let text = (event.originalEvent || event).clipboardData.getData('text/plain');
 
     // insert text manually
-    document.execCommand("insertText", false, text);
-    let sel = this.getSelection();
-    this.updateLineContentsAndFormatting();
-    if (sel) this.setSelection(sel);
-  
-    // Prevent regular paste
-    // return false;
+    let anchor = this.getSelection(true);
+    let focus = this.getSelection(false);
+    let beginning, end;
+
+    if (!focus) {
+      focus = { row: this.lines.length, col: this.lines[this.lines.length - 1].length }; // Insert at end
+    }
+    if (!anchor) {
+      anchor = focus;
+    }
+
+    if (anchor.row < focus.row || (anchor.row == focus.row && anchor.col <= focus.col)) {
+      beginning = anchor;
+      end = focus;
+    } else {
+      beginning = focus;
+      end = anchor;
+    }
+
+    // this.log(`Paste at ${anchor ? anchor.row : '-'}:${anchor ? anchor.col : '-'} – ${focus ? focus.row : '-'}:${focus ? focus.col : '-'}`)
+    let insertedLines = text.split(/(?:\r\n|\r|\n)/);
+
+    let lineBefore = this.lines[beginning.row].substr(0, beginning.col);
+    let lineEnd = this.lines[end.row].substr(end.col);
+
+    insertedLines[0] = lineBefore.concat(insertedLines[0]);
+    let endColPos = insertedLines[insertedLines.length - 1].length;
+    insertedLines[insertedLines.length - 1] = insertedLines[insertedLines.length - 1].concat(lineEnd);
+
+    this.spliceLines(beginning.row, 1 + end.row - beginning.row, insertedLines);
+    assert(this.lines.length == this.lineElements.length);
+    
+    focus.row = beginning.row + insertedLines.length - 1;
+    focus.col = endColPos;
+
+    this.updateFormatting();
+    this.setSelection(focus);
+    this.fireChange();
   }
 
-  // handleKeydownEvent(event) {
-  //   this.log(`KEYDOWN`, stringifyEvent(event));
-  // }
+  /**
+   * Computes the (lowest in the DOM tree) common ancestor of two DOM nodes.
+   * @param {Node} node1 the first node
+   * @param {Node} node2 the second node
+   * @returns {Node} The commen ancestor node, or null if there is no common ancestor
+   */
+  computeCommonAncestor(node1, node2) {
+    if (!node1 || !node2) return null;
+    if (node1 == node2) return node1;
+    const ancestry = (node) => {
+      let ancestry = [];
+      while (node) {
+        ancestry.unshift(node);
+        node = node.parentNode;
+      }
+      return ancestry;
+    }
+
+    const ancestry1 = ancestry(node1);
+    const ancestry2 = ancestry(node2);
+
+    if (ancestry1[0] != ancestry2[0]) return null;
+    let i;
+    for (i = 0; ancestry1[i] == ancestry2[i]; i++);
+    return ancestry1[i-1];
+  }
+
+  /**
+   * Finds the (lowest in the DOM tree) enclosing DOM node with a given class.
+   * @param {object} focus The focus selection object
+   * @param {object} anchor The anchor selection object
+   * @param {string} className The class name to find
+   * @returns {Node} The enclosing DOM node with the respective class (inside the editor), if there is one; null otherwise.
+   */
+  computeEnclosingMarkupNode(focus, anchor, className) {
+    let node = null;
+    if (!focus) return null;
+    if (!anchor) {
+      node = focus.node;
+    } else {
+      if (focus.row != anchor.row) return null;
+      node = this.computeCommonAncestor(focus.node, anchor.node);
+    }
+    if (!node) return null;
+    while (node != this.e) {
+      if (node.className && node.className.includes(className)) return node;
+      node = node.parentNode;
+    }
+    // Ascended all the way to the editor element
+    return null;
+  }
+
+  /**
+   * Returns the state (true / false) of all commands.
+   * @param focus Focus of the selection. If not given, assumes the current focus.
+   */
+  getCommandState(focus = null, anchor = null) {
+    let commandState = {};
+    if (!focus) focus = this.getSelection(false);
+    if (!anchor) anchor = this.getSelection(true);
+    if (!focus) {
+      for (let cmd in commands) {
+        commandState[cmd] = null;
+      }
+      return commandState;
+    }
+    if (!anchor) anchor = focus; 
+    
+    let start, end;
+    if (anchor.row < focus.row || (anchor.row == focus.row && anchor.col < focus.col)) {
+      start = anchor;
+      end = focus;
+    } else {
+      start = focus;
+      end = anchor;
+    }
+    if (end.row > start.row && end.col == 0) {
+      end.row--;
+      end.col = this.lines[end.row].length; // Selection to beginning of next line is said to end at the beginning of the last line
+    }
+
+    for (let cmd in commands) {
+      if (commands[cmd].type == 'inline') {
+
+        if (!focus || focus.row != anchor.row) {
+          commandState[cmd] = null;
+        } else {
+          commandState[cmd] = !!this.computeEnclosingMarkupNode(focus, anchor, commands[cmd].className);
+        }
+      } 
+      if (commands[cmd].type == 'line') {
+        if (!focus) {
+          commandState[cmd] = null;
+        } else {
+          let state = this.lineTypes[start.row] == commands[cmd].className;
+          
+          for (let line = start.row; line <= end.row; line ++) {
+            if ((this.lineTypes[line] == commands[cmd].className) != state) {
+              state = null;
+              break;
+            }
+          }
+          commandState[cmd] = state;
+        }
+        
+      }
+    }
+    return commandState;
+  }
+
+  /**
+   * Sets a command state
+   * @param {string} command 
+   * @param {boolean} state 
+   */
+  setCommandState(command, state) {
+    if (commands[command].type == 'inline') {
+      let anchor = this.getSelection(true);
+      let focus = this.getSelection(false);
+      if (!anchor) anchor = focus;
+      if (anchor.row != focus.row) return;
+      let markupNode = this.computeEnclosingMarkupNode(focus, anchor, commands[command].className);
+      this.clearDirtyFlag();
+      this.lineDirty[focus.row] = true;
+      if (markupNode) {
+        const startCol = this.computeColumn(markupNode, 0);
+        const len = markupNode.textContent.length;
+        const left = this.lines[focus.row].substr(0, startCol).replace(commands[command].unset.prePattern, '');
+        const mid = this.lines[focus.row].substr(startCol, len);
+        const right = this.lines[focus.row].substr(startCol + len).replace(commands[command].unset.postPattern, '');
+        this.lines[focus.row] = left.concat(mid, right);
+        anchor.col = left.length;
+        focus.col = anchor.col + len;
+      } else {
+        // Just insert markup before and after and hope for the best. 
+        const startCol = focus.col < anchor.col ? focus.col : anchor.col;
+        const endCol =  focus.col < anchor.col ? anchor.col : focus.col;
+        const left = this.lines[focus.row].substr(0, startCol).concat(commands[command].set.pre);
+        const mid = endCol == startCol ? ' ' : this.lines[focus.row].substr(startCol, endCol - startCol); // Insert space for empty selection
+        const right = commands[command].set.post.concat(this.lines[focus.row].substr(endCol));
+        this.lines[focus.row] = left.concat(mid, right);
+        anchor.col = left.length;
+        focus.col = anchor.col + mid.length;
+        // TODO clean this up so that markup remains properly nested
+      }
+      this.updateFormatting();
+      this.setSelection(focus, anchor);
+
+    } else if (commands[command].type == 'line') {
+      let anchor = this.getSelection(true);
+      let focus = this.getSelection(false);
+      if (!anchor) anchor = focus;
+      if (!focus) return;
+      this.clearDirtyFlag();
+      let start = anchor.row > focus.row ? focus : anchor;
+      let end =  anchor.row > focus.row ? anchor : focus;
+      if (end.row > start.row && end.col == 0) {
+        end.row--;
+      }
+
+      for (let line = start.row; line <= end.row; line++) {
+        if (state && this.lineTypes[line] != commands[command].className) {
+          this.lines[line] = this.lines[line].replace(commands[command].set.pattern, commands[command].set.replacement.replace('$#', (line - start.row + 1)));
+          this.lineDirty[line] = true;
+        }
+        if (!state && this.lineTypes[line] == commands[command].className) {
+          this.lines[line] = this.lines[line].replace(commands[command].unset.pattern, commands[command].unset.replacement);
+          this.lineDirty[line] = true;
+        }
+      }
+      this.updateFormatting();
+      this.setSelection({row: end.row, col: this.lines[end.row].length}, {row: start.row, col: 0});
+    }
+  }
+
+  /**
+   * Fires a change event. Updates the linked textarea and notifies any event listeners.
+   */
+  fireChange() {
+    if (!this.textarea && !this.listeners.change.length) return;
+    const content = this.getContent();
+    if (this.textarea) this.textarea.value = content;
+    for (let listener of this.listeners.change) {
+      listener({
+        content: content,
+        linesDirty: this.linesDirty,
+      });
+    }
+  }
+
+  /**
+   * Fires a "selection changed" event.
+   */
+  fireSelection() {
+    if (this.listeners.selection && this.listeners.selection.length) {
+      let focus = this.getSelection(false);
+      let anchor = this.getSelection(true);
+      let commandState = this.getCommandState(focus, anchor);
+      for (let listener of this.listeners.selection) {
+        listener({
+          focus: focus,
+          anchor: anchor,
+          commandState: commandState,
+        });
+      }
+    }
+  }
+
+  /**
+   * Adds an event listener.
+   * @param {string} type The type of event to listen to. Can be 'change' or 'selection'
+   * @param {*} listener Function of the type (event) => {} to be called when the event occurs.
+   */
+  addEventListener(type, listener) {
+    if (type.match(/^(?:change|input)$/i)) {
+      this.listeners.change.push(listener);
+    }
+    if (type.match(/^(?:selection|selectionchange)$/i)) {
+      this.listeners.selection.push(listener);
+    }
+  }
 
   log(message, details) {
     // TODO Remove logging
@@ -998,4 +1504,4 @@ class TinyMDE {
 
 }
 
-export default TinyMDE;
+export default Editor;

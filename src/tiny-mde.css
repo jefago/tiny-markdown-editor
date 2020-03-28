@@ -140,3 +140,63 @@
 .TMHTMLBlock {
   color:#6000c0;
 }
+
+/* TODO extract this into its own file */
+.TMCommandBar {
+  background-color:#f8f8f8;
+  height:32px;
+  display:flex;
+  -moz-user-select: -moz-none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.TMCommandButton {
+  box-sizing: border-box;
+  height:24px;
+  width:24px;
+  padding:3px;
+  margin-left:4px;
+  margin-top:4px;
+  margin-bottom:4px;
+  color:#404040;
+  fill:#404040;
+  text-align: center;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.TMCommandDivider {
+  height:32px;
+  margin-left:8px;
+  margin-right: 4px;
+  width:0px;
+  border-left:1px solid #c0c0c0;
+  border-right:1px solid #ffffff;
+}
+
+.TMCommandButton_Active {
+  /* border:1px inset #c0c0c0; */
+  font-weight:bold;
+  color:#000080;
+  background-color: #c0c0ff;
+  fill:#000080;
+}
+
+.TMCommandButton_Inactive {
+  /* border:1px outset #c0c0c0; */
+  background-color:#f8f8f8;
+}
+
+.TMCommandButton_Disabled {
+  /* border:1px solid #c0c0c0; */
+  color:#808080;
+  fill:#808080;
+}
+
+.TMCommandButton_Active:hover, .TMCommandButton_Disabled:hover, .TMCommandButton_Inactive:hover {
+  background-color:#e0e0ff;
+  fill:#000000;
+}

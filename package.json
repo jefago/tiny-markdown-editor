@@ -23,9 +23,11 @@
       "./src/test-helpers.js"
     ]
   },
+  "browserslist": "> 0.25%, not dead",
   "devDependencies": {
     "@babel/core": "^7.8.7",
     "@babel/preset-env": "^7.8.7",
+    "autoprefixer": "^9.7.4",
     "core-js": "^3.6.4",
     "cssnano": "^4.1.10",
     "del": "^5.1.0",

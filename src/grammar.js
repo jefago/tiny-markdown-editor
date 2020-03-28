@@ -203,5 +203,74 @@ function htmlescape(string) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 }
+/**
+ * Contains the commands that can be sent to the editor. Contains objects with a name representing the name of the command.
+ * Each of the objects contains the following keys:
+ * 
+ *   - type: Can be either inline (for inline formatting) or line (for block / line formatting).
+ *   - className: Used to determine whether the command is active at a given position. 
+ *     For line formatting, this looks at the class of the line element. For inline elements, tries to find an enclosing element with that class.
+ *   - set / unset: Contain instructions how to set and unset the command. For line type commands, both consist of a pattern and replacement that 
+ *     will be applied to each line (using String.replace). For inline type commands, the set object contains a pre and post string which will
+ *     be inserted before and after the selection. The unset object contains a prePattern and a postPattern. Both should be regular expressions and 
+ *     they will be applied to the portion of the line before and after the selection (using String.replace, with an empty replacement string).
+ */
+const commands = {
+  // Replacements for unset for inline commands are '' by default
+  bold: {
+    type: 'inline', 
+    className: 'TMStrong', 
+    set: {pre: '**', post: '**'}, 
+    unset: {prePattern: /(?:\*\*|__)$/, postPattern: /^(?:\*\*|__)/}
+  }, 
+  italic: {
+    type: 'inline', 
+    className: 'TMEm', 
+    set: {pre: '*', post: '*'}, 
+    unset: {prePattern: /(?:\*|_)$/, postPattern: /^(?:\*|_)/}
+  },
+  code: {
+    type: 'inline', 
+    className: 'TMCode', 
+    set: {pre: '`', post: '`'}, 
+    unset: {prePattern: /`+$/, postPattern: /^`+/} // FIXME this doesn't ensure balanced backticks right now
+  }, 
+  strikethrough: {
+    type: 'inline', 
+    className: 'TMStrikethrough', 
+    set: {pre: '~~', post: '~~'}, 
+    unset: {prePattern:/~~$/, postPattern: /^~~/ }
+  },
+  h1: {
+    type: 'line', 
+    className: 'TMH1', 
+    set: {pattern: /^( {0,3}(?:(?:#+|[0-9]{1,9}[).]|[>\-*+])\s+)?)(.*)$/, replacement: '# $2'}, 
+    unset: {pattern: /^( {0,3}#\s+)(.*?)((?:\s+#+\s*)?)$/, replacement: '$2'}
+  },
+  h2: {
+    type: 'line', 
+    className: 'TMH2', 
+    set: {pattern: /^( {0,3}(?:(?:#+|[0-9]{1,9}[).]|[>\-*+])\s+)?)(.*)$/, replacement: '## $2'}, 
+    unset: {pattern: /^( {0,3}##\s+)(.*?)((?:\s+#+\s*)?)$/, replacement: '$2'}
+  },
+  ul: {
+    type: 'line', 
+    className: 'TMUL', 
+    set: {pattern: /^( {0,3}(?:(?:#+|[0-9]{1,9}[).]|[>\-*+])\s+)?)(.*)$/, replacement: '- $2'}, 
+    unset: {pattern: /^( {0,3}[+*-] {1,4})(.*)$/, replacement: '$2'}
+  },
+  ol: {
+    type: 'line', 
+    className: 'TMOL', 
+    set: {pattern: /^( {0,3}(?:(?:#+|[0-9]{1,9}[).]|[>\-*+])\s+)?)(.*)$/, replacement: '$#. $2'}, 
+    unset: {pattern: /^( {0,3}\d{1,9}[.)] {1,4})(.*)$/, replacement: '$2'}
+  }, 
+  blockquote: {
+    type: 'line', 
+    className: 'TMBlockquote', 
+    set: {pattern: /^( {0,3}(?:(?:#+|[0-9]{1,9}[).]|[>\-*+])\s+)?)(.*)$/, replacement: '> $2'}, 
+    unset: {pattern: /^( {0,3}>[ ]?)(.*)$/, replacement: '$2'}
+  },
+};
 
-export { lineGrammar, inlineGrammar, punctuationLeading, punctuationTrailing, htmlescape, htmlBlockGrammar };
+export { lineGrammar, inlineGrammar, punctuationLeading, punctuationTrailing, htmlescape, htmlBlockGrammar, commands };
