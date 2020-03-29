@@ -1,5 +1,7 @@
 import { inlineGrammar, lineGrammar, punctuationLeading, punctuationTrailing, htmlescape, htmlBlockGrammar, commands } from "./grammar";
 
+const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);
+
 
 function assert(condition) {
   if (!condition) {
@@ -59,6 +61,7 @@ class Editor {
     this.lineReplacements = [];
     this.linkLabels = [];
     this.lineDirty = [];
+    this.lastCommandState = null;
 
     this.listeners = {
       change: [],
@@ -115,6 +118,7 @@ class Editor {
     // this.e.addEventListener("keydown", (e) => this.handleKeydownEvent(e));
     document.addEventListener("selectionchange", (e) => this.handleSelectionChangeEvent(e));
     this.e.addEventListener("paste", (e) => this.handlePaste(e));
+    this.e.addEventListener('keydown', (e) => this.handleKeyDown(e));
     this.lineElements = this.e.childNodes; // this will automatically update
   }
 
@@ -288,12 +292,14 @@ class Editor {
       // Check all regexps if we haven't applied one of the code block types
       if (lineType == 'TMPara') {
         for (let type in lineGrammar) {
-          let capture = lineGrammar[type].regexp.exec(this.lines[lineNum]);
-          if (capture) {
-            lineType = type;
-            lineReplacement = lineGrammar[type].replacement;
-            lineCapture = capture;
-            break;
+          if (lineGrammar[type].regexp) {
+            let capture = lineGrammar[type].regexp.exec(this.lines[lineNum]);
+            if (capture) {
+              lineType = type;
+              lineReplacement = lineGrammar[type].replacement;
+              lineCapture = capture;
+              break;
+            }
           }
         }
       }
@@ -961,18 +967,36 @@ class Editor {
    * @param sel The current selection
    */
   processNewParagraph(sel) {
-    let continuableType = false;
-    // Let's see if we need to continue a list
-    if (sel && sel.row > 0) {
-      switch (this.lineTypes[sel.row - 1]) {
-        case 'TMUL': continuableType = 'TMUL'; break;
-        case 'TMOL': continuableType = 'TMOL'; break;
-        case 'TMIndentedCode': continuableType = 'TMIndentedCode'; break;
-      }
-    }
+    if (!sel) return;
 
     // Update lines from content
     this.updateLineContents();
+
+    let continuableType = false;
+    // Let's see if we need to continue a list
+
+    let checkLine = sel.col > 0 ? sel.row : sel.row - 1;
+    switch (this.lineTypes[checkLine]) {
+      case 'TMUL': continuableType = 'TMUL'; break;
+      case 'TMOL': continuableType = 'TMOL'; break;
+      case 'TMIndentedCode': continuableType = 'TMIndentedCode'; break;
+    }
+
+    if (sel.col > 0) {
+      // insertLineBreak mode
+      let lines = this.lines[sel.row].replace(/\n\n$/, '\n').split(/(?:\r\n|\n|\r)/);
+      if (lines.length == 1) {
+        // No new line
+        this.updateFormatting();
+        return;
+      }
+      assert(lines.length == 2);
+      this.spliceLines(sel.row, 1, lines, true);
+      sel.row++;
+      sel.col = 0;
+    } 
+
+
     if (continuableType) {
       // Check if the previous line was non-empty
       let capture = lineGrammar[continuableType].regexp.exec(this.lines[sel.row - 1]);
@@ -1154,12 +1178,9 @@ class Editor {
    */
   handleInputEvent(event) {
     let sel = this.getSelection();
-    if (event.inputType == 'insertParagraph' && sel) {
+    if ((event.inputType == 'insertParagraph' || event.inputType == 'insertLineBreak') && sel) {
       this.clearDirtyFlag();
       this.processNewParagraph(sel);
-    // } else if (event.inputType == 'formatBold' && sel) {
-      // TODO This would be a way to use the browser commands...
-
     } else {
       this.log(`INPUT at ${sel ? sel.row : '-'}:${sel ? sel.col : '-'}`, `EVENT\n${stringifyObject(event)}\n\nDATA\n${stringifyObject(event.data)}`);
       if (this.e.childElementCount == 0) {
@@ -1263,6 +1284,19 @@ class Editor {
     this.updateFormatting();
     this.setSelection(focus);
     this.fireChange();
+  }
+
+  /**
+   * Event handler for keydpwn event.
+   */
+  handleKeyDown(event) {
+    if ((isMacLike && event.metaKey) || (!isMacLike && event.ctrlKey)) {
+      switch (event.key) {
+        case 'b': this.toggleCommandState('bold'); event.preventDefault(); break;
+        case 'i': this.toggleCommandState('italic'); event.preventDefault(); break;
+        case 'h': this.toggleCommandState('h1'); event.preventDefault(); break;
+      }
+    } 
   }
 
   /**
@@ -1386,6 +1420,7 @@ class Editor {
       let focus = this.getSelection(false);
       if (!anchor) anchor = focus;
       if (anchor.row != focus.row) return;
+      if (!lineGrammar[this.lineTypes[focus.row]] || !lineGrammar[this.lineTypes[focus.row]].allowsInlineFormat) return; 
       let markupNode = this.computeEnclosingMarkupNode(focus, anchor, commands[command].className);
       this.clearDirtyFlag();
       this.lineDirty[focus.row] = true;
@@ -1441,6 +1476,15 @@ class Editor {
   }
 
   /**
+   * Toggles the command state for a command (true <-> false)
+   * @param {string} command The editor command
+   */
+  toggleCommandState(command) {
+    if (!this.lastCommandState) this.lastCommandState = this.getCommandState();
+    this.setCommandState(command, !this.lastCommandState[command]);
+  }
+
+  /**
    * Fires a change event. Updates the linked textarea and notifies any event listeners.
    */
   fireChange() {
@@ -1463,11 +1507,16 @@ class Editor {
       let focus = this.getSelection(false);
       let anchor = this.getSelection(true);
       let commandState = this.getCommandState(focus, anchor);
+      if (this.lastCommandState) {
+        Object.assign(this.lastCommandState, commandState);
+      } else {
+        this.lastCommandState = Object.assign({}, commandState);
+      }
       for (let listener of this.listeners.selection) {
         listener({
           focus: focus,
           anchor: anchor,
-          commandState: commandState,
+          commandState: this.lastCommandState,
         });
       }
     }

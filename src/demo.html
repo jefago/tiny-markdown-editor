@@ -105,9 +105,6 @@ block
       tinyMDE = new TinyMDE.Editor({element: 'tinymde', textarea: 'txt'});
       tinyMDE.addEventListener('selection', (e) => { 
         let st = `${e.focus ? e.focus.row : '–'} : ${e.focus ? e.focus.col : '–'}`;
-        for (let command in e.commandState) {
-          st = st.concat(` ${command}: ${e.commandState[command]}`);
-        }
         document.getElementById('status').innerHTML = st; 
       });
 
