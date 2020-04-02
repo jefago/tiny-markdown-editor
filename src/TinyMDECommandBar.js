@@ -94,6 +94,7 @@ class CommandBar {
     }
     this.createCommandBarElement(element, props.commands || ['bold', 'italic', 'strikethrough', '|', 'code', '|', 'h1', 'h2', '|', 'ul', 'ol', '|', 'blockquote', '|', 'insertLink']);
     document.addEventListener('keydown', (e) => this.handleKeydown(e));
+    if (props.editor) this.setEditor(props.editor);
   }
 
   createCommandBarElement(parentElement, commands) {

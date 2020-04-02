@@ -108,8 +108,28 @@ block
         document.getElementById('status').innerHTML = st; 
       });
 
-      cmdBar = new TinyMDE.CommandBar({element: 'tinymde_commandbar', commands: [{name: 'bold', title: 'Fett', innerHTML: '<b>F</b>', hotkey: 'Mod-F'}, 'italic', 'strikethrough', '|', 'code', '|', 'h1', 'h2', '|', 'ul', 'ol', '|', 'blockquote', '|', {name: 'insertLink', innerHTML: '⬏'}]});
-      cmdBar.setEditor(tinyMDE);
+      cmdBar = new TinyMDE.CommandBar({
+        element: 'tinymde_commandbar', 
+        editor: tinyMDE,
+        commands: [
+          'bold', // {name: 'bold', title: 'Fett', innerHTML: '<b>F</b>', hotkey: 'Mod-F'}, 
+          'italic', 
+          'strikethrough', 
+          '|', 
+          'code', 
+          '|', 
+          'h1', 
+          'h2', 
+          '|', 
+          'ul', 
+          'ol', 
+          '|', 
+          'blockquote', 
+          '|', 
+          {name: 'insertLink', innerHTML: '⬏', action: (editor) => {let dest = window.prompt('Link destination'); editor.wrapSelection('[', `](<${dest}>)`);}}
+        ]
+      });
+      // cmdBar.setEditor(tinyMDE);
     </script>
     <button onclick="document.getElementById('log').innerHTML = ''">Clear log</button>
 
