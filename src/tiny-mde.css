@@ -166,6 +166,9 @@
   text-align: center;
   cursor: pointer;
   vertical-align: middle;
+  font-size:20px;
+  line-height:18px;
+  font-family: sans-serif;
 }
 
 .TMCommandDivider {

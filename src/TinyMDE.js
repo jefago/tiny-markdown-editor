@@ -1,6 +1,5 @@
 import { inlineGrammar, lineGrammar, punctuationLeading, punctuationTrailing, htmlescape, htmlBlockGrammar, commands } from "./grammar";
 
-const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);
 
 
 function assert(condition) {
@@ -1421,6 +1420,7 @@ class Editor {
       let anchor = this.getSelection(true);
       let focus = this.getSelection(false);
       if (!anchor) anchor = focus;
+      if (!anchor) return;
       if (anchor.row != focus.row) return;
       if (!this.isInlineFormattingAllowed(focus, anchor)) return; 
       let markupNode = this.computeEnclosingMarkupNode(focus, anchor, commands[command].className);
@@ -1479,7 +1479,8 @@ class Editor {
     if (!focus) focus = this.getSelection(false);
     if (!anchor) anchor = this.getSelection(true);
     if (!focus || !anchor || focus.row != anchor.row) return false;
-    return lineGrammar[this.lineTypes[focus.row]] && lineGrammar[this.lineTypes[focus.row]].allowsInlineFormat;
+    return !!this.computeEnclosingMarkupNode(focus, anchor, 'TMInlineFormatted');
+    // return lineGrammar[this.lineTypes[focus.row]] && lineGrammar[this.lineTypes[focus.row]].allowsInlineFormat;
   }
 
   /**

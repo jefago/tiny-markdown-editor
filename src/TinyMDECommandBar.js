@@ -1,6 +1,9 @@
 import svg from './svg/svg';
 import { stringifyObject } from "./TinyMDE";
 
+const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);
+
+
 const DefaultCommands = {
   'bold': {
     name: 'bold',
@@ -21,6 +24,7 @@ const DefaultCommands = {
     action: 'strikethrough',
     innerHTML: svg.strikethrough,
     title: 'Strikethrough',
+    hotkey: 'Mod2-Shift-5',
   },
   'code': {
     name: 'code',
@@ -33,12 +37,14 @@ const DefaultCommands = {
     action: 'h1',
     innerHTML: svg.h1,
     title: 'Level 1 heading',
+    hotkey: 'Mod-Shift-1',
   },
   'h2': {
     name: 'h2',
     action: 'h2',
     innerHTML: svg.h2,
     title: 'Level 2 heading',
+    hotkey: 'Mod-Shift-2',
   },
   'ul': {
     name: 'ul',
@@ -57,10 +63,11 @@ const DefaultCommands = {
     action: 'blockquote',
     innerHTML: svg.blockquote,
     title: 'Quote',
+    hotkey: 'Mod2-Shift-Q',
   },
   'insertLink': {
     name: 'insertLink',
-    action: (editor) => editor.wrapSelection('[', ']()'),
+    action: (editor) => {if (editor.isInlineFormattingAllowed()) editor.wrapSelection('[', ']()')},
     enabled: (editor, focus, anchor) => editor.isInlineFormattingAllowed(focus, anchor) ? false : null,
     innerHTML: 'L',
     title: 'Insert link',
@@ -76,6 +83,7 @@ class CommandBar {
     this.commands = [];
     this.buttons = {};
     this.state = {};
+    this.hotkeys = [];
 
     let element = props.element;
     if (element && !element.tagName) {
@@ -85,6 +93,7 @@ class CommandBar {
       element = document.body; 
     }
     this.createCommandBarElement(element, props.commands || ['bold', 'italic', 'strikethrough', '|', 'code', '|', 'h1', 'h2', '|', 'ul', 'ol', '|', 'blockquote', '|', 'insertLink']);
+    document.addEventListener('keydown', (e) => this.handleKeydown(e));
   }
 
   createCommandBarElement(parentElement, commands) {
@@ -120,9 +129,54 @@ class CommandBar {
           continue;
         }
 
+        let title = this.commands[commandName].title;
+
+        if (this.commands[commandName].hotkey) {
+          const keys = this.commands[commandName].hotkey.split('-');
+          // construct modifiers
+          let modifiers = [];
+          let modifierexplanation = [];
+          for (let i = 0; i < keys.length - 1; i++) {
+            switch (keys[i]) {
+              case 'Ctrl': modifiers.push('ctrlKey'); modifierexplanation.push('Ctrl'); break;
+              case 'Cmd': modifiers.push('metaKey'); modifierexplanation.push('⌘'); break;
+              case 'Alt': modifiers.push('altKey'); modifierexplanation.push('Alt'); break;
+              case 'Option': modifiers.push('altKey'); modifierexplanation.push('⌥'); break;
+              case 'Win': modifiers.push('metaKey'); modifierexplanation.push('⊞ Win'); break; break;
+
+              case 'Shift':  modifiers.push('shiftKey'); modifierexplanation.push('⇧'); break;
+
+              case 'Mod': // Mod is a convenience mechanism: Ctrl on Windows, Cmd on Mac
+                if (isMacLike) {modifiers.push('metaKey'); modifierexplanation.push('⌘');} 
+                else {modifiers.push('ctrlKey'); modifierexplanation.push('Ctrl');} 
+                break; 
+              case 'Mod2': 
+                modifiers.push('altKey'); 
+                if (isMacLike) modifierexplanation.push('⌥');
+                else modifierexplanation.push('Alt');
+                break; // Mod2 is a convenience mechanism: Alt on Windows, Option on Mac
+            }
+          }
+          modifierexplanation.push(keys[keys.length - 1]);
+          let hotkey = {
+            
+            modifiers: modifiers,
+            command: commandName,
+          };
+          // TODO It's really tricky to make these match all kinds of characters because we want the description to be the non-modified character
+
+          if (keys[keys.length - 1].match(/^[0-9]$/)) {
+            hotkey.code = `Digit${keys[keys.length - 1]}`;
+          } else {
+            hotkey.key = keys[keys.length - 1].toLowerCase();
+          }
+          this.hotkeys.push(hotkey);
+          title = title.concat(` (${modifierexplanation.join('+')})`);
+        }
+
         this.buttons[commandName] = document.createElement('div');
         this.buttons[commandName].className = 'TMCommandButton TMCommandButton_Disabled';
-        this.buttons[commandName].title = this.commands[commandName].title;
+        this.buttons[commandName].title = title;
         this.buttons[commandName].innerHTML = this.commands[commandName].innerHTML;
 
         // if (svg[command]) this.buttons[command].innerHTML = svg[command];
@@ -131,6 +185,7 @@ class CommandBar {
         this.e.appendChild(this.buttons[commandName]);
       }
     }
+    console.log(JSON.stringify(this.hotkeys));
     parentElement.appendChild(this.e);
   }
 
@@ -182,6 +237,30 @@ class CommandBar {
       //   }
       // }
     }
+  }
+
+  handleKeydown(event) {
+    this.editor.log('KEYPRESS', stringifyObject(event));
+    outer: for (let hotkey of this.hotkeys) {
+      if ((hotkey.key && event.key.toLowerCase() == hotkey.key) || (hotkey.code && event.code == hotkey.code)) {
+        // Key matches hotkey. Look for any required modifier that wasn't pressed
+        for (let modifier of hotkey.modifiers) {
+          if (!event[modifier]) continue outer;
+        }
+        // Everything matches.
+        this.handleClick(hotkey.command, event);
+        return;
+      }
+    }
+
+    //   if ((isMacLike && event.metaKey) || (!isMacLike && event.ctrlKey)) {
+    //     switch (event.key) {
+    //       case 'b': this.toggleCommandState('bold'); event.preventDefault(); break;
+    //       case 'i': this.toggleCommandState('italic'); event.preventDefault(); break;
+    //       case 'h': this.toggleCommandState('h1'); event.preventDefault(); break;
+    //     }
+    //   } 
+    // }
   }
 }
 
