@@ -108,7 +108,7 @@ block
         document.getElementById('status').innerHTML = st; 
       });
 
-      cmdBar = new TinyMDE.CommandBar({element: 'tinymde_commandbar'});
+      cmdBar = new TinyMDE.CommandBar({element: 'tinymde_commandbar', commands: [{name: 'bold', title: 'Fett', innerHTML: 'F'}, 'italic', 'strikethrough', '|', 'code', '|', 'h1', 'h2', '|', 'ul', 'ol', '|', {name: 'insertLink'}]});
       cmdBar.setEditor(tinyMDE);
     </script>
     <button onclick="document.getElementById('log').innerHTML = ''">Clear log</button>

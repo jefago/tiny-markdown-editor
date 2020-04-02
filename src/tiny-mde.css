@@ -192,8 +192,8 @@
 
 .TMCommandButton_Disabled {
   /* border:1px solid #c0c0c0; */
-  color:#808080;
-  fill:#808080;
+  color:#a0a0a0;
+  fill:#a0a0a0;
 }
 
 .TMCommandButton_Active:hover, .TMCommandButton_Disabled:hover, .TMCommandButton_Inactive:hover {

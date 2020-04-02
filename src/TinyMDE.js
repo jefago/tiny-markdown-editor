@@ -119,7 +119,7 @@ class Editor {
     // this.e.addEventListener("keydown", (e) => this.handleKeydownEvent(e));
     document.addEventListener("selectionchange", (e) => this.handleSelectionChangeEvent(e));
     this.e.addEventListener("paste", (e) => this.handlePaste(e));
-    this.e.addEventListener('keydown', (e) => this.handleKeyDown(e));
+    // this.e.addEventListener('keydown', (e) => this.handleKeyDown(e));
     this.lineElements = this.e.childNodes; // this will automatically update
   }
 
@@ -190,7 +190,7 @@ class Editor {
    */
   replace(replacement, capture) {
     return replacement
-      .replace(/\$\$([0-9])/g, (str, p1) => this.processInlineStyles(capture[p1])) 
+      .replace(/\$\$([0-9])/g, (str, p1) => `<span class="TMInlineFormatted">${this.processInlineStyles(capture[p1])}</span>`) 
       .replace(/\$([0-9])/g, (str, p1) => htmlescape(capture[p1]));
   }
 
@@ -1290,15 +1290,15 @@ class Editor {
   /**
    * Event handler for keydpwn event.
    */
-  handleKeyDown(event) {
-    if ((isMacLike && event.metaKey) || (!isMacLike && event.ctrlKey)) {
-      switch (event.key) {
-        case 'b': this.toggleCommandState('bold'); event.preventDefault(); break;
-        case 'i': this.toggleCommandState('italic'); event.preventDefault(); break;
-        case 'h': this.toggleCommandState('h1'); event.preventDefault(); break;
-      }
-    } 
-  }
+  // handleKeyDown(event) {
+  //   if ((isMacLike && event.metaKey) || (!isMacLike && event.ctrlKey)) {
+  //     switch (event.key) {
+  //       case 'b': this.toggleCommandState('bold'); event.preventDefault(); break;
+  //       case 'i': this.toggleCommandState('italic'); event.preventDefault(); break;
+  //       case 'h': this.toggleCommandState('h1'); event.preventDefault(); break;
+  //     }
+  //   } 
+  // }
 
   /**
    * Computes the (lowest in the DOM tree) common ancestor of two DOM nodes.
@@ -1384,7 +1384,7 @@ class Editor {
     for (let cmd in commands) {
       if (commands[cmd].type == 'inline') {
 
-        if (!focus || focus.row != anchor.row) {
+        if (!focus || focus.row != anchor.row || !this.isInlineFormattingAllowed(focus, anchor)) {
           commandState[cmd] = null;
         } else {
           commandState[cmd] = !!this.computeEnclosingMarkupNode(focus, anchor, commands[cmd].className);
@@ -1421,11 +1421,12 @@ class Editor {
       let focus = this.getSelection(false);
       if (!anchor) anchor = focus;
       if (anchor.row != focus.row) return;
-      if (!lineGrammar[this.lineTypes[focus.row]] || !lineGrammar[this.lineTypes[focus.row]].allowsInlineFormat) return; 
+      if (!this.isInlineFormattingAllowed(focus, anchor)) return; 
       let markupNode = this.computeEnclosingMarkupNode(focus, anchor, commands[command].className);
       this.clearDirtyFlag();
-      this.lineDirty[focus.row] = true;
+      
       if (markupNode) {
+        this.lineDirty[focus.row] = true;
         const startCol = this.computeColumn(markupNode, 0);
         const len = markupNode.textContent.length;
         const left = this.lines[focus.row].substr(0, startCol).replace(commands[command].unset.prePattern, '');
@@ -1470,6 +1471,17 @@ class Editor {
   }
 
   /**
+   * Returns whether or not inline formatting is allowed at the current focus 
+   * @param {object} focus The current focus
+   */
+  isInlineFormattingAllowed(focus = null, anchor = null) {
+    if (!focus) focus = this.getSelection(false);
+    if (!anchor) anchor = this.getSelection(true);
+    if (!focus || !anchor || focus.row != anchor.row) return false;
+    return lineGrammar[this.lineTypes[focus.row]] && lineGrammar[this.lineTypes[focus.row]].allowsInlineFormat;
+  }
+
+  /**
    * Wraps the current selection in the strings pre and post. If the selection is not on one line, returns.
    * @param {string} pre The string to insert before the selection.
    * @param {string} post The string to insert after the selection.
@@ -1480,6 +1492,7 @@ class Editor {
     if (!focus) focus = this.getSelection(false);
     if (!anchor) anchor = this.getSelection(true);
     if (!focus || !anchor || focus.row != anchor.row) return;
+    this.lineDirty[focus.row] = true;
 
     const startCol = focus.col < anchor.col ? focus.col : anchor.col;
     const endCol = focus.col < anchor.col ? anchor.col : focus.col;
