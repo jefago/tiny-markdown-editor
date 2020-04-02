@@ -1247,41 +1247,42 @@ class Editor {
     let text = (event.originalEvent || event).clipboardData.getData('text/plain');
 
     // insert text manually
+    this.paste(text);
+  }
+
+  /**
+   * Pastes the text at the current selection (or at the end, if no current selection)
+   * @param {string} text 
+   */
+  paste(text) {
     let anchor = this.getSelection(true);
     let focus = this.getSelection(false);
     let beginning, end;
-
     if (!focus) {
       focus = { row: this.lines.length, col: this.lines[this.lines.length - 1].length }; // Insert at end
     }
     if (!anchor) {
       anchor = focus;
     }
-
     if (anchor.row < focus.row || (anchor.row == focus.row && anchor.col <= focus.col)) {
       beginning = anchor;
       end = focus;
-    } else {
+    }
+    else {
       beginning = focus;
       end = anchor;
     }
-
     // this.log(`Paste at ${anchor ? anchor.row : '-'}:${anchor ? anchor.col : '-'} – ${focus ? focus.row : '-'}:${focus ? focus.col : '-'}`)
     let insertedLines = text.split(/(?:\r\n|\r|\n)/);
-
     let lineBefore = this.lines[beginning.row].substr(0, beginning.col);
     let lineEnd = this.lines[end.row].substr(end.col);
-
     insertedLines[0] = lineBefore.concat(insertedLines[0]);
     let endColPos = insertedLines[insertedLines.length - 1].length;
     insertedLines[insertedLines.length - 1] = insertedLines[insertedLines.length - 1].concat(lineEnd);
-
     this.spliceLines(beginning.row, 1 + end.row - beginning.row, insertedLines);
     assert(this.lines.length == this.lineElements.length);
-    
     focus.row = beginning.row + insertedLines.length - 1;
     focus.col = endColPos;
-
     this.updateFormatting();
     this.setSelection(focus);
     this.fireChange();
