@@ -91,6 +91,7 @@ class Editor {
     }
 
     this.createEditorElement(element);
+    // TODO Placeholder for empty content
     this.setContent(props.content || (this.textarea ? this.textarea.value : false) || '# Hello TinyMDE!\nEdit **here**');
   }
 
@@ -1433,20 +1434,13 @@ class Editor {
         this.lines[focus.row] = left.concat(mid, right);
         anchor.col = left.length;
         focus.col = anchor.col + len;
+        this.updateFormatting();
+        this.setSelection(focus, anchor);  
       } else {
         // Just insert markup before and after and hope for the best. 
-        const startCol = focus.col < anchor.col ? focus.col : anchor.col;
-        const endCol =  focus.col < anchor.col ? anchor.col : focus.col;
-        const left = this.lines[focus.row].substr(0, startCol).concat(commands[command].set.pre);
-        const mid = endCol == startCol ? ' ' : this.lines[focus.row].substr(startCol, endCol - startCol); // Insert space for empty selection
-        const right = commands[command].set.post.concat(this.lines[focus.row].substr(endCol));
-        this.lines[focus.row] = left.concat(mid, right);
-        anchor.col = left.length;
-        focus.col = anchor.col + mid.length;
+        this.wrapSelection(commands[command].set.pre, commands[command].set.post, focus, anchor);
         // TODO clean this up so that markup remains properly nested
       }
-      this.updateFormatting();
-      this.setSelection(focus, anchor);
 
     } else if (commands[command].type == 'line') {
       let anchor = this.getSelection(true);
@@ -1473,6 +1467,31 @@ class Editor {
       this.updateFormatting();
       this.setSelection({row: end.row, col: this.lines[end.row].length}, {row: start.row, col: 0});
     }
+  }
+
+  /**
+   * Wraps the current selection in the strings pre and post. If the selection is not on one line, returns.
+   * @param {string} pre The string to insert before the selection.
+   * @param {string} post The string to insert after the selection.
+   * @param {object} focus The current selection focus. If null, selection will be computed.
+   * @param {object} anchor The current selection focus. If null, selection will be computed.
+   */
+  wrapSelection(pre, post, focus = null, anchor = null) {
+    if (!focus) focus = this.getSelection(false);
+    if (!anchor) anchor = this.getSelection(true);
+    if (!focus || !anchor || focus.row != anchor.row) return;
+
+    const startCol = focus.col < anchor.col ? focus.col : anchor.col;
+    const endCol = focus.col < anchor.col ? anchor.col : focus.col;
+    const left = this.lines[focus.row].substr(0, startCol).concat(pre);
+    const mid = (endCol == startCol ? ' ' : this.lines[focus.row].substr(startCol, endCol - startCol)); // Insert space for empty selection
+    const right = post.concat(this.lines[focus.row].substr(endCol));
+    this.lines[focus.row] = left.concat(mid, right);
+    anchor.col = left.length;
+    focus.col = anchor.col + mid.length;
+
+    this.updateFormatting();
+    this.setSelection(focus, anchor);
   }
 
   /**
