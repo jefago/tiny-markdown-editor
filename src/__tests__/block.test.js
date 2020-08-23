@@ -369,6 +369,8 @@ test('HTML block: comment (case 2): <!-- -->', () => {
   const testCases = [
     '<!-- Comment -->\nXXXC', 
     '   <!-- \n Comment \n\n\n-->\nXXXC', 
+    '   <!-- \n Comment \n--\n->\nXXXX-->YYYY\nXXXC', 
+
   ];
   for (let testCase of testCases) {
     const editor = initTinyMDE(testCase);
@@ -383,6 +385,7 @@ test('HTML block: processing instruction (case 3): <!-- -->', () => {
   const testCases = [
     '<? Processing instruction ?>\nXXXC', 
     '   <? \n Processing instruction \n\n\n?>\nXXXC', 
+    '   <? \n Processing instruction \n?\n>\nXXXX?>YYYY\nXXXC', 
   ];
   for (let testCase of testCases) {
     const editor = initTinyMDE(testCase);
@@ -397,6 +400,8 @@ test('HTML block: document type (case 4): <!DOCTYPE html>', () => {
   const testCases = [
     '<!DOCTYPE html>\nXXXC', 
     '   <!X \n Document type \n\n\n>\nXXXC', 
+    '   <!X \n Document type \n\n\nXXXX>YYYY\nXXXC', 
+
   ];
   for (let testCase of testCases) {
     const editor = initTinyMDE(testCase);
