@@ -17,6 +17,7 @@ class CommandBar {
       element = document.body; 
     }
     this.createCommandBarElement(element, props.commands || ['bold', 'italic', 'strikethrough', '|', 'code', '|', 'h1', 'h2', '|', 'ul', 'ol', '|', 'blockquote']);
+    if (props.editor) this.setEditor(props.editor);
   }
 
   createCommandBarElement(parentElement, commands) {
