@@ -1347,20 +1347,14 @@ class Editor {
         this.lines[focus.row] = left.concat(mid, right);
         anchor.col = left.length;
         focus.col = anchor.col + len;
+        this.updateFormatting();
+        this.setSelection(focus, anchor);
       } else {
         // Just insert markup before and after and hope for the best. 
-        const startCol = focus.col < anchor.col ? focus.col : anchor.col;
-        const endCol =  focus.col < anchor.col ? anchor.col : focus.col;
-        const left = this.lines[focus.row].substr(0, startCol).concat(commands[command].set.pre);
-        const mid = endCol == startCol ? ' ' : this.lines[focus.row].substr(startCol, endCol - startCol); // Insert space for empty selection
-        const right = commands[command].set.post.concat(this.lines[focus.row].substr(endCol));
-        this.lines[focus.row] = left.concat(mid, right);
-        anchor.col = left.length;
-        focus.col = anchor.col + mid.length;
+        this.wrapSelection(commands[command].set.pre, commands[command].set.post, focus, anchor);
         // TODO clean this up so that markup remains properly nested
       }
-      this.updateFormatting();
-      this.setSelection(focus, anchor);
+      
 
     } else if (commands[command].type == 'line') {
       let anchor = this.getSelection(true);
@@ -1387,6 +1381,33 @@ class Editor {
       this.updateFormatting();
       this.setSelection({row: end.row, col: this.lines[end.row].length}, {row: start.row, col: 0});
     }
+  }
+
+  /** 
+   * Wraps the current selection (must be on a single line) with the strings "pre" and "post".
+   * If the current selection is blank, a single space will be inserted.
+   * @param pre The string to be inserted before the selection
+   * @param post The string to be inserted after the selection
+   * @param focus The current selection focus, if already calculated
+   * @param anchor The current selection anchor, if already calculated
+   */
+  wrapSelection(pre, post, focus = null, anchor = null) {
+    if (!anchor) anchor = this.getSelection(true);
+    if (!focus) focus = this.getSelection(false);
+    if (!anchor) anchor = focus;
+    if (anchor.row != focus.row) return;
+
+    const startCol = focus.col < anchor.col ? focus.col : anchor.col;
+    const endCol = focus.col < anchor.col ? anchor.col : focus.col;
+    const left = this.lines[focus.row].substr(0, startCol).concat(pre);
+    const mid = endCol == startCol ? ' ' : this.lines[focus.row].substr(startCol, endCol - startCol); // Insert space for empty selection
+    const right = post.concat(this.lines[focus.row].substr(endCol));
+    this.lines[focus.row] = left.concat(mid, right);
+    anchor.col = left.length;
+    focus.col = anchor.col + mid.length;
+    
+    this.updateFormatting();
+    this.setSelection(focus, anchor);
   }
 
   /**
