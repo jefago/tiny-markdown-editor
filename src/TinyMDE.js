@@ -1,51 +1,5 @@
 import { inlineGrammar, lineGrammar, punctuationLeading, punctuationTrailing, htmlescape, htmlBlockGrammar, commands } from "./grammar";
-
-
-function assert(condition) {
-  if (!condition) {
-    console.log('Assertion false');
-    throw "Assertion false";
-  }
-}
-
-function stringifyObject(event) {
-  let keys = [];
-  let obj = event;
-  if (!event) return 'null';
-
-  do {
-    Object.getOwnPropertyNames(obj).forEach(function(prop) {
-      if (keys.indexOf(prop) === -1) {
-        keys.push(prop);
-      }
-    });
-  } while (obj = Object.getPrototypeOf(obj));
-
-  return '{\n' + keys.reduce(function (str, key) {
-    switch (typeof event[key]) {
-      case 'number':
-      case 'boolean':
-      case 'bigint':
-        str = `${str}  ${key}: ${event[key]},\n`
-        break;
-      case 'string':
-        str = `${str}  ${key}: '${event[key]}',\n`
-        break;
-      case 'object':
-        str = `${str}  ${key}: {...},\n`
-        break;
-      case 'function':
-        str = `${str}  ${key}: () => {...},\n`
-        break;
-      case 'undefined':
-        str = `${str}  ${key}: undefined,\n`
-        break;
-      default:
-        str = `${str}  ${key}: ?,\n`
-    }
-    return str;
-  }, '') + '}';
-}
+import { log, assert, stringifyObject } from "./util";
 
 class Editor {
 
@@ -168,7 +122,7 @@ class Editor {
         this.linkLabels.push(this.lineCaptures[l][lineGrammar.TMLinkReferenceDefinition.labelPlaceholder]);
       }
     }
-    this.log('LINK LABELS', JSON.stringify(this.linkLabels));
+    log('LINK LABELS', JSON.stringify(this.linkLabels));
   }
 
   /**
@@ -1156,7 +1110,7 @@ class Editor {
       this.clearDirtyFlag();
       this.processNewParagraph(sel);
     } else {
-      this.log(`INPUT at ${sel ? sel.row : '-'}:${sel ? sel.col : '-'}`, `EVENT\n${stringifyObject(event)}\n\nDATA\n${stringifyObject(event.data)}`);
+      log(`INPUT at ${sel ? sel.row : '-'}:${sel ? sel.col : '-'}`, `EVENT\n${stringifyObject(event)}\n\nDATA\n${stringifyObject(event.data)}`);
       if (this.e.childElementCount == 0) {
         // Prevent the user from accidentally deleting the last line
         this.e.innerHTML = `<div>${this.e.textContent}</div>`;
@@ -1239,7 +1193,7 @@ class Editor {
       end = anchor;
     }
 
-    // this.log(`Paste at ${anchor ? anchor.row : '-'}:${anchor ? anchor.col : '-'} – ${focus ? focus.row : '-'}:${focus ? focus.col : '-'}`)
+    // log(`Paste at ${anchor ? anchor.row : '-'}:${anchor ? anchor.col : '-'} – ${focus ? focus.row : '-'}:${focus ? focus.col : '-'}`)
     let insertedLines = text.split(/(?:\r\n|\r|\n)/);
 
     let lineBefore = this.lines[beginning.row].substr(0, beginning.col);
@@ -1393,20 +1347,14 @@ class Editor {
         this.lines[focus.row] = left.concat(mid, right);
         anchor.col = left.length;
         focus.col = anchor.col + len;
+        this.updateFormatting();
+        this.setSelection(focus, anchor);
       } else {
         // Just insert markup before and after and hope for the best. 
-        const startCol = focus.col < anchor.col ? focus.col : anchor.col;
-        const endCol =  focus.col < anchor.col ? anchor.col : focus.col;
-        const left = this.lines[focus.row].substr(0, startCol).concat(commands[command].set.pre);
-        const mid = endCol == startCol ? ' ' : this.lines[focus.row].substr(startCol, endCol - startCol); // Insert space for empty selection
-        const right = commands[command].set.post.concat(this.lines[focus.row].substr(endCol));
-        this.lines[focus.row] = left.concat(mid, right);
-        anchor.col = left.length;
-        focus.col = anchor.col + mid.length;
+        this.wrapSelection(commands[command].set.pre, commands[command].set.post, focus, anchor);
         // TODO clean this up so that markup remains properly nested
       }
-      this.updateFormatting();
-      this.setSelection(focus, anchor);
+      
 
     } else if (commands[command].type == 'line') {
       let anchor = this.getSelection(true);
@@ -1433,6 +1381,33 @@ class Editor {
       this.updateFormatting();
       this.setSelection({row: end.row, col: this.lines[end.row].length}, {row: start.row, col: 0});
     }
+  }
+
+  /** 
+   * Wraps the current selection (must be on a single line) with the strings "pre" and "post".
+   * If the current selection is blank, a single space will be inserted.
+   * @param pre The string to be inserted before the selection
+   * @param post The string to be inserted after the selection
+   * @param focus The current selection focus, if already calculated
+   * @param anchor The current selection anchor, if already calculated
+   */
+  wrapSelection(pre, post, focus = null, anchor = null) {
+    if (!anchor) anchor = this.getSelection(true);
+    if (!focus) focus = this.getSelection(false);
+    if (!anchor) anchor = focus;
+    if (anchor.row != focus.row) return;
+
+    const startCol = focus.col < anchor.col ? focus.col : anchor.col;
+    const endCol = focus.col < anchor.col ? anchor.col : focus.col;
+    const left = this.lines[focus.row].substr(0, startCol).concat(pre);
+    const mid = endCol == startCol ? ' ' : this.lines[focus.row].substr(startCol, endCol - startCol); // Insert space for empty selection
+    const right = post.concat(this.lines[focus.row].substr(endCol));
+    this.lines[focus.row] = left.concat(mid, right);
+    anchor.col = left.length;
+    focus.col = anchor.col + mid.length;
+    
+    this.updateFormatting();
+    this.setSelection(focus, anchor);
   }
 
   /**
@@ -1482,24 +1457,7 @@ class Editor {
     }
   }
 
-  log(message, details) {
-    // TODO Remove logging
-    if (document.getElementById('log')) {
-      let e = document.createElement('details');
-      let s = document.createElement('summary');
-      let t = document.createTextNode(message);
-      s.appendChild(t);
-      e.appendChild(s);
-      let c = document.createElement('code');
-      let p = document.createElement('pre');
-      t = document.createTextNode(details);
-      c.appendChild(t);
-      p.appendChild(c);
-      e.appendChild(p);
-      document.getElementById('log').appendChild(e);
-    }
-    
-  }
+  
 
 
 }
