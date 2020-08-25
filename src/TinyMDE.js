@@ -1,51 +1,5 @@
 import { inlineGrammar, lineGrammar, punctuationLeading, punctuationTrailing, htmlescape, htmlBlockGrammar, commands } from "./grammar";
-
-
-function assert(condition) {
-  if (!condition) {
-    console.log('Assertion false');
-    throw "Assertion false";
-  }
-}
-
-function stringifyObject(event) {
-  let keys = [];
-  let obj = event;
-  if (!event) return 'null';
-
-  do {
-    Object.getOwnPropertyNames(obj).forEach(function(prop) {
-      if (keys.indexOf(prop) === -1) {
-        keys.push(prop);
-      }
-    });
-  } while (obj = Object.getPrototypeOf(obj));
-
-  return '{\n' + keys.reduce(function (str, key) {
-    switch (typeof event[key]) {
-      case 'number':
-      case 'boolean':
-      case 'bigint':
-        str = `${str}  ${key}: ${event[key]},\n`
-        break;
-      case 'string':
-        str = `${str}  ${key}: '${event[key]}',\n`
-        break;
-      case 'object':
-        str = `${str}  ${key}: {...},\n`
-        break;
-      case 'function':
-        str = `${str}  ${key}: () => {...},\n`
-        break;
-      case 'undefined':
-        str = `${str}  ${key}: undefined,\n`
-        break;
-      default:
-        str = `${str}  ${key}: ?,\n`
-    }
-    return str;
-  }, '') + '}';
-}
+import { log, assert, stringifyObject } from "./util";
 
 class Editor {
 
@@ -168,7 +122,7 @@ class Editor {
         this.linkLabels.push(this.lineCaptures[l][lineGrammar.TMLinkReferenceDefinition.labelPlaceholder]);
       }
     }
-    this.log('LINK LABELS', JSON.stringify(this.linkLabels));
+    log('LINK LABELS', JSON.stringify(this.linkLabels));
   }
 
   /**
@@ -1156,7 +1110,7 @@ class Editor {
       this.clearDirtyFlag();
       this.processNewParagraph(sel);
     } else {
-      this.log(`INPUT at ${sel ? sel.row : '-'}:${sel ? sel.col : '-'}`, `EVENT\n${stringifyObject(event)}\n\nDATA\n${stringifyObject(event.data)}`);
+      log(`INPUT at ${sel ? sel.row : '-'}:${sel ? sel.col : '-'}`, `EVENT\n${stringifyObject(event)}\n\nDATA\n${stringifyObject(event.data)}`);
       if (this.e.childElementCount == 0) {
         // Prevent the user from accidentally deleting the last line
         this.e.innerHTML = `<div>${this.e.textContent}</div>`;
@@ -1239,7 +1193,7 @@ class Editor {
       end = anchor;
     }
 
-    // this.log(`Paste at ${anchor ? anchor.row : '-'}:${anchor ? anchor.col : '-'} – ${focus ? focus.row : '-'}:${focus ? focus.col : '-'}`)
+    // log(`Paste at ${anchor ? anchor.row : '-'}:${anchor ? anchor.col : '-'} – ${focus ? focus.row : '-'}:${focus ? focus.col : '-'}`)
     let insertedLines = text.split(/(?:\r\n|\r|\n)/);
 
     let lineBefore = this.lines[beginning.row].substr(0, beginning.col);
@@ -1482,24 +1436,7 @@ class Editor {
     }
   }
 
-  log(message, details) {
-    // TODO Remove logging
-    if (document.getElementById('log')) {
-      let e = document.createElement('details');
-      let s = document.createElement('summary');
-      let t = document.createTextNode(message);
-      s.appendChild(t);
-      e.appendChild(s);
-      let c = document.createElement('code');
-      let p = document.createElement('pre');
-      t = document.createTextNode(details);
-      c.appendChild(t);
-      p.appendChild(c);
-      e.appendChild(p);
-      document.getElementById('log').appendChild(e);
-    }
-    
-  }
+  
 
 
 }
