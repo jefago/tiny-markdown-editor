@@ -24,6 +24,8 @@ const util = require('util');
 const readfile = util.promisify(fs.readFile);
 const writefile = util.promisify(fs.writeFile);
 
+let cache;
+
 const rollupConfig = (inputFile, sourcemaps = false) => { return {
   input: inputFile,
   output: {
@@ -39,7 +41,8 @@ const clean = () => del(['./dist']);
 const test = () => jestCLI.run([]); 
 
 const jsMax = () => 
-  rollupStream(rollupConfig('./src/index.js', true))
+  rollupStream({...rollupConfig('./src/index.js', true), cache})
+    .on('bundle', (bundle) => { cache = bundle })
     .pipe(source('tiny-mde.js'))
     .pipe(buffer())
     .pipe(size({ showFiles: true }))
