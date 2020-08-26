@@ -1523,24 +1523,6 @@ class Editor {
     }
   }
 
-  log(message, details) {
-    // TODO Remove logging
-    if (document.getElementById('log')) {
-      let e = document.createElement('details');
-      let s = document.createElement('summary');
-      let t = document.createTextNode(message);
-      s.appendChild(t);
-      e.appendChild(s);
-      let c = document.createElement('code');
-      let p = document.createElement('pre');
-      t = document.createTextNode(details);
-      c.appendChild(t);
-      p.appendChild(c);
-      e.appendChild(p);
-      document.getElementById('log').appendChild(e);
-    }
-  }
-
   /** 
    * Wraps the current selection (must be on a single line) with the strings "pre" and "post".
    * If the current selection is blank, a single space will be inserted.
