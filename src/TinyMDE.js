@@ -1148,9 +1148,8 @@ class Editor {
 
   /**
    * Event handler for "selectionchange" events.
-   * @param event The event
    */
-  handleSelectionChangeEvent(event) {
+  handleSelectionChangeEvent() {
     this.fireSelection();
   }
 
@@ -1523,57 +1522,6 @@ class Editor {
       this.listeners.selection.push(listener);
     }
   }
-
-  /**
-   * Fires a change event. Updates the linked textarea and notifies any event listeners.
-   */
-  fireChange() {
-    if (!this.textarea && !this.listeners.change.length) return;
-    const content = this.getContent();
-    if (this.textarea) this.textarea.value = content;
-    for (let listener of this.listeners.change) {
-      listener({
-        content: content,
-        linesDirty: this.linesDirty,
-      });
-    }
-  }
-
-  /**
-   * Fires a "selection changed" event.
-   */
-  fireSelection() {
-    if (this.listeners.selection && this.listeners.selection.length) {
-      let focus = this.getSelection(false);
-      let anchor = this.getSelection(true);
-      let commandState = this.getCommandState(focus, anchor);
-      for (let listener of this.listeners.selection) {
-        listener({
-          focus: focus,
-          anchor: anchor,
-          commandState: commandState,
-        });
-      }
-    }
-  }
-
-  /**
-   * Adds an event listener.
-   * @param {string} type The type of event to listen to. Can be 'change' or 'selection'
-   * @param {*} listener Function of the type (event) => {} to be called when the event occurs.
-   */
-  addEventListener(type, listener) {
-    if (type.match(/^(?:change|input)$/i)) {
-      this.listeners.change.push(listener);
-    }
-    if (type.match(/^(?:selection|selectionchange)$/i)) {
-      this.listeners.selection.push(listener);
-    }
-  }
-
-  
-
-
 }
 
 export default Editor;

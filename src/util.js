@@ -17,7 +17,8 @@ export function stringifyObject(event) {
         keys.push(prop);
       }
     });
-  } while (obj = Object.getPrototypeOf(obj));
+    obj = Object.getPrototypeOf(obj)
+  } while (obj);
 
   return '{\n' + keys.reduce(function (str, key) {
     switch (typeof event[key]) {

@@ -143,7 +143,7 @@ class CommandBar {
               case 'Cmd': modifiers.push('metaKey'); modifierexplanation.push('⌘'); break;
               case 'Alt': modifiers.push('altKey'); modifierexplanation.push('Alt'); break;
               case 'Option': modifiers.push('altKey'); modifierexplanation.push('⌥'); break;
-              case 'Win': modifiers.push('metaKey'); modifierexplanation.push('⊞ Win'); break; break;
+              case 'Win': modifiers.push('metaKey'); modifierexplanation.push('⊞ Win'); break;
 
               case 'Shift':  modifiers.push('shiftKey'); modifierexplanation.push('⇧'); break;
 
