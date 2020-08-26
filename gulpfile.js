@@ -18,6 +18,8 @@ const rollupStream = require('@rollup/stream');
 const source = require('vinyl-source-stream');
 const commonjs = require('@rollup/plugin-commonjs');
 
+const {eslint} = require("rollup-plugin-eslint");
+
 const buffer = require('vinyl-buffer');
 
 const util = require('util');
@@ -33,7 +35,12 @@ const rollupConfig = (inputFile, sourcemaps = false) => { return {
     name: 'TinyMDE',
     sourcemap: sourcemaps
   },
-  plugins: [babel({babelHelpers: 'bundled'}), nodeResolve(), commonjs()]
+  plugins: [
+    eslint({throwOnError: true}), 
+    babel({babelHelpers: 'bundled'}), 
+    nodeResolve(), 
+    commonjs()
+  ]
 }};
 
 const clean = () => del(['./dist']);

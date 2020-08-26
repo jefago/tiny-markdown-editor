@@ -1,0 +1,15 @@
+{
+    "env": {
+        "browser": true,
+        "es2020": true
+    },
+    "extends": "eslint:recommended",
+    "parserOptions": {
+        "ecmaVersion": 2019,
+        "sourceType": "module"
+    },
+    "ignorePatterns": ["gulpfile.js"],
+    "rules": {
+        "no-fallthrough": "off"
+    }
+}
