@@ -1455,6 +1455,7 @@ class Editor {
     const mid = (endCol == startCol ? ' ' : this.lines[focus.row].substr(startCol, endCol - startCol)); // Insert space for empty selection
     const right = post.concat(this.lines[focus.row].substr(endCol));
     this.lines[focus.row] = left.concat(mid, right);
+    log (`UPDATED LINE`, this.lines[focus.row]); 
     anchor.col = left.length;
     focus.col = anchor.col + mid.length;
 
@@ -1521,33 +1522,6 @@ class Editor {
     if (type.match(/^(?:selection|selectionchange)$/i)) {
       this.listeners.selection.push(listener);
     }
-  }
-
-  /** 
-   * Wraps the current selection (must be on a single line) with the strings "pre" and "post".
-   * If the current selection is blank, a single space will be inserted.
-   * @param pre The string to be inserted before the selection
-   * @param post The string to be inserted after the selection
-   * @param focus The current selection focus, if already calculated
-   * @param anchor The current selection anchor, if already calculated
-   */
-  wrapSelection(pre, post, focus = null, anchor = null) {
-    if (!anchor) anchor = this.getSelection(true);
-    if (!focus) focus = this.getSelection(false);
-    if (!anchor) anchor = focus;
-    if (anchor.row != focus.row) return;
-
-    const startCol = focus.col < anchor.col ? focus.col : anchor.col;
-    const endCol = focus.col < anchor.col ? anchor.col : focus.col;
-    const left = this.lines[focus.row].substr(0, startCol).concat(pre);
-    const mid = endCol == startCol ? ' ' : this.lines[focus.row].substr(startCol, endCol - startCol); // Insert space for empty selection
-    const right = post.concat(this.lines[focus.row].substr(endCol));
-    this.lines[focus.row] = left.concat(mid, right);
-    anchor.col = left.length;
-    focus.col = anchor.col + mid.length;
-    
-    this.updateFormatting();
-    this.setSelection(focus, anchor);
   }
 
   /**
