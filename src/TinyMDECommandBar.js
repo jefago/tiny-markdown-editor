@@ -1,5 +1,5 @@
 import svg from './svg/svg';
-import { stringifyObject } from "./TinyMDE";
+import { stringifyObject, log } from "./util";
 
 const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);
 
@@ -192,7 +192,7 @@ class CommandBar {
 
   handleClick(commandName, event) {
     if (!this.editor) return;
-    this.editor.log(`Button click: ${commandName}`, `Selection: ${stringifyObject(this.editor.getSelection())}`);
+    log(`Button click: ${commandName}`, `Selection: ${stringifyObject(this.editor.getSelection())}`);
     event.preventDefault();
     if (typeof this.commands[commandName].action == "string") {
       if (this.state[commandName] === false) this.editor.setCommandState(commandName, true);
@@ -241,7 +241,7 @@ class CommandBar {
   }
 
   handleKeydown(event) {
-    this.editor.log('KEYPRESS', stringifyObject(event));
+    log('KEYPRESS', stringifyObject(event));
     outer: for (let hotkey of this.hotkeys) {
       if ((hotkey.key && event.key.toLowerCase() == hotkey.key) || (hotkey.code && event.code == hotkey.code)) {
         // Key matches hotkey. Look for any required modifier that wasn't pressed

@@ -1,29 +1,39 @@
 const gulp = require('gulp');
-const rollup = require('gulp-rollup');
+// const rollup = require('gulp-rollup');
 const size = require('gulp-size');
-const babel = require('rollup-plugin-babel');
+const babel = require('@rollup/plugin-babel').babel;
+const nodeResolve = require('@rollup/plugin-node-resolve').nodeResolve;
 const postcss = require('gulp-postcss');
-const cssnano = require('cssnano');
+// const cssnano = require('cssnano');
 const autoprefixer = require('autoprefixer');
 const terser = require('gulp-terser');
 const rename = require('gulp-rename');
-const sourcemaps = require('gulp-sourcemaps');
+// const sourcemaps = require('gulp-sourcemaps');
 const jestCLI = require('jest-cli');
 const del = require('del');
 const fs = require('fs');
 const path = require('path');
 
+const rollupStream = require('@rollup/stream');
+const source = require('vinyl-source-stream');
+const commonjs = require('@rollup/plugin-commonjs');
+
+const buffer = require('vinyl-buffer');
+
 const util = require('util');
 const readfile = util.promisify(fs.readFile);
 const writefile = util.promisify(fs.writeFile);
 
-const rollupConfig = (inputFile) => { return {
+let cache;
+
+const rollupConfig = (inputFile, sourcemaps = false) => { return {
   input: inputFile,
-  output : {
+  output: {
     format: 'umd',
     name: 'TinyMDE',
+    sourcemap: sourcemaps
   },
-  plugins: [babel()]
+  plugins: [babel({babelHelpers: 'bundled'}), nodeResolve(), commonjs()]
 }};
 
 const clean = () => del(['./dist']);
@@ -31,31 +41,28 @@ const clean = () => del(['./dist']);
 const test = () => jestCLI.run([]); 
 
 const jsMax = () => 
-  gulp.src('./src/**/*.js')
-    .pipe(sourcemaps.init())
-    .pipe(rollup(rollupConfig('./src/index.js')))
-    .pipe(sourcemaps.write())
-    .pipe(rename('tiny-mde.js'))
+  rollupStream({...rollupConfig('./src/index.js', true), cache})
+    .on('bundle', (bundle) => { cache = bundle })
+    .pipe(source('tiny-mde.js'))
+    .pipe(buffer())
     .pipe(size({ showFiles: true }))
-    .pipe(gulp.dest('./dist'));
-
-const jsMin = () => 
-  gulp.src('./src/**/*.js')
-    .pipe(rollup(rollupConfig('./src/index.js')))
-    .pipe(terser())
+    .pipe(gulp.dest('./dist'))
     .pipe(rename('tiny-mde.min.js'))
+    .pipe(terser())
     .pipe(size({ showFiles: true }))
-    .pipe(gulp.dest('./dist'));
+    .pipe(gulp.dest('./dist'))
+    ;
+
 
 const jsTiny = () => 
-  gulp.src('./src/*.js')
-    .pipe(rollup(rollupConfig('./src/tiny.js')))
+  rollupStream(rollupConfig('./src/tiny.js'))
+    .pipe(source('tiny-mde.tiny.js'))
+    .pipe(buffer())
     .pipe(terser())
-    .pipe(rename('tiny-mde.tiny.js'))
-    .pipe(size({ showFiles: true }))
-    .pipe(gulp.dest('./dist'));
+    .pipe(gulp.dest('./dist'))
+    .pipe(size({ showFiles: true }));
 
-const js = gulp.series(jsMax, jsMin, jsTiny);
+const js = gulp.series(jsMax, jsTiny);
 
 const html = () => 
   gulp.src('./src/demo.html')
