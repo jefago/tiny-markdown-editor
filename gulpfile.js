@@ -14,6 +14,8 @@ const terser = require('gulp-terser');
 
 const postcss = require('gulp-postcss');
 const autoprefixer = require('autoprefixer');
+const postcss_import = require('postcss-import');
+const cssnano = require('cssnano');
 
 const jestCLI = require('jest-cli');
 
@@ -76,15 +78,18 @@ const html = () =>
     .pipe(gulp.dest('./dist'));
 
 const css = () =>
-  gulp.src('./src/tiny-mde.css')
-    .pipe(postcss([ autoprefixer()]))
+  gulp.src('./src/css/index.css')
+    .pipe(postcss([ postcss_import(), autoprefixer()]))
+    .pipe(rename('tiny-mde.css'))
+    .pipe(gulp.dest('./dist'))
+    .pipe(postcss([cssnano()]))
     .pipe(rename('tiny-mde.min.css'))
     .pipe(gulp.dest('./dist'));
 
 const watch = () => {
   gulp.watch('./src/svg/*.svg', svg);
   gulp.watch('./src/**/*.js', jsMax);
-  gulp.watch('./src/*.css', css);
+  gulp.watch('./src/css/*.css', css);
   gulp.watch('./src/*.html', html);
 }
 
