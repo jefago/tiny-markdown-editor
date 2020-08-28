@@ -1,28 +1,28 @@
 const gulp = require('gulp');
-// const rollup = require('gulp-rollup');
+
 const size = require('gulp-size');
-const babel = require('@rollup/plugin-babel').babel;
-const nodeResolve = require('@rollup/plugin-node-resolve').nodeResolve;
-const postcss = require('gulp-postcss');
-// const cssnano = require('cssnano');
-const autoprefixer = require('autoprefixer');
-const terser = require('gulp-terser');
 const rename = require('gulp-rename');
-// const sourcemaps = require('gulp-sourcemaps');
+const source = require('vinyl-source-stream');
+const buffer = require('vinyl-buffer');
+
+const rollupStream = require('@rollup/stream');
+const { babel } = require('@rollup/plugin-babel');
+const commonjs = require('@rollup/plugin-commonjs');
+const { eslint } = require("rollup-plugin-eslint");
+const { nodeResolve } = require('@rollup/plugin-node-resolve');
+const terser = require('gulp-terser');
+
+const postcss = require('gulp-postcss');
+const autoprefixer = require('autoprefixer');
+
 const jestCLI = require('jest-cli');
+
 const del = require('del');
 const fs = require('fs');
 const path = require('path');
 
-const rollupStream = require('@rollup/stream');
-const source = require('vinyl-source-stream');
-const commonjs = require('@rollup/plugin-commonjs');
-
-const {eslint} = require("rollup-plugin-eslint");
-
-const buffer = require('vinyl-buffer');
-
 const util = require('util');
+
 const readfile = util.promisify(fs.readFile);
 const writefile = util.promisify(fs.writeFile);
 
