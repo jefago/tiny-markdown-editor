@@ -69,7 +69,7 @@ const DefaultCommands = {
     name: 'insertLink',
     action: (editor) => {if (editor.isInlineFormattingAllowed()) editor.wrapSelection('[', ']()')},
     enabled: (editor, focus, anchor) => editor.isInlineFormattingAllowed(focus, anchor) ? false : null,
-    innerHTML: 'L',
+    innerHTML: svg.link,
     title: 'Insert link',
     hotkey: 'Mod-K',
   }
