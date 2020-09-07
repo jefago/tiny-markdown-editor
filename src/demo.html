@@ -129,7 +129,20 @@ block
           '|', 
           'blockquote', 
           '|', 
-          {name: 'insertLink', action: (editor) => {let dest = window.prompt('Link destination'); if (dest) editor.wrapSelection('[', `](<${dest}>)`);}}
+          {
+            name: 'insertLink', 
+            action: (editor) => {
+              let dest = window.prompt('Link destination'); 
+              if (dest) editor.wrapSelection('[', `](<${dest}>)`);
+            }
+          },
+          {
+            name: 'insertImage', 
+            action: (editor) => {
+              let dest = window.prompt('Image URL'); 
+              if (dest) editor.wrapSelection('![', `](<${dest}>)`);
+            }
+          },
         ]
       });
     </script>

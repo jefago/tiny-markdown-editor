@@ -72,6 +72,14 @@ const DefaultCommands = {
     innerHTML: svg.link,
     title: 'Insert link',
     hotkey: 'Mod-K',
+  },
+  'insertImage': {
+    name: 'insertImage',
+    action: (editor) => {if (editor.isInlineFormattingAllowed()) editor.wrapSelection('![', ']()')},
+    enabled: (editor, focus, anchor) => editor.isInlineFormattingAllowed(focus, anchor) ? false : null,
+    innerHTML: svg.image,
+    title: 'Insert image',
+    hotkey: 'Mod2-Shift-I',
   }
 }
 
