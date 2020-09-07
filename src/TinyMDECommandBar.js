@@ -80,6 +80,14 @@ const DefaultCommands = {
     innerHTML: svg.image,
     title: 'Insert image',
     hotkey: 'Mod2-Shift-I',
+  },
+  'hr': {
+    name: 'hr',
+    action: (editor) => editor.paste('\n***\n'),
+    enabled: () => false,
+    innerHTML: svg.hr,
+    title: 'Insert horizontal line',
+    hotkey: 'Mod2-Shift-L'
   }
 }
 
@@ -100,7 +108,7 @@ class CommandBar {
     if (!element) {
       element = document.body; 
     }
-    this.createCommandBarElement(element, props.commands || ['bold', 'italic', 'strikethrough', '|', 'code', '|', 'h1', 'h2', '|', 'ul', 'ol', '|', 'blockquote', '|', 'insertLink']);
+    this.createCommandBarElement(element, props.commands || ['bold', 'italic', 'strikethrough', '|', 'code', '|', 'h1', 'h2', '|', 'ul', 'ol', '|', 'blockquote', 'hr', '|', 'insertLink', 'insertImage']);
     document.addEventListener('keydown', (e) => this.handleKeydown(e));
     if (props.editor) this.setEditor(props.editor);
   }

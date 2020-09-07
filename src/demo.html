@@ -114,7 +114,7 @@ block
       cmdBar = new TinyMDE.CommandBar({
         element: 'tinymde_commandbar', 
         editor: tinyMDE,
-        commands: [
+        /* commands: [
           'bold', // {name: 'bold', title: 'Fett', innerHTML: '<b>F</b>', hotkey: 'Mod-F'}, 
           'italic', 
           'strikethrough', 
@@ -143,7 +143,7 @@ block
               if (dest) editor.wrapSelection('![', `](<${dest}>)`);
             }
           },
-        ]
+        ] */
       });
     </script>
     <button onclick="document.getElementById('log').innerHTML = ''">Clear log</button>
