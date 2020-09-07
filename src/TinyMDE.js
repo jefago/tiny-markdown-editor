@@ -1451,10 +1451,9 @@ class Editor {
     const startCol = focus.col < anchor.col ? focus.col : anchor.col;
     const endCol = focus.col < anchor.col ? anchor.col : focus.col;
     const left = this.lines[focus.row].substr(0, startCol).concat(pre);
-    const mid = (endCol == startCol ? ' ' : this.lines[focus.row].substr(startCol, endCol - startCol)); // Insert space for empty selection
+    const mid = (endCol == startCol ? '' : this.lines[focus.row].substr(startCol, endCol - startCol)); 
     const right = post.concat(this.lines[focus.row].substr(endCol));
     this.lines[focus.row] = left.concat(mid, right);
-    log (`UPDATED LINE`, this.lines[focus.row]); 
     anchor.col = left.length;
     focus.col = anchor.col + mid.length;
 
