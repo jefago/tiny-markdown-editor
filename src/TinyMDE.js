@@ -1340,6 +1340,16 @@ class Editor {
           commandState[cmd] = null;
         } else {
           commandState[cmd] = !!this.computeEnclosingMarkupNode(focus, anchor, commands[cmd].className);
+          if (!commandState[cmd]) {
+            // check whether this might be an empty formatted string (e.g, **|** where | is the cursor position)
+            if (
+              focus.col == anchor.col 
+              && this.lines[focus.row].substr(0, focus.col).match(commands[cmd].unset.prePattern)
+              && this.lines[focus.row].substr(focus.col).match(commands[cmd].unset.postPattern)
+            ) {
+              commandState[cmd] = true;
+            }
+          }
         }
       } 
       if (commands[cmd].type == 'line') {
@@ -1391,6 +1401,19 @@ class Editor {
         this.updateFormatting();
         this.setSelection(focus, anchor);  
       } else {
+        
+        // Trim any spaces from the selection
+        let {startCol, endCol} = focus.col < anchor.col ? {startCol: focus.col, endCol: anchor.col} : {startCol: anchor.col, endCol: focus.col};
+
+        let match = this.lines[focus.row].substr(startCol, endCol - startCol).match(/^(?<leading>\s*).*\S(?<trailing>\s*)$/);
+        if (match) {
+          startCol += match.groups.leading.length;
+          endCol -= match.groups.trailing.length;
+        }
+
+        focus.col = startCol;
+        anchor.col = endCol;
+
         // Just insert markup before and after and hope for the best. 
         this.wrapSelection(commands[command].set.pre, commands[command].set.post, focus, anchor);
         // TODO clean this up so that markup remains properly nested
