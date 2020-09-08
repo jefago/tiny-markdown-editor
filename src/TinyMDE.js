@@ -1386,6 +1386,7 @@ class Editor {
       let markupNode = this.computeEnclosingMarkupNode(focus, anchor, commands[command].className);
       this.clearDirtyFlag();
       
+      // First case: There's an enclosing markup node, remove the markers around that markup node
       if (markupNode) {
         this.lineDirty[focus.row] = true;
         const startCol = this.computeColumn(markupNode, 0);
@@ -1398,6 +1399,22 @@ class Editor {
         focus.col = anchor.col + len;
         this.updateFormatting();
         this.setSelection(focus, anchor);  
+
+      // Second case: Empty selection with surrounding formatting markers, remove those
+      } else if (
+        focus.col == anchor.col 
+        && !!this.lines[focus.row].substr(0, focus.col).match(commands[command].unset.prePattern)
+        && !!this.lines[focus.row].substr(focus.col).match(commands[command].unset.postPattern)
+      ) {
+        this.lineDirty[focus.row] = true;
+        const left = this.lines[focus.row].substr(0, focus.col).replace(commands[command].unset.prePattern, '');
+        const right = this.lines[focus.row].substr(focus.col).replace(commands[command].unset.postPattern, '');
+        this.lines[focus.row] = left.concat(right);
+        focus.col = anchor.col = left.length;
+        this.updateFormatting();
+        this.setSelection(focus, anchor);
+
+      // Not currently formatted, insert formatting markers
       } else {
         
         // Trim any spaces from the selection
