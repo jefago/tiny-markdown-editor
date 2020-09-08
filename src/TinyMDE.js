@@ -1339,17 +1339,15 @@ class Editor {
         if (!focus || focus.row != anchor.row || !this.isInlineFormattingAllowed(focus, anchor)) {
           commandState[cmd] = null;
         } else {
-          commandState[cmd] = !!this.computeEnclosingMarkupNode(focus, anchor, commands[cmd].className);
-          if (!commandState[cmd]) {
-            // check whether this might be an empty formatted string (e.g, **|** where | is the cursor position)
-            if (
+          // The command state is true if there is a respective enclosing markup node (e.g., the selection is enclosed in a <b>..</b>) ... 
+          commandState[cmd] = 
+            !!this.computeEnclosingMarkupNode(focus, anchor, commands[cmd].className) ||
+          // ... or if it's an empty string preceded by and followed by formatting markers, e.g. **|** where | is the cursor
+            (
               focus.col == anchor.col 
-              && this.lines[focus.row].substr(0, focus.col).match(commands[cmd].unset.prePattern)
-              && this.lines[focus.row].substr(focus.col).match(commands[cmd].unset.postPattern)
-            ) {
-              commandState[cmd] = true;
-            }
-          }
+              && !!this.lines[focus.row].substr(0, focus.col).match(commands[cmd].unset.prePattern)
+              && !!this.lines[focus.row].substr(focus.col).match(commands[cmd].unset.postPattern)
+            );
         }
       } 
       if (commands[cmd].type == 'line') {
