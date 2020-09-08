@@ -1339,7 +1339,15 @@ class Editor {
         if (!focus || focus.row != anchor.row || !this.isInlineFormattingAllowed(focus, anchor)) {
           commandState[cmd] = null;
         } else {
-          commandState[cmd] = !!this.computeEnclosingMarkupNode(focus, anchor, commands[cmd].className);
+          // The command state is true if there is a respective enclosing markup node (e.g., the selection is enclosed in a <b>..</b>) ... 
+          commandState[cmd] = 
+            !!this.computeEnclosingMarkupNode(focus, anchor, commands[cmd].className) ||
+          // ... or if it's an empty string preceded by and followed by formatting markers, e.g. **|** where | is the cursor
+            (
+              focus.col == anchor.col 
+              && !!this.lines[focus.row].substr(0, focus.col).match(commands[cmd].unset.prePattern)
+              && !!this.lines[focus.row].substr(focus.col).match(commands[cmd].unset.postPattern)
+            );
         }
       } 
       if (commands[cmd].type == 'line') {
@@ -1378,6 +1386,7 @@ class Editor {
       let markupNode = this.computeEnclosingMarkupNode(focus, anchor, commands[command].className);
       this.clearDirtyFlag();
       
+      // First case: There's an enclosing markup node, remove the markers around that markup node
       if (markupNode) {
         this.lineDirty[focus.row] = true;
         const startCol = this.computeColumn(markupNode, 0);
@@ -1390,7 +1399,36 @@ class Editor {
         focus.col = anchor.col + len;
         this.updateFormatting();
         this.setSelection(focus, anchor);  
+
+      // Second case: Empty selection with surrounding formatting markers, remove those
+      } else if (
+        focus.col == anchor.col 
+        && !!this.lines[focus.row].substr(0, focus.col).match(commands[command].unset.prePattern)
+        && !!this.lines[focus.row].substr(focus.col).match(commands[command].unset.postPattern)
+      ) {
+        this.lineDirty[focus.row] = true;
+        const left = this.lines[focus.row].substr(0, focus.col).replace(commands[command].unset.prePattern, '');
+        const right = this.lines[focus.row].substr(focus.col).replace(commands[command].unset.postPattern, '');
+        this.lines[focus.row] = left.concat(right);
+        focus.col = anchor.col = left.length;
+        this.updateFormatting();
+        this.setSelection(focus, anchor);
+
+      // Not currently formatted, insert formatting markers
       } else {
+        
+        // Trim any spaces from the selection
+        let {startCol, endCol} = focus.col < anchor.col ? {startCol: focus.col, endCol: anchor.col} : {startCol: anchor.col, endCol: focus.col};
+
+        let match = this.lines[focus.row].substr(startCol, endCol - startCol).match(/^(?<leading>\s*).*\S(?<trailing>\s*)$/);
+        if (match) {
+          startCol += match.groups.leading.length;
+          endCol -= match.groups.trailing.length;
+        }
+
+        focus.col = startCol;
+        anchor.col = endCol;
+
         // Just insert markup before and after and hope for the best. 
         this.wrapSelection(commands[command].set.pre, commands[command].set.post, focus, anchor);
         // TODO clean this up so that markup remains properly nested
