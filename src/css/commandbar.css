@@ -55,7 +55,9 @@
   fill:#a0a0a0;
 }
 
-.TMCommandButton_Active:hover, .TMCommandButton_Disabled:hover, .TMCommandButton_Inactive:hover {
-  background-color:#e0e0ff;
-  fill:#000000;
+@media (hover: hover) {
+  .TMCommandButton_Active:hover, .TMCommandButton_Disabled:hover, .TMCommandButton_Inactive:hover {
+    background-color:#e0e0ff;
+    fill:#000000;
+  }
 }
