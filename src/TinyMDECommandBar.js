@@ -202,7 +202,6 @@ class CommandBar {
         this.e.appendChild(this.buttons[commandName]);
       }
     }
-    console.log(JSON.stringify(this.hotkeys));
     parentElement.appendChild(this.e);
   }
 
