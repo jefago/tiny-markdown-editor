@@ -874,6 +874,7 @@ class Editor {
       while (
           firstChangedLine <= this.lines.length 
           && firstChangedLine <= this.lineElements.length
+          && this.lineElements[firstChangedLine] // Check that the line element hasn't been deleted
           && this.lines[firstChangedLine] == this.lineElements[firstChangedLine].textContent
       ) {
         firstChangedLine++;
@@ -970,6 +971,32 @@ class Editor {
     }
     this.updateFormatting();
   }
+
+  // /**
+  //  * Processes a "delete" input action.
+  //  * @param {object} focus The selection
+  //  * @param {boolean} forward If true, performs a forward delete, otherwise performs a backward delete
+  //  */
+  // processDelete(focus, forward) {
+  //   if (!focus) return;
+  //   let anchor = this.getSelection(true);
+  //   // Do we have a non-empty selection? 
+  //   if (focus.col != anchor.col || focus.row != anchor.row) {
+  //     // non-empty. direction doesn't matter.
+  //     this.paste('', anchor, focus);
+  //   } else {
+  //     if (forward) {
+  //       if (focus.col < this.lines[focus.row].length) this.paste('', {row: focus.row, col: focus.col + 1}, focus);
+  //       else if (focus.col < this.lines.length) this.paste('', {row: focus.row + 1, col: 0}, focus);
+  //       // Otherwise, we're at the very end and can't delete forward
+  //     } else {
+  //       if (focus.col > 0) this.paste('', {row: focus.row, col: focus.col - 1}, focus);
+  //       else if (focus.row > 0) this.paste('', {row: focus.row - 1, col: this.lines[focus.row - 1].length - 1}, focus);
+  //       // Otherwise, we're at the very beginning and can't delete backwards
+  //     }
+  //   }
+
+  // }
 
   /**
    * Gets the current position of the selection counted by row and column of the editor Markdown content (as opposed to the position in the DOM).
@@ -1126,20 +1153,31 @@ class Editor {
    * Event handler for input events 
    */
   handleInputEvent(event) {
-    let sel = this.getSelection();
-    log(`INPUT at ${sel ? sel.row : '-'}:${sel ? sel.col : '-'}`, `EVENT\n${stringifyObject(event)}\n\nDATA\n${stringifyObject(event.data)}`);
+    let focus = this.getSelection();
+    log(`INPUT at ${focus ? focus.row : '-'}:${focus ? focus.col : '-'}`, `EVENT\n${stringifyObject(event)}\n\nDATA\n${stringifyObject(event.data)}`);
 
-    if ((event.inputType == 'insertParagraph' || event.inputType == 'insertLineBreak') && sel) {
+    if ((event.inputType == 'insertParagraph' || event.inputType == 'insertLineBreak') && focus) {
       this.clearDirtyFlag();
-      this.processNewParagraph(sel);
+      this.processNewParagraph(focus);
     } else {
-      if (this.e.childElementCount == 0) {
-        // Prevent the user from accidentally deleting the last line
-        this.e.innerHTML = `<div>${this.e.textContent}</div>`;
+      // TODO Wrap any non-text nodes in divs
+      if (!this.e.firstChild) {
+        this.e.innerHTML = '<div class="TMBlankLine"><br></div>';
+      }
+      else {
+        for (let childNode = this.e.firstChild; childNode; childNode = childNode.nextSibling) {
+          if (childNode.nodeType != 3 || childNode.tagName != 'DIV') {
+            // Found a child node that's either not an element or not a div. Wrap it in a div.
+            let divWrapper = document.createElement('div');
+            this.e.insertBefore(divWrapper, childNode);
+            this.e.removeChild(childNode);
+            divWrapper.appendChild(childNode);
+          }
+        }
       }
       this.updateLineContentsAndFormatting();  
     }
-    if (sel) this.setSelection(sel);
+    if (focus) this.setSelection(focus);
     this.fireChange();
   }
 
@@ -1202,9 +1240,9 @@ class Editor {
    * Pastes the text at the current selection (or at the end, if no current selection)
    * @param {string} text 
    */
-  paste(text) {
-    let anchor = this.getSelection(true);
-    let focus = this.getSelection(false);
+  paste(text, anchor = null, focus = null) {
+    if (!anchor) anchor = this.getSelection(true);
+    if (!focus) focus = this.getSelection(false);
     let beginning, end;
     if (!focus) {
       focus = { row: this.lines.length, col: this.lines[this.lines.length - 1].length }; // Insert at end
@@ -1235,19 +1273,6 @@ class Editor {
     this.setSelection(focus);
     this.fireChange();
   }
-
-  /**
-   * Event handler for keydpwn event.
-   */
-  // handleKeyDown(event) {
-  //   if ((isMacLike && event.metaKey) || (!isMacLike && event.ctrlKey)) {
-  //     switch (event.key) {
-  //       case 'b': this.toggleCommandState('bold'); event.preventDefault(); break;
-  //       case 'i': this.toggleCommandState('italic'); event.preventDefault(); break;
-  //       case 'h': this.toggleCommandState('h1'); event.preventDefault(); break;
-  //     }
-  //   } 
-  // }
 
   /**
    * Computes the (lowest in the DOM tree) common ancestor of two DOM nodes.
