@@ -935,20 +935,16 @@ class Editor {
       case 'TMIndentedCode': continuableType = 'TMIndentedCode'; break;
     }
 
-    if (sel.col > 0) {
-      // insertLineBreak mode
-      let lines = this.lines[sel.row].replace(/\n\n$/, '\n').split(/(?:\r\n|\n|\r)/);
-      if (lines.length == 1) {
-        // No new line
-        this.updateFormatting();
-        return;
-      }
-      assert(lines.length == 2);
-      this.spliceLines(sel.row, 1, lines, true);
-      sel.row++;
-      sel.col = 0;
-    } 
-
+    let lines = this.lines[sel.row].replace(/\n\n$/, '\n').split(/(?:\r\n|\n|\r)/);
+    if (lines.length == 1) {
+      // No new line
+      this.updateFormatting();
+      return;
+    }
+    assert(lines.length == 2);
+    this.spliceLines(sel.row, 1, lines, true);
+    sel.row++;
+    sel.col = 0;
 
     if (continuableType) {
       // Check if the previous line was non-empty
@@ -1131,11 +1127,12 @@ class Editor {
    */
   handleInputEvent(event) {
     let sel = this.getSelection();
+    log(`INPUT at ${sel ? sel.row : '-'}:${sel ? sel.col : '-'}`, `EVENT\n${stringifyObject(event)}\n\nDATA\n${stringifyObject(event.data)}`);
+
     if ((event.inputType == 'insertParagraph' || event.inputType == 'insertLineBreak') && sel) {
       this.clearDirtyFlag();
       this.processNewParagraph(sel);
     } else {
-      log(`INPUT at ${sel ? sel.row : '-'}:${sel ? sel.col : '-'}`, `EVENT\n${stringifyObject(event)}\n\nDATA\n${stringifyObject(event.data)}`);
       if (this.e.childElementCount == 0) {
         // Prevent the user from accidentally deleting the last line
         this.e.innerHTML = `<div>${this.e.textContent}</div>`;

@@ -114,36 +114,6 @@ block
       cmdBar = new TinyMDE.CommandBar({
         element: 'tinymde_commandbar', 
         editor: tinyMDE,
-        /* commands: [
-          'bold', // {name: 'bold', title: 'Fett', innerHTML: '<b>F</b>', hotkey: 'Mod-F'}, 
-          'italic', 
-          'strikethrough', 
-          '|', 
-          'code', 
-          '|', 
-          'h1', 
-          'h2', 
-          '|', 
-          'ul', 
-          'ol', 
-          '|', 
-          'blockquote', 
-          '|', 
-          {
-            name: 'insertLink', 
-            action: (editor) => {
-              let dest = window.prompt('Link destination'); 
-              if (dest) editor.wrapSelection('[', `](<${dest}>)`);
-            }
-          },
-          {
-            name: 'insertImage', 
-            action: (editor) => {
-              let dest = window.prompt('Image URL'); 
-              if (dest) editor.wrapSelection('![', `](<${dest}>)`);
-            }
-          },
-        ] */
       });
     </script>
     <button onclick="document.getElementById('log').innerHTML = ''">Clear log</button>
