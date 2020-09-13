@@ -1487,12 +1487,13 @@ class Editor {
       if (node && node.nextSibling.className && node.nextSibling.className.includes('TMInlineFormatted')) return true;
     }
 
-    // General case: Look for a common ancestor
+    // Look for a common ancestor
     let ancestor = this.computeCommonAncestor(sel.focusNode, sel.anchorNode);
     if (!ancestor) return false;
 
+    // Check if there's an ancestor of class 'TMInlineFormatted' or 'TMBlankLine'
     while (ancestor && ancestor != this.e) {
-      if (ancestor.className && ancestor.className.includes('TMInlineFormatted')) return true;
+      if (ancestor.className && (ancestor.className.includes('TMInlineFormatted') || ancestor.className.includes('TMBlankLine'))) return true;
       ancestor = ancestor.parentNode;
     }
 

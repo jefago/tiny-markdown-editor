@@ -79,7 +79,7 @@ const lineGrammar = {
   },
   TMBlankLine: { 
     regexp: /^([ \t]*)$/, 
-    replacement: '$$0<br>'
+    replacement: '$0'
   },
   TMSetextH1Marker: { 
     regexp: /^ {0,3}=+\s*$/, 
