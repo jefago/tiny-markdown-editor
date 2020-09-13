@@ -1,22 +1,23 @@
 .TMCommandBar {
   background-color:#f8f8f8;
-  height:32px;
+  height:24px;
+  border:4px solid #f8f8f8;
   display:flex;
   -moz-user-select: -moz-none;
   -khtml-user-select: none;
   -webkit-user-select: none;
   -ms-user-select: none;
   user-select: none;
+  overflow-y: scroll;
 }
 
 .TMCommandButton {
   box-sizing: border-box;
+  display: inline-block;
   height:24px;
   width:24px;
   padding:3px;
-  margin-left:4px;
-  margin-top:4px;
-  margin-bottom:4px;
+  margin-right:4px; 
   color:#404040;
   fill:#404040;
   text-align: center;
