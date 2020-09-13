@@ -35,121 +35,83 @@ const punctuationTrailing = new RegExp(/(?:[!"#$%&'()*+,\-./:;<=>?@[\]\\^_`{|}~\
 const lineGrammar = { 
   TMH1: { 
     regexp: /^( {0,3}#\s)(.*?)((?:\s+#+\s*)?)$/, 
-    replacement: '<span class="TMMark TMMark_TMH1">$1</span>$$2<span class="TMMark TMMark_TMH1">$3</span>',
-    allowsInlineFormat: true
+    replacement: '<span class="TMMark TMMark_TMH1">$1</span>$$2<span class="TMMark TMMark_TMH1">$3</span>'
   },
   TMH2: { 
     regexp: /^( {0,3}##\s)(.*?)((?:\s+#+\s*)?)$/, 
-    replacement: '<span class="TMMark TMMark_TMH2">$1</span>$$2<span class="TMMark TMMark_TMH2">$3</span>',
-    allowsInlineFormat: true
+    replacement: '<span class="TMMark TMMark_TMH2">$1</span>$$2<span class="TMMark TMMark_TMH2">$3</span>'
   },
   TMH3: { 
     regexp: /^( {0,3}###\s)(.*?)((?:\s+#+\s*)?)$/, 
-    replacement: '<span class="TMMark TMMark_TMH3">$1</span>$$2<span class="TMMark TMMark_TMH3">$3</span>',
-    allowsInlineFormat: true
+    replacement: '<span class="TMMark TMMark_TMH3">$1</span>$$2<span class="TMMark TMMark_TMH3">$3</span>'
   },
   TMH4: { 
     regexp: /^( {0,3}####\s)(.*?)((?:\s+#+\s*)?)$/, 
-    replacement: '<span class="TMMark TMMark_TMH4">$1</span>$$2<span class="TMMark TMMark_TMH4">$3</span>',
-    allowsInlineFormat: true
+    replacement: '<span class="TMMark TMMark_TMH4">$1</span>$$2<span class="TMMark TMMark_TMH4">$3</span>'
   },
   TMH5: { 
     regexp: /^( {0,3}#####\s)(.*?)((?:\s+#+\s*)?)$/, 
-    replacement: '<span class="TMMark TMMark_TMH5">$1</span>$$2<span class="TMMark TMMark_TMH5">$3</span>',
-    allowsInlineFormat: true
+    replacement: '<span class="TMMark TMMark_TMH5">$1</span>$$2<span class="TMMark TMMark_TMH5">$3</span>'
   },
   TMH6: { 
     regexp: /^( {0,3}######\s)(.*?)((?:\s+#+\s*)?)$/, 
-    replacement: '<span class="TMMark TMMark_TMH6">$1</span>$$2<span class="TMMark TMMark_TMH6">$3</span>',
-    allowsInlineFormat: true
+    replacement: '<span class="TMMark TMMark_TMH6">$1</span>$$2<span class="TMMark TMMark_TMH6">$3</span>'
   },
   TMBlockquote: { 
     regexp: /^( {0,3}>[ ]?)(.*)$/, 
-    replacement: '<span class="TMMark TMMark_TMBlockquote">$1</span>$$2',
-    allowsInlineFormat: true
+    replacement: '<span class="TMMark TMMark_TMBlockquote">$1</span>$$2'
   },
   TMCodeFenceBacktickOpen: { 
     regexp: /^( {0,3}(?<seq>````*)\s*)([^`]*?)(\s*)$/, 
-    replacement: '<span class="TMMark TMMark_TMCodeFenceBacktick">$1</span><span class="TMInfoString">$3</span>$4',
-    allowsInlineFormat: false
+    replacement: '<span class="TMMark TMMark_TMCodeFenceBacktick">$1</span><span class="TMInfoString">$3</span>$4'
   },
   TMCodeFenceTildeOpen: { 
     regexp: /^( {0,3}(?<seq>~~~~*)\s*)(.*?)(\s*)$/, 
-    replacement: '<span class="TMMark TMMark_TMCodeFenceTilde">$1</span><span class="TMInfoString">$3</span>$4',
-    allowsInlineFormat: false
+    replacement: '<span class="TMMark TMMark_TMCodeFenceTilde">$1</span><span class="TMInfoString">$3</span>$4'
   },
   TMCodeFenceBacktickClose: { 
     regexp: /^( {0,3}(?<seq>````*))(\s*)$/, 
-    replacement: '<span class="TMMark TMMark_TMCodeFenceBacktick">$1</span>$3',
-    allowsInlineFormat: false
+    replacement: '<span class="TMMark TMMark_TMCodeFenceBacktick">$1</span>$3'
   },
   TMCodeFenceTildeClose: { 
     regexp: /^( {0,3}(?<seq>~~~~*))(\s*)$/, 
-    replacement: '<span class="TMMark TMMark_TMCodeFenceTilde">$1</span>$3',
-    allowsInlineFormat: false
+    replacement: '<span class="TMMark TMMark_TMCodeFenceTilde">$1</span>$3'
   },
   TMBlankLine: { 
     regexp: /^([ \t]*)$/, 
-    replacement: '$0',
-    allowsInlineFormat: true
+    replacement: '$$0<br>'
   },
   TMSetextH1Marker: { 
     regexp: /^ {0,3}=+\s*$/, 
-    replacement: '<span class="TMMark TMMark_TMSetextH1Marker">$0</span>',
-    allowsInlineFormat: false
+    replacement: '<span class="TMMark TMMark_TMSetextH1Marker">$0</span>'
   },
   TMSetextH2Marker: { 
     regexp: /^ {0,3}-+\s*$/, 
-    replacement: '<span class="TMMark TMMark_TMSetextH1Marker">$0</span>',
-    allowsInlineFormat: false
+    replacement: '<span class="TMMark TMMark_TMSetextH1Marker">$0</span>'
   },
   TMHR: { 
     regexp: /^( {0,3}(\*[ \t]*\*[ \t]*\*[ \t*]*)|(-[ \t]*-[ \t]*-[ \t-]*)|(_[ \t]*_[ \t]*_[ \t_]*))$/, 
-    replacement: '<span class="TMMark TMMark_TMHR">$0</span>',
-    allowsInlineFormat: false
+    replacement: '<span class="TMMark TMMark_TMHR">$0</span>'
   },
   TMUL: { 
     regexp: /^( {0,3}[+*-] {1,4})(.*)$/, 
-    replacement: '<span class="TMMark TMMark_TMUL">$1</span>$$2',
-    allowsInlineFormat: true
+    replacement: '<span class="TMMark TMMark_TMUL">$1</span>$$2'
   },
   TMOL: { 
     regexp: /^( {0,3}\d{1,9}[.)] {1,4})(.*)$/, 
-    replacement: '<span class="TMMark TMMark_TMOL">$1</span>$$2',
-    allowsInlineFormat: true
+    replacement: '<span class="TMMark TMMark_TMOL">$1</span>$$2'
   },
   // TODO: This is currently preventing sublists (and any content within list items, really) from working
   TMIndentedCode: { 
     regexp: /^( {4}|\t)(.*)$/, 
-    replacement: '<span class="TMMark TMMark_TMIndentedCode">$1</span>$2',
-    allowsInlineFormat: false
+    replacement: '<span class="TMMark TMMark_TMIndentedCode">$1</span>$2'
   },
   TMLinkReferenceDefinition: {
     // TODO: Link destination can't include unbalanced parantheses, but we just ignore that here 
     regexp: /^( {0,3}\[\s*)([^\s\]](?:[^\]]|\\\])*?)(\s*\]:\s*)((?:[^\s<>]+)|(?:<(?:[^<>\\]|\\.)*>))?(\s*)((?:\((?:[^()\\]|\\.)*\))|(?:"(?:[^"\\]|\\.)*")|(?:'(?:[^'\\]|\\.)*'))?(\s*)$/, 
     replacement: '<span class="TMMark TMMark_TMLinkReferenceDefinition">$1</span><span class="TMLinkLabel TMLinkLabel_Definition">$2</span><span class="TMMark TMMark_TMLinkReferenceDefinition">$3</span><span class="TMLinkDestination">$4</span>$5<span class="TMLinkTitle">$6</span>$7',
-    labelPlaceholder: 2, // this defines which placeholder in the above regex is the link "label",
-    allowsInlineFormat: false
+    labelPlaceholder: 2, // this defines which placeholder in the above regex is the link "label"
   },
-  // The following line types are assigned not through regexp matching
-  TMPara: {
-    allowsInlineFormat: true
-  },
-  TMSetextH1: {
-    allowsInlineFormat: true
-  },
-  TMSetextH2: {
-    allowsInlineFormat: true
-  },
-  TMFencedCodeTilde: {
-    allowsInlineFormat: false
-  },
-  TMFencedCodeBacktick: {
-    allowsInlineFormat: false
-  },
-  TMHTMLBlock: {
-    allowsInlineFormat: false
-  }
 };
 
 /**

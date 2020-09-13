@@ -1473,12 +1473,30 @@ class Editor {
    * Returns whether or not inline formatting is allowed at the current focus 
    * @param {object} focus The current focus
    */
-  isInlineFormattingAllowed(focus = null, anchor = null) {
-    if (!focus) focus = this.getSelection(false);
-    if (!anchor) anchor = this.getSelection(true);
-    if (!focus || !anchor || focus.row != anchor.row) return false;
-    return !!this.computeEnclosingMarkupNode(focus, anchor, 'TMInlineFormatted');
-    // return lineGrammar[this.lineTypes[focus.row]] && lineGrammar[this.lineTypes[focus.row]].allowsInlineFormat;
+  isInlineFormattingAllowed() {
+    // TODO Remove parameters from all calls
+    const sel = window.getSelection();
+    if (!sel) return false;
+
+    // Check if we can find a common ancestor with the class `TMInlineFormatted` 
+
+    // Special case: Empty selection right before `TMInlineFormatted`
+    if (sel.isCollapsed && sel.focusNode.nodeType == 3 && sel.focusOffset == sel.focusNode.nodeValue.length) {
+      let node;
+      for (node = sel.focusNode; node && node.nextSibling == null; node = node.parentNode);
+      if (node && node.nextSibling.className && node.nextSibling.className.includes('TMInlineFormatted')) return true;
+    }
+
+    // General case: Look for a common ancestor
+    let ancestor = this.computeCommonAncestor(sel.focusNode, sel.anchorNode);
+    if (!ancestor) return false;
+
+    while (ancestor && ancestor != this.e) {
+      if (ancestor.className && ancestor.className.includes('TMInlineFormatted')) return true;
+      ancestor = ancestor.parentNode;
+    }
+
+    return false;
   }
 
   /**
