@@ -4,7 +4,8 @@
   border:4px solid #f8f8f8;
   display:flex;
   user-select: none;
-  overflow-y: scroll;
+  overflow-x: scroll;
+	overflow-y: hidden;
   scrollbar-width: none;  
   -ms-overflow-style: none; 
 }
@@ -32,8 +33,8 @@
 
 .TMCommandDivider {
   height:24px;
-  margin-left:8px;
-  margin-right: 4px;
+  margin-left:4px;
+  margin-right:8px;
   width:0px;
   border-left:1px solid #c0c0c0;
   border-right:1px solid #ffffff;
