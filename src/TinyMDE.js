@@ -154,6 +154,7 @@ class Editor {
         let contentHTML = this.replace(this.lineReplacements[lineNum], this.lineCaptures[lineNum]);
         // this.lineHTML[lineNum] = (contentHTML == '' ? '<br />' : contentHTML); // Prevent empty elements which can't be selected etc.
         this.lineElements[lineNum].className = this.lineTypes[lineNum];
+        this.lineElements[lineNum].removeAttribute('style');
         this.lineElements[lineNum].innerHTML = (contentHTML == '' ? '<br />' : contentHTML); // Prevent empty elements which can't be selected etc.
       }
       this.lineElements[lineNum].dataset.lineNum = lineNum;
