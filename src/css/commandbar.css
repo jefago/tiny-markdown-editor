@@ -1,0 +1,64 @@
+.TMCommandBar {
+  background-color:#f8f8f8;
+  height:24px;
+  border:4px solid #f8f8f8;
+  display:flex;
+  user-select: none;
+  overflow-x: scroll;
+	overflow-y: hidden;
+  scrollbar-width: none;  
+  -ms-overflow-style: none; 
+}
+
+.TMCommandBar::-webkit-scrollbar {
+  display: none;
+}
+
+.TMCommandButton {
+  box-sizing: border-box;
+  display: inline-block;
+  height:24px;
+  width:24px;
+  padding:3px;
+  margin-right:4px; 
+  color:#404040;
+  fill:#404040;
+  text-align: center;
+  cursor: pointer;
+  vertical-align: middle;
+  font-size:20px;
+  line-height:18px;
+  font-family: sans-serif;
+}
+
+.TMCommandDivider {
+  height:24px;
+  margin-left:4px;
+  margin-right:8px;
+  width:0px;
+  border-left:1px solid #c0c0c0;
+  border-right:1px solid #ffffff;
+}
+
+.TMCommandButton_Active {
+  font-weight:bold;
+  color:#000080;
+  background-color: #c0c0ff;
+  fill:#000080;
+}
+
+.TMCommandButton_Inactive {
+  background-color:#f8f8f8;
+}
+
+.TMCommandButton_Disabled {
+  color:#a0a0a0;
+  fill:#a0a0a0;
+}
+
+@media (hover: hover) {
+  .TMCommandButton_Active:hover, .TMCommandButton_Disabled:hover, .TMCommandButton_Inactive:hover {
+    background-color:#e0e0ff;
+    fill:#000000;
+  }
+}

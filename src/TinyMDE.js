@@ -1,5 +1,4 @@
 import { inlineGrammar, lineGrammar, punctuationLeading, punctuationTrailing, htmlescape, htmlBlockGrammar, commands } from "./grammar";
-import { log, assert, stringifyObject } from "./util";
 
 class Editor {
 
@@ -13,6 +12,7 @@ class Editor {
     this.lineReplacements = [];
     this.linkLabels = [];
     this.lineDirty = [];
+    this.lastCommandState = null;
 
     this.listeners = {
       change: [],
@@ -42,6 +42,7 @@ class Editor {
     }
 
     this.createEditorElement(element);
+    // TODO Placeholder for empty content
     this.setContent(props.content || (this.textarea ? this.textarea.value : false) || '# Hello TinyMDE!\nEdit **here**');
   }
 
@@ -56,6 +57,8 @@ class Editor {
     // The following is important for formatting purposes, but also since otherwise the browser replaces subsequent spaces with  &nbsp; &nbsp;
     // That breaks a lot of stuff, so we do this here and not in CSS—therefore, you don't have to remember to but this in the CSS file
     this.e.style.whiteSpace = 'pre-wrap'; 
+    // Avoid formatting (B / I / U) popping up on iOS
+    this.e.style.webkitUserModify = 'read-write-plaintext-only';
     if (this.textarea && this.textarea.parentNode == element && this.textarea.nextSibling) {
       element.insertBefore(this.e, this.textarea.nextSibling);
     }
@@ -67,6 +70,7 @@ class Editor {
     // this.e.addEventListener("keydown", (e) => this.handleKeydownEvent(e));
     document.addEventListener("selectionchange", (e) => this.handleSelectionChangeEvent(e));
     this.e.addEventListener("paste", (e) => this.handlePaste(e));
+    // this.e.addEventListener('keydown', (e) => this.handleKeyDown(e));
     this.lineElements = this.e.childNodes; // this will automatically update
   }
 
@@ -122,7 +126,6 @@ class Editor {
         this.linkLabels.push(this.lineCaptures[l][lineGrammar.TMLinkReferenceDefinition.labelPlaceholder]);
       }
     }
-    log('LINK LABELS', JSON.stringify(this.linkLabels));
   }
 
   /**
@@ -137,7 +140,7 @@ class Editor {
    */
   replace(replacement, capture) {
     return replacement
-      .replace(/\$\$([0-9])/g, (str, p1) => this.processInlineStyles(capture[p1])) 
+      .replace(/\$\$([0-9])/g, (str, p1) => `<span class="TMInlineFormatted">${this.processInlineStyles(capture[p1])}</span>`) 
       .replace(/\$([0-9])/g, (str, p1) => htmlescape(capture[p1]));
   }
 
@@ -151,6 +154,7 @@ class Editor {
         let contentHTML = this.replace(this.lineReplacements[lineNum], this.lineCaptures[lineNum]);
         // this.lineHTML[lineNum] = (contentHTML == '' ? '<br />' : contentHTML); // Prevent empty elements which can't be selected etc.
         this.lineElements[lineNum].className = this.lineTypes[lineNum];
+        this.lineElements[lineNum].removeAttribute('style');
         this.lineElements[lineNum].innerHTML = (contentHTML == '' ? '<br />' : contentHTML); // Prevent empty elements which can't be selected etc.
       }
       this.lineElements[lineNum].dataset.lineNum = lineNum;
@@ -240,12 +244,14 @@ class Editor {
       // Check all regexps if we haven't applied one of the code block types
       if (lineType == 'TMPara') {
         for (let type in lineGrammar) {
-          let capture = lineGrammar[type].regexp.exec(this.lines[lineNum]);
-          if (capture) {
-            lineType = type;
-            lineReplacement = lineGrammar[type].replacement;
-            lineCapture = capture;
-            break;
+          if (lineGrammar[type].regexp) {
+            let capture = lineGrammar[type].regexp.exec(this.lines[lineNum]);
+            if (capture) {
+              lineType = type;
+              lineReplacement = lineGrammar[type].replacement;
+              lineCapture = capture;
+              break;
+            }
           }
         }
       }
@@ -867,6 +873,7 @@ class Editor {
       while (
           firstChangedLine <= this.lines.length 
           && firstChangedLine <= this.lineElements.length
+          && this.lineElements[firstChangedLine] // Check that the line element hasn't been deleted
           && this.lines[firstChangedLine] == this.lineElements[firstChangedLine].textContent
       ) {
         firstChangedLine++;
@@ -892,8 +899,6 @@ class Editor {
       }
       this.spliceLines(firstChangedLine, linesToDelete, linesToAdd, false);
       
-      assert(this.lines.length == this.lineElements.length);
-
     } else {
       // No lines added or removed
       for (let line = 0; line < this.lineElements.length; line++) {
@@ -913,18 +918,31 @@ class Editor {
    * @param sel The current selection
    */
   processNewParagraph(sel) {
-    let continuableType = false;
-    // Let's see if we need to continue a list
-    if (sel && sel.row > 0) {
-      switch (this.lineTypes[sel.row - 1]) {
-        case 'TMUL': continuableType = 'TMUL'; break;
-        case 'TMOL': continuableType = 'TMOL'; break;
-        case 'TMIndentedCode': continuableType = 'TMIndentedCode'; break;
-      }
-    }
+    if (!sel) return;
 
     // Update lines from content
     this.updateLineContents();
+
+    let continuableType = false;
+    // Let's see if we need to continue a list
+
+    let checkLine = sel.col > 0 ? sel.row : sel.row - 1;
+    switch (this.lineTypes[checkLine]) {
+      case 'TMUL': continuableType = 'TMUL'; break;
+      case 'TMOL': continuableType = 'TMOL'; break;
+      case 'TMIndentedCode': continuableType = 'TMIndentedCode'; break;
+    }
+
+    let lines = this.lines[sel.row].replace(/\n\n$/, '\n').split(/(?:\r\n|\n|\r)/);
+    if (lines.length == 1) {
+      // No new line
+      this.updateFormatting();
+      return;
+    }
+    this.spliceLines(sel.row, 1, lines, true);
+    sel.row++;
+    sel.col = 0;
+
     if (continuableType) {
       // Check if the previous line was non-empty
       let capture = lineGrammar[continuableType].regexp.exec(this.lines[sel.row - 1]);
@@ -949,6 +967,32 @@ class Editor {
     }
     this.updateFormatting();
   }
+
+  // /**
+  //  * Processes a "delete" input action.
+  //  * @param {object} focus The selection
+  //  * @param {boolean} forward If true, performs a forward delete, otherwise performs a backward delete
+  //  */
+  // processDelete(focus, forward) {
+  //   if (!focus) return;
+  //   let anchor = this.getSelection(true);
+  //   // Do we have a non-empty selection? 
+  //   if (focus.col != anchor.col || focus.row != anchor.row) {
+  //     // non-empty. direction doesn't matter.
+  //     this.paste('', anchor, focus);
+  //   } else {
+  //     if (forward) {
+  //       if (focus.col < this.lines[focus.row].length) this.paste('', {row: focus.row, col: focus.col + 1}, focus);
+  //       else if (focus.col < this.lines.length) this.paste('', {row: focus.row + 1, col: 0}, focus);
+  //       // Otherwise, we're at the very end and can't delete forward
+  //     } else {
+  //       if (focus.col > 0) this.paste('', {row: focus.row, col: focus.col - 1}, focus);
+  //       else if (focus.row > 0) this.paste('', {row: focus.row - 1, col: this.lines[focus.row - 1].length - 1}, focus);
+  //       // Otherwise, we're at the very beginning and can't delete backwards
+  //     }
+  //   }
+
+  // }
 
   /**
    * Gets the current position of the selection counted by row and column of the editor Markdown content (as opposed to the position in the DOM).
@@ -1087,14 +1131,9 @@ class Editor {
       anchorOffset = offset;
     }
 
-    // if (focusOffset !== null) {
     if (anchorNode) range.setStart(anchorNode, anchorOffset);
     else range.setStart(focusNode, focusOffset);
     range.setEnd(focusNode, focusOffset);
-    // } else {
-    //   range.selectNode(focusNode);
-    //   range.collapse(true);
-    // }
     
     let windowSelection = window.getSelection();
     windowSelection.removeAllRanges();
@@ -1105,27 +1144,36 @@ class Editor {
    * Event handler for input events 
    */
   handleInputEvent(event) {
-    let sel = this.getSelection();
-    if (event.inputType == 'insertParagraph' && sel) {
+    let focus = this.getSelection();
+
+    if ((event.inputType == 'insertParagraph' || event.inputType == 'insertLineBreak') && focus) {
       this.clearDirtyFlag();
-      this.processNewParagraph(sel);
+      this.processNewParagraph(focus);
     } else {
-      log(`INPUT at ${sel ? sel.row : '-'}:${sel ? sel.col : '-'}`, `EVENT\n${stringifyObject(event)}\n\nDATA\n${stringifyObject(event.data)}`);
-      if (this.e.childElementCount == 0) {
-        // Prevent the user from accidentally deleting the last line
-        this.e.innerHTML = `<div>${this.e.textContent}</div>`;
+      if (!this.e.firstChild) {
+        this.e.innerHTML = '<div class="TMBlankLine"><br></div>';
+      }
+      else {
+        for (let childNode = this.e.firstChild; childNode; childNode = childNode.nextSibling) {
+          if (childNode.nodeType != 3 || childNode.tagName != 'DIV') {
+            // Found a child node that's either not an element or not a div. Wrap it in a div.
+            let divWrapper = document.createElement('div');
+            this.e.insertBefore(divWrapper, childNode);
+            this.e.removeChild(childNode);
+            divWrapper.appendChild(childNode);
+          }
+        }
       }
       this.updateLineContentsAndFormatting();  
     }
-    if (sel) this.setSelection(sel);
+    if (focus) this.setSelection(focus);
     this.fireChange();
   }
 
   /**
    * Event handler for "selectionchange" events.
-   * @param event The event
    */
-  handleSelectionChangeEvent(event) {
+  handleSelectionChangeEvent() {
     this.fireSelection();
   }
 
@@ -1174,41 +1222,40 @@ class Editor {
     let text = (event.originalEvent || event).clipboardData.getData('text/plain');
 
     // insert text manually
-    let anchor = this.getSelection(true);
-    let focus = this.getSelection(false);
-    let beginning, end;
+    this.paste(text);
+  }
 
+  /**
+   * Pastes the text at the current selection (or at the end, if no current selection)
+   * @param {string} text 
+   */
+  paste(text, anchor = null, focus = null) {
+    if (!anchor) anchor = this.getSelection(true);
+    if (!focus) focus = this.getSelection(false);
+    let beginning, end;
     if (!focus) {
       focus = { row: this.lines.length, col: this.lines[this.lines.length - 1].length }; // Insert at end
     }
     if (!anchor) {
       anchor = focus;
     }
-
     if (anchor.row < focus.row || (anchor.row == focus.row && anchor.col <= focus.col)) {
       beginning = anchor;
       end = focus;
-    } else {
+    }
+    else {
       beginning = focus;
       end = anchor;
     }
-
-    // log(`Paste at ${anchor ? anchor.row : '-'}:${anchor ? anchor.col : '-'} – ${focus ? focus.row : '-'}:${focus ? focus.col : '-'}`)
     let insertedLines = text.split(/(?:\r\n|\r|\n)/);
-
     let lineBefore = this.lines[beginning.row].substr(0, beginning.col);
     let lineEnd = this.lines[end.row].substr(end.col);
-
     insertedLines[0] = lineBefore.concat(insertedLines[0]);
     let endColPos = insertedLines[insertedLines.length - 1].length;
     insertedLines[insertedLines.length - 1] = insertedLines[insertedLines.length - 1].concat(lineEnd);
-
     this.spliceLines(beginning.row, 1 + end.row - beginning.row, insertedLines);
-    assert(this.lines.length == this.lineElements.length);
-    
     focus.row = beginning.row + insertedLines.length - 1;
     focus.col = endColPos;
-
     this.updateFormatting();
     this.setSelection(focus);
     this.fireChange();
@@ -1298,10 +1345,18 @@ class Editor {
     for (let cmd in commands) {
       if (commands[cmd].type == 'inline') {
 
-        if (!focus || focus.row != anchor.row) {
+        if (!focus || focus.row != anchor.row || !this.isInlineFormattingAllowed(focus, anchor)) {
           commandState[cmd] = null;
         } else {
-          commandState[cmd] = !!this.computeEnclosingMarkupNode(focus, anchor, commands[cmd].className);
+          // The command state is true if there is a respective enclosing markup node (e.g., the selection is enclosed in a <b>..</b>) ... 
+          commandState[cmd] = 
+            !!this.computeEnclosingMarkupNode(focus, anchor, commands[cmd].className) ||
+          // ... or if it's an empty string preceded by and followed by formatting markers, e.g. **|** where | is the cursor
+            (
+              focus.col == anchor.col 
+              && !!this.lines[focus.row].substr(0, focus.col).match(commands[cmd].unset.prePattern)
+              && !!this.lines[focus.row].substr(focus.col).match(commands[cmd].unset.postPattern)
+            );
         }
       } 
       if (commands[cmd].type == 'line') {
@@ -1334,11 +1389,15 @@ class Editor {
       let anchor = this.getSelection(true);
       let focus = this.getSelection(false);
       if (!anchor) anchor = focus;
+      if (!anchor) return;
       if (anchor.row != focus.row) return;
+      if (!this.isInlineFormattingAllowed(focus, anchor)) return; 
       let markupNode = this.computeEnclosingMarkupNode(focus, anchor, commands[command].className);
       this.clearDirtyFlag();
-      this.lineDirty[focus.row] = true;
+      
+      // First case: There's an enclosing markup node, remove the markers around that markup node
       if (markupNode) {
+        this.lineDirty[focus.row] = true;
         const startCol = this.computeColumn(markupNode, 0);
         const len = markupNode.textContent.length;
         const left = this.lines[focus.row].substr(0, startCol).replace(commands[command].unset.prePattern, '');
@@ -1348,13 +1407,41 @@ class Editor {
         anchor.col = left.length;
         focus.col = anchor.col + len;
         this.updateFormatting();
+        this.setSelection(focus, anchor);  
+
+      // Second case: Empty selection with surrounding formatting markers, remove those
+      } else if (
+        focus.col == anchor.col 
+        && !!this.lines[focus.row].substr(0, focus.col).match(commands[command].unset.prePattern)
+        && !!this.lines[focus.row].substr(focus.col).match(commands[command].unset.postPattern)
+      ) {
+        this.lineDirty[focus.row] = true;
+        const left = this.lines[focus.row].substr(0, focus.col).replace(commands[command].unset.prePattern, '');
+        const right = this.lines[focus.row].substr(focus.col).replace(commands[command].unset.postPattern, '');
+        this.lines[focus.row] = left.concat(right);
+        focus.col = anchor.col = left.length;
+        this.updateFormatting();
         this.setSelection(focus, anchor);
+
+      // Not currently formatted, insert formatting markers
       } else {
+        
+        // Trim any spaces from the selection
+        let {startCol, endCol} = focus.col < anchor.col ? {startCol: focus.col, endCol: anchor.col} : {startCol: anchor.col, endCol: focus.col};
+
+        let match = this.lines[focus.row].substr(startCol, endCol - startCol).match(/^(?<leading>\s*).*\S(?<trailing>\s*)$/);
+        if (match) {
+          startCol += match.groups.leading.length;
+          endCol -= match.groups.trailing.length;
+        }
+
+        focus.col = startCol;
+        anchor.col = endCol;
+
         // Just insert markup before and after and hope for the best. 
         this.wrapSelection(commands[command].set.pre, commands[command].set.post, focus, anchor);
         // TODO clean this up so that markup remains properly nested
       }
-      
 
     } else if (commands[command].type == 'line') {
       let anchor = this.getSelection(true);
@@ -1383,31 +1470,70 @@ class Editor {
     }
   }
 
-  /** 
-   * Wraps the current selection (must be on a single line) with the strings "pre" and "post".
-   * If the current selection is blank, a single space will be inserted.
-   * @param pre The string to be inserted before the selection
-   * @param post The string to be inserted after the selection
-   * @param focus The current selection focus, if already calculated
-   * @param anchor The current selection anchor, if already calculated
+  /**
+   * Returns whether or not inline formatting is allowed at the current focus 
+   * @param {object} focus The current focus
+   */
+  isInlineFormattingAllowed() {
+    // TODO Remove parameters from all calls
+    const sel = window.getSelection();
+    if (!sel) return false;
+
+    // Check if we can find a common ancestor with the class `TMInlineFormatted` 
+
+    // Special case: Empty selection right before `TMInlineFormatted`
+    if (sel.isCollapsed && sel.focusNode.nodeType == 3 && sel.focusOffset == sel.focusNode.nodeValue.length) {
+      let node;
+      for (node = sel.focusNode; node && node.nextSibling == null; node = node.parentNode);
+      if (node && node.nextSibling.className && node.nextSibling.className.includes('TMInlineFormatted')) return true;
+    }
+
+    // Look for a common ancestor
+    let ancestor = this.computeCommonAncestor(sel.focusNode, sel.anchorNode);
+    if (!ancestor) return false;
+
+    // Check if there's an ancestor of class 'TMInlineFormatted' or 'TMBlankLine'
+    while (ancestor && ancestor != this.e) {
+      if (ancestor.className && (ancestor.className.includes('TMInlineFormatted') || ancestor.className.includes('TMBlankLine'))) return true;
+      ancestor = ancestor.parentNode;
+    }
+
+    return false;
+  }
+
+  /**
+   * Wraps the current selection in the strings pre and post. If the selection is not on one line, returns.
+   * @param {string} pre The string to insert before the selection.
+   * @param {string} post The string to insert after the selection.
+   * @param {object} focus The current selection focus. If null, selection will be computed.
+   * @param {object} anchor The current selection focus. If null, selection will be computed.
    */
   wrapSelection(pre, post, focus = null, anchor = null) {
-    if (!anchor) anchor = this.getSelection(true);
     if (!focus) focus = this.getSelection(false);
-    if (!anchor) anchor = focus;
-    if (anchor.row != focus.row) return;
+    if (!anchor) anchor = this.getSelection(true);
+    if (!focus || !anchor || focus.row != anchor.row) return;
+    this.lineDirty[focus.row] = true;
 
     const startCol = focus.col < anchor.col ? focus.col : anchor.col;
     const endCol = focus.col < anchor.col ? anchor.col : focus.col;
     const left = this.lines[focus.row].substr(0, startCol).concat(pre);
-    const mid = endCol == startCol ? ' ' : this.lines[focus.row].substr(startCol, endCol - startCol); // Insert space for empty selection
+    const mid = (endCol == startCol ? '' : this.lines[focus.row].substr(startCol, endCol - startCol)); 
     const right = post.concat(this.lines[focus.row].substr(endCol));
     this.lines[focus.row] = left.concat(mid, right);
     anchor.col = left.length;
     focus.col = anchor.col + mid.length;
-    
+
     this.updateFormatting();
     this.setSelection(focus, anchor);
+  }
+
+  /**
+   * Toggles the command state for a command (true <-> false)
+   * @param {string} command The editor command
+   */
+  toggleCommandState(command) {
+    if (!this.lastCommandState) this.lastCommandState = this.getCommandState();
+    this.setCommandState(command, !this.lastCommandState[command]);
   }
 
   /**
@@ -1433,11 +1559,16 @@ class Editor {
       let focus = this.getSelection(false);
       let anchor = this.getSelection(true);
       let commandState = this.getCommandState(focus, anchor);
+      if (this.lastCommandState) {
+        Object.assign(this.lastCommandState, commandState);
+      } else {
+        this.lastCommandState = Object.assign({}, commandState);
+      }
       for (let listener of this.listeners.selection) {
         listener({
           focus: focus,
           anchor: anchor,
-          commandState: commandState,
+          commandState: this.lastCommandState,
         });
       }
     }
@@ -1456,10 +1587,6 @@ class Editor {
       this.listeners.selection.push(listener);
     }
   }
-
-  
-
-
 }
 
 export default Editor;

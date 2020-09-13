@@ -1,26 +1,30 @@
 const gulp = require('gulp');
-// const rollup = require('gulp-rollup');
+
 const size = require('gulp-size');
-const babel = require('@rollup/plugin-babel').babel;
-const nodeResolve = require('@rollup/plugin-node-resolve').nodeResolve;
-const postcss = require('gulp-postcss');
-// const cssnano = require('cssnano');
-const autoprefixer = require('autoprefixer');
-const terser = require('gulp-terser');
 const rename = require('gulp-rename');
-const sourcemaps = require('gulp-sourcemaps');
+const source = require('vinyl-source-stream');
+const buffer = require('vinyl-buffer');
+
+const rollupStream = require('@rollup/stream');
+const { babel } = require('@rollup/plugin-babel');
+const commonjs = require('@rollup/plugin-commonjs');
+const { eslint } = require("rollup-plugin-eslint");
+const { nodeResolve } = require('@rollup/plugin-node-resolve');
+const terser = require('gulp-terser');
+
+const postcss = require('gulp-postcss');
+const autoprefixer = require('autoprefixer');
+const postcss_import = require('postcss-import');
+const cssnano = require('cssnano');
+
 const jestCLI = require('jest-cli');
+
 const del = require('del');
 const fs = require('fs');
 const path = require('path');
 
-const rollupStream = require('@rollup/stream');
-const source = require('vinyl-source-stream');
-const commonjs = require('@rollup/plugin-commonjs');
-
-const buffer = require('vinyl-buffer');
-
 const util = require('util');
+
 const readfile = util.promisify(fs.readFile);
 const writefile = util.promisify(fs.writeFile);
 
@@ -33,7 +37,12 @@ const rollupConfig = (inputFile, sourcemaps = false) => { return {
     name: 'TinyMDE',
     sourcemap: sourcemaps
   },
-  plugins: [babel({babelHelpers: 'bundled'}), nodeResolve(), commonjs()]
+  plugins: [
+    eslint({throwOnError: true}), 
+    babel({babelHelpers: 'bundled'}), 
+    nodeResolve(), 
+    commonjs()
+  ]
 }};
 
 const clean = () => del(['./dist']);
@@ -69,15 +78,18 @@ const html = () =>
     .pipe(gulp.dest('./dist'));
 
 const css = () =>
-  gulp.src('./src/tiny-mde.css')
-    .pipe(postcss([ autoprefixer()]))
+  gulp.src('./src/css/index.css')
+    .pipe(postcss([ postcss_import(), autoprefixer()]))
+    .pipe(rename('tiny-mde.css'))
+    .pipe(gulp.dest('./dist'))
+    .pipe(postcss([cssnano()]))
     .pipe(rename('tiny-mde.min.css'))
     .pipe(gulp.dest('./dist'));
 
 const watch = () => {
   gulp.watch('./src/svg/*.svg', svg);
   gulp.watch('./src/**/*.js', jsMax);
-  gulp.watch('./src/*.css', css);
+  gulp.watch('./src/css/*.css', css);
   gulp.watch('./src/*.html', html);
 }
 
