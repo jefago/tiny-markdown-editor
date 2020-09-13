@@ -100,23 +100,25 @@ block
     <div id="tinymde_commandbar"></div>
     <div id="tinymde" style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0"></div>
     <div id="status" style="text-align:right">- : -</div>
-    <div id="log" style="width:100%; background-color:black; color:white; height:200px; overflow-y:scroll; font-family:monospace"></div>
     <script>
+      // Create editor element, initialized to a textarea
       tinyMDE = new TinyMDE.Editor({element: 'tinymde', textarea: 'txt'});
-      tinyMDE.addEventListener('selection', (e) => { 
-        let st = `${e.focus ? e.focus.row : '–'} : ${e.focus ? e.focus.col : '–'}`;
-        for (let command in e.commandState) {
-          st = st.concat(` ${command}: ${e.commandState[command]}`);
-        }
-        document.getElementById('status').innerHTML = st; 
-      });
 
+      // Create a command bar for that editor
       cmdBar = new TinyMDE.CommandBar({
         element: 'tinymde_commandbar', 
         editor: tinyMDE,
       });
+
+      // Add a custom selection event listener
+      tinyMDE.addEventListener('selection', (e) => { 
+        let st = `${e.focus ? e.focus.row : '–'} : ${e.focus ? e.focus.col : '–'}`;
+        for (let command in e.commandState) {
+          if (e.commandState[command]) st = command.concat(' ', st);
+        }
+        document.getElementById('status').innerHTML = st; 
+      });
     </script>
-    <button onclick="document.getElementById('log').innerHTML = ''">Clear log</button>
 
   </body>
 </html>

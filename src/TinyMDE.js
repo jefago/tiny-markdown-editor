@@ -1,5 +1,4 @@
 import { inlineGrammar, lineGrammar, punctuationLeading, punctuationTrailing, htmlescape, htmlBlockGrammar, commands } from "./grammar";
-import { log, assert, stringifyObject } from "./util";
 
 class Editor {
 
@@ -127,7 +126,6 @@ class Editor {
         this.linkLabels.push(this.lineCaptures[l][lineGrammar.TMLinkReferenceDefinition.labelPlaceholder]);
       }
     }
-    // log('LINK LABELS', JSON.stringify(this.linkLabels));
   }
 
   /**
@@ -900,8 +898,6 @@ class Editor {
       }
       this.spliceLines(firstChangedLine, linesToDelete, linesToAdd, false);
       
-      assert(this.lines.length == this.lineElements.length);
-
     } else {
       // No lines added or removed
       for (let line = 0; line < this.lineElements.length; line++) {
@@ -942,7 +938,6 @@ class Editor {
       this.updateFormatting();
       return;
     }
-    assert(lines.length == 2);
     this.spliceLines(sel.row, 1, lines, true);
     sel.row++;
     sel.col = 0;
@@ -1135,14 +1130,9 @@ class Editor {
       anchorOffset = offset;
     }
 
-    // if (focusOffset !== null) {
     if (anchorNode) range.setStart(anchorNode, anchorOffset);
     else range.setStart(focusNode, focusOffset);
     range.setEnd(focusNode, focusOffset);
-    // } else {
-    //   range.selectNode(focusNode);
-    //   range.collapse(true);
-    // }
     
     let windowSelection = window.getSelection();
     windowSelection.removeAllRanges();
@@ -1154,13 +1144,11 @@ class Editor {
    */
   handleInputEvent(event) {
     let focus = this.getSelection();
-    log(`INPUT at ${focus ? focus.row : '-'}:${focus ? focus.col : '-'}`, `EVENT\n${stringifyObject(event)}\n\nDATA\n${stringifyObject(event.data)}`);
 
     if ((event.inputType == 'insertParagraph' || event.inputType == 'insertLineBreak') && focus) {
       this.clearDirtyFlag();
       this.processNewParagraph(focus);
     } else {
-      // TODO Wrap any non-text nodes in divs
       if (!this.e.firstChild) {
         this.e.innerHTML = '<div class="TMBlankLine"><br></div>';
       }
@@ -1258,7 +1246,6 @@ class Editor {
       beginning = focus;
       end = anchor;
     }
-    // log(`Paste at ${anchor ? anchor.row : '-'}:${anchor ? anchor.col : '-'} – ${focus ? focus.row : '-'}:${focus ? focus.col : '-'}`)
     let insertedLines = text.split(/(?:\r\n|\r|\n)/);
     let lineBefore = this.lines[beginning.row].substr(0, beginning.col);
     let lineEnd = this.lines[end.row].substr(end.col);
@@ -1266,7 +1253,6 @@ class Editor {
     let endColPos = insertedLines[insertedLines.length - 1].length;
     insertedLines[insertedLines.length - 1] = insertedLines[insertedLines.length - 1].concat(lineEnd);
     this.spliceLines(beginning.row, 1 + end.row - beginning.row, insertedLines);
-    assert(this.lines.length == this.lineElements.length);
     focus.row = beginning.row + insertedLines.length - 1;
     focus.col = endColPos;
     this.updateFormatting();

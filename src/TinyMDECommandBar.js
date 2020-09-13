@@ -1,8 +1,6 @@
 import svg from './svg/svg';
-import { stringifyObject, log } from "./util";
 
 const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);
-
 
 const DefaultCommands = {
   'bold': {
@@ -180,8 +178,7 @@ class CommandBar {
             modifiers: modifiers,
             command: commandName,
           };
-          // TODO It's really tricky to make these match all kinds of characters because we want the description to be the non-modified character
-
+          // TODO Right now this is working only for letters and numbers
           if (keys[keys.length - 1].match(/^[0-9]$/)) {
             hotkey.code = `Digit${keys[keys.length - 1]}`;
           } else {
@@ -196,8 +193,6 @@ class CommandBar {
         this.buttons[commandName].title = title;
         this.buttons[commandName].innerHTML = this.commands[commandName].innerHTML;
 
-        // if (svg[command]) this.buttons[command].innerHTML = svg[command];
-        // else this.buttons[command].textContent = command.substr(0, 1).toUpperCase();
         this.buttons[commandName].addEventListener('mousedown', (e) => this.handleClick(commandName, e));
         this.e.appendChild(this.buttons[commandName]);
       }
@@ -207,7 +202,6 @@ class CommandBar {
 
   handleClick(commandName, event) {
     if (!this.editor) return;
-    log(`Button click: ${commandName}`, `Selection: ${stringifyObject(this.editor.getSelection())}`);
     event.preventDefault();
     if (typeof this.commands[commandName].action == "string") {
       if (this.state[commandName] === false) this.editor.setCommandState(commandName, true);
@@ -240,23 +234,10 @@ class CommandBar {
           this.buttons[command].className =  'TMCommandButton TMCommandButton_Disabled';
         }
       }
-      // for (let command in event.commandState) {
-      //   this.state[command] = event.commandState[command];
-      //   if (this.buttons[command]) {
-      //     if (event.commandState[command] === true) {
-      //       this.buttons[command].className = 'TMCommandButton TMCommandButton_Active';
-      //     } else if (event.commandState[command] === false) {
-      //       this.buttons[command].className = 'TMCommandButton TMCommandButton_Inactive';
-      //     } else {
-      //       this.buttons[command].className = 'TMCommandButton TMCommandButton_Disabled';
-      //     }
-      //   }
-      // }
     }
   }
 
   handleKeydown(event) {
-    log('KEYPRESS', stringifyObject(event));
     outer: for (let hotkey of this.hotkeys) {
       if ((hotkey.key && event.key.toLowerCase() == hotkey.key) || (hotkey.code && event.code == hotkey.code)) {
         // Key matches hotkey. Look for any required modifier that wasn't pressed
@@ -268,15 +249,6 @@ class CommandBar {
         return;
       }
     }
-
-    //   if ((isMacLike && event.metaKey) || (!isMacLike && event.ctrlKey)) {
-    //     switch (event.key) {
-    //       case 'b': this.toggleCommandState('bold'); event.preventDefault(); break;
-    //       case 'i': this.toggleCommandState('italic'); event.preventDefault(); break;
-    //       case 'h': this.toggleCommandState('h1'); event.preventDefault(); break;
-    //     }
-    //   } 
-    // }
   }
 }
 

@@ -6,7 +6,7 @@
 
 // }
 const replacements = {
-  ASCIIPunctuation: /[!"#$%&'()*+,\-./:;<=>?@[\]^_`{|}~\\]/,  // TODO test that backslash doesn't break anything
+  ASCIIPunctuation: /[!"#$%&'()*+,\-./:;<=>?@[\]^_`{|}~\\]/,  
   NotTriggerChar: /[^`_*[\]()<>!~]/,
   Scheme: /[A-Za-z][A-Za-z0-9+.-]{1,31}/,
   Email: /[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*/, // From CommonMark spec
@@ -310,7 +310,5 @@ const commands = {
     unset: {pattern: /^( {0,3}>[ ]?)(.*)$/, replacement: '$2'}
   },
 };
-
-// TODO Commands for link, image, HR
 
 export { lineGrammar, inlineGrammar, punctuationLeading, punctuationTrailing, htmlescape, htmlBlockGrammar, commands };
