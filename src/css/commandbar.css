@@ -3,12 +3,14 @@
   height:24px;
   border:4px solid #f8f8f8;
   display:flex;
-  -moz-user-select: -moz-none;
-  -khtml-user-select: none;
-  -webkit-user-select: none;
-  -ms-user-select: none;
   user-select: none;
   overflow-y: scroll;
+  scrollbar-width: none;  
+  -ms-overflow-style: none; 
+}
+
+.TMCommandBar::-webkit-scrollbar {
+  display: none;
 }
 
 .TMCommandButton {
@@ -29,7 +31,7 @@
 }
 
 .TMCommandDivider {
-  height:32px;
+  height:24px;
   margin-left:8px;
   margin-right: 4px;
   width:0px;
@@ -38,7 +40,6 @@
 }
 
 .TMCommandButton_Active {
-  /* border:1px inset #c0c0c0; */
   font-weight:bold;
   color:#000080;
   background-color: #c0c0ff;
@@ -46,12 +47,10 @@
 }
 
 .TMCommandButton_Inactive {
-  /* border:1px outset #c0c0c0; */
   background-color:#f8f8f8;
 }
 
 .TMCommandButton_Disabled {
-  /* border:1px solid #c0c0c0; */
   color:#a0a0a0;
   fill:#a0a0a0;
 }
