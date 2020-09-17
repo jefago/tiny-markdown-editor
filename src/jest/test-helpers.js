@@ -1,4 +1,4 @@
-import {Editor} from './';
+import {Editor} from '..';
 
 global.initTinyMDE = (content) => {
   document.body.innerHTML = '<div id="container"></div>';
