@@ -74,7 +74,7 @@ const jsTiny = () =>
 const js = gulp.series(jsMax, jsTiny);
 
 const html = () => 
-  gulp.src('./src/demo.html')
+  gulp.src('./src/html/*.html')
     .pipe(gulp.dest('./dist'));
 
 const css = () =>
