@@ -4,7 +4,9 @@ test('Correctly parses ATX headings: # H1', async () => {
   let heading = ' XXXA';
   for (let level = 1; level <= 6; level++) {
     heading = `#${heading}`;
-    expect(await (await initTinyMDE(heading)).lineType(0)).toMatch(`TMH${level}`);
+    const editor = await initTinyMDE(heading);
+    expect(await editor.lineType(0)).toMatch(`TMH${level}`);
+    editor.destroy();
   }
 });
 
@@ -12,257 +14,293 @@ test('Inline content processed in ATX heading: # *em*', async () => {
   const editor = await initTinyMDE('# *XXXA*');
   expect(await editor.lineHTML(0)).toMatch(/<em[^>]*>XXXA/);
   expect(await editor.lineType(0)).toMatch('TMH1');
+  editor.destroy();
 })
 
-test('ATX headings can include any number of trailing #s: # H1 #####   ', async () => {
+test('ATX headings can include any number of trailing #s: # H1 #####', async () => {
   const editor = await initTinyMDE('# H1 #####   ');
   expect(await editor.lineType(0)).toMatch('TMH1');
   expect(await editor.lineHTML(0)).toMatch(/<span[^>]* class\s*=\s*["']?[^"'>]*TMMark[^>]*>\s*#####/);
+  editor.destroy();
 });
 
-test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', async () => {
+test('ATX headings\'  trailing #s must be preceded by space: # H1#####', async () => {
   const editor = await initTinyMDE('# H1#####   ');
   expect(await editor.lineType(0)).toMatch('TMH1');
   expect(await editor.lineHTML(0)).not.toMatch(/<span[^>]* class\s*=\s*["']?[^"'>]*TMMark[^>]*>\s*#####/);
+  editor.destroy();
 });
 
 // // Blank lines  -----------------------------------------------------------------------------------
 
-// test('Lines including only whitespace are considered blank', async () => {
-//   const editor = initTinyMDE('\n   \n  \n');
-//   for (let line = 0; line < 3; line++) {
-//     expect(editor.lineType(line)).toMatch('TMBlankLine');
-//   }
-// });
+test('Lines including only whitespace are considered blank', async () => {
+  const editor = await initTinyMDE('\n   \n  \n');
+  for (let line = 0; line < 3; line++) {
+    expect(await editor.lineType(line)).toMatch('TMBlankLine');
+  }
+  editor.destroy();
+});
 
-// test('Blank lines include a <br>', async () => {
-//   const editor = initTinyMDE('\n\n\n');
-//   for (let line = 0; line < 3; line++) {
-//     expect(editor.lineHTML(line)).toMatch(/<br[^>]*>/);
-//   }
-// });
+test('Blank lines include a <br>', async () => {
+  const editor = await initTinyMDE('\n\n\n');
+  for (let line = 0; line < 3; line++) {
+    expect(await editor.lineHTML(line)).toMatch(/<br[^>]*>/);
+  }
+  editor.destroy();
+});
 
 // // Thematic breaks (HR) -----------------------------------------------------------------------------------
 
-// test('Simple thematic breaks are recognized with all characters: ---, ***, ___', async () => {
-//   const breaks = ['---', '***', '___'];
-//   for (let br of breaks) {
-//     expect(initTinyMDE(br).lineType(0)).toMatch('TMHR');
-//   }
-// });
+test('Simple thematic breaks are recognized with all characters: ---, ***, ___', async () => {
+  const breaks = ['---', '***', '___'];
+  for (let br of breaks) {
+    const editor = await initTinyMDE(br);
+    expect(await editor.lineType(0)).toMatch('TMHR');
+    editor.destroy();
+  }
+});
 
-// test('Thematic breaks may include spaces: * * *', async () => {
-//   expect(initTinyMDE('   * * *   ').lineType(0)).toMatch('TMHR');
-// });
+test('Thematic breaks may include spaces: * * *', async () => {
+  const editor = await initTinyMDE('   * * *   ');
+  expect(await editor.lineType(0)).toMatch('TMHR');
+  editor.destroy();
+});
 
-// test('Thematic breaks may include more than 3 symbols: *****', async () => {
-//   expect(initTinyMDE('*****').lineType(0)).toMatch('TMHR');
-// });
+test('Thematic breaks may include more than 3 symbols: *****', async () => {
+  const editor = await initTinyMDE('*****');
+  expect(await editor.lineType(0)).toMatch('TMHR');
+  editor.destroy();
+});
 
-// test('Thematic breaks can\'t be mixed and matched: ***---', async () => {
-//   expect(initTinyMDE('***---').lineType(0)).not.toMatch('TMHR');
-// });
+test('Thematic breaks can\'t be mixed and matched: ***---', async () => {
+  const editor = await initTinyMDE('***---');
+  expect(await editor.lineType(0)).not.toMatch('TMHR');
+  editor.destroy();
+});
 
-// test('Thematic break take precendence over UL: * * *, - - -', async () => {
-//   const breaks = ['- - -', '* * *'];
-//   for (let br of breaks) {
-//     expect(initTinyMDE(br).lineType(0)).toMatch('TMHR');
-//   }
-// });
+test('Thematic break take precendence over UL: * * *, - - -', async () => {
+  const breaks = ['- - -', '* * *'];
+  for (let br of breaks) {
+    const editor = await initTinyMDE(br);
+    expect(await editor.lineType(0)).toMatch('TMHR');
+    editor.destroy();
+  }
+});
 
 // // Setext headings -----------------------------------------------------------------------------------
 
-// test('Basic setext H1 works: H1\\n==', async () => {
-//   const editor = initTinyMDE('H1\n==');
-//   expect(editor.lineType(0)).toMatch('TMSetextH1');
-//   expect(editor.lineType(1)).toMatch('TMSetextH1Marker');
-// });
+test('Basic setext H1 works: H1\\n==', async () => {
+  const editor = await initTinyMDE('H1\n==');
+  expect(await editor.lineType(0)).toMatch('TMSetextH1');
+  expect(await editor.lineType(1)).toMatch('TMSetextH1Marker');
+  editor.destroy();
+});
 
-// test('Setext marker can have up to 3 leading and any number of trailing spaces: H1\\n   ==       ', async () => {
-//   const editor = initTinyMDE('H1\n   ==       ');
-//   expect(editor.lineType(0)).toMatch('TMSetextH1');
-//   expect(editor.lineType(1)).toMatch('TMSetextH1Marker');
-// });
+test('Setext marker can have up to 3 leading and any number of trailing spaces: H1\\n   ==', async () => {
+  const editor = await initTinyMDE('H1\n   ==       ');
+  expect(await editor.lineType(0)).toMatch('TMSetextH1');
+  expect(await editor.lineType(1)).toMatch('TMSetextH1Marker');
+  editor.destroy();
+});
 
-// test('Setext H1 can span multiple lines: H1\\nStill H1\\n==', async () => {
-//   const editor = initTinyMDE('H1\nH1\n==');
-//   expect(editor.lineType(0)).toMatch('TMSetextH1');
-//   expect(editor.lineType(1)).toMatch('TMSetextH1');
-//   expect(editor.lineType(2)).toMatch('TMSetextH1Marker');
-// });
+test('Setext H1 can span multiple lines: H1\\nStill H1\\n==', async () => {
+  const editor = await initTinyMDE('H1\nH1\n==');
+  expect(await editor.lineType(0)).toMatch('TMSetextH1');
+  expect(await editor.lineType(1)).toMatch('TMSetextH1');
+  expect(await editor.lineType(2)).toMatch('TMSetextH1Marker');
+  editor.destroy();
+});
 
-// test('Setext H1 marker after blank line is invalid: \\n\\n==', async () => {
-//   const editor = initTinyMDE('\n==');
-//   expect(editor.lineType(0)).toMatch('TMBlankLine');
-//   expect(editor.lineType(1)).toMatch('TMPara');
-// });
+test('Setext H1 marker after blank line is invalid: \\n\\n==', async () => {
+  const editor = await initTinyMDE('\n==');
+  expect(await editor.lineType(0)).toMatch('TMBlankLine');
+  expect(await editor.lineType(1)).toMatch('TMPara');
+  editor.destroy();
+});
 
-// test('Setext H1 marker after the following blocks is invalid: code fence, ATX heading, block quote, thematic break, list item, or HTML block', async () => {
-//   const previousBlocks = ['```\nXXXA\n```\n', '# XXXA\n', '> XXXA\n', '---\n', '- XXXA\n', '<!-- Comment -->'];
-//   for (let block of previousBlocks) {
-//     let editor = initTinyMDE(`${block}===`);
-//     expect(editor.lineType(editor.numLines() - 1)).not.toMatch('TMSetextH1Marker');
-//   }
-// });
+test('Setext H1 marker after the following blocks is invalid: code fence, ATX heading, block quote, thematic break, list item, or HTML block', async () => {
+  const previousBlocks = ['```\nXXXA\n```\n', '# XXXA\n', '> XXXA\n', '---\n', '- XXXA\n', '<!-- Comment -->'];
+  for (let block of previousBlocks) {
+    const editor = await initTinyMDE(`${block}===`);
+    expect(await editor.lineType(await editor.numLines() - 1)).not.toMatch('TMSetextH1Marker');
+    editor.destroy();
+  }
+});
 
-// test('Blank lines break setext heading', async () => {
-//   const editor = initTinyMDE('Not H1\n\nH1\nH1\n==');
-//   expect(editor.lineType(0)).toMatch('TMPara');
-//   expect(editor.lineType(1)).toMatch('TMBlankLine');
-//   expect(editor.lineType(2)).toMatch('TMSetextH1');
-//   expect(editor.lineType(3)).toMatch('TMSetextH1');
-//   expect(editor.lineType(4)).toMatch('TMSetextH1Marker');
-// });
+test('Blank lines break setext heading', async () => {
+  const editor = await initTinyMDE('Not H1\n\nH1\nH1\n==');
+  expect(await editor.lineType(0)).toMatch('TMPara');
+  expect(await editor.lineType(1)).toMatch('TMBlankLine');
+  expect(await editor.lineType(2)).toMatch('TMSetextH1');
+  expect(await editor.lineType(3)).toMatch('TMSetextH1');
+  expect(await editor.lineType(4)).toMatch('TMSetextH1Marker');
+  editor.destroy();
+});
 
-// test('Setext H2 works: H2\\nStill H2\\n--', async () => {
-//   const editor = initTinyMDE('H2\nH2\n--');
-//   expect(editor.lineType(0)).toMatch('TMSetextH2');
-//   expect(editor.lineType(1)).toMatch('TMSetextH2');
-//   expect(editor.lineType(2)).toMatch('TMSetextH2Marker');
-// });
+test('Setext H2 works: H2\\nStill H2\\n--', async () => {
+  const editor = await initTinyMDE('H2\nH2\n--');
+  expect(await editor.lineType(0)).toMatch('TMSetextH2');
+  expect(await editor.lineType(1)).toMatch('TMSetextH2');
+  expect(await editor.lineType(2)).toMatch('TMSetextH2Marker');
+  editor.destroy();
+});
 
-// test('Setext H2 takes precedence over thematic break: H2\\n---', async () => {
-//   const editor = initTinyMDE('H2\n---');
-//   expect(editor.lineType(0)).toMatch('TMSetextH2');
-//   expect(editor.lineType(1)).toMatch('TMSetextH2Marker');
-// });
+test('Setext H2 takes precedence over thematic break: H2\\n---', async () => {
+  const editor = await initTinyMDE('H2\n---');
+  expect(await editor.lineType(0)).toMatch('TMSetextH2');
+  expect(await editor.lineType(1)).toMatch('TMSetextH2Marker');
+  editor.destroy();
+});
 
-// test('Empty list item takes precedence over setext H2: Not H2\\n- ', async () => {
-//   const editor = initTinyMDE('Not H2\n- ');
-//   expect(editor.lineType(0)).toMatch('TMPara');
-//   expect(editor.lineType(1)).toMatch('TMUL');
-// });
+test('Empty list item takes precedence over setext H2: Not H2\\n-', async () => {
+  const editor = await initTinyMDE('Not H2\n- ');
+  expect(await editor.lineType(0)).toMatch('TMPara');
+  expect(await editor.lineType(1)).toMatch('TMUL');
+  editor.destroy();
+});
 
 // // Indented code  -----------------------------------------------------------------------------------
 
-// test('Indented code block parsed correctly:     code', async () => {
-//   expect(initTinyMDE('    code').lineType(0)).toMatch('TMIndentedCode');
-// });
+test('Indented code block parsed correctly:     code', async () => {
+  const editor = await initTinyMDE('    code');
+  expect(await editor.lineType(0)).toMatch('TMIndentedCode');
+  editor.destroy();
+});
 
-// test('Indented code can\'t interrupt paragraph: Paragraph\\n    not code', async () => {
-//   // Paragraphs contained in: TMPara, TMUL, TMOL, TMBlockquote
-//   const testCases = [
-//     'Para\n    Not code',
-//     '- UL\n    Not code',
-//     '1. OL\n    Not code',
-//     '> Blockquote\n    Not code'
-//   ];
-//   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
-//     expect(editor.lineType(1)).not.toMatch('TMIndentedCode');
-//   }
-// });
+test('Indented code can\'t interrupt paragraph: Paragraph\\n    not code', async () => {
+  // Paragraphs contained in: TMPara, TMUL, TMOL, TMBlockquote
+  const testCases = [
+    'Para\n    Not code',
+    '- UL\n    Not code',
+    '1. OL\n    Not code',
+    '> Blockquote\n    Not code'
+  ];
+  for (let testCase of testCases) {
+    const editor = await initTinyMDE(testCase);
+    expect(await editor.lineType(1)).not.toMatch('TMIndentedCode');
+    editor.destroy();
+  }
+});
 
-// test('Indented code can follow after non-paragraph: # Heading\\n    code', async () => {
-//   const testCases = [
-//     '# Heading\n    Code',
-//     'Setext heading\n====\n    Code',
-//     '<pre>HTML block</pre>\n    Code', 
-//     '---\n    Code',
-//     '~~~\nFenced code\n~~~\n    Code',
-//     '[ref]: https://abc.de\n    Code',
-//   ];
-//   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
-//     expect(editor.lineType(editor.numLines() - 1)).toMatch('TMIndentedCode');
-//   }
-// });
+test('Indented code can follow after non-paragraph: # Heading\\n    code', async () => {
+  const testCases = [
+    '# Heading\n    Code',
+    'Setext heading\n====\n    Code',
+    '<pre>HTML block</pre>\n    Code', 
+    '---\n    Code',
+    '~~~\nFenced code\n~~~\n    Code',
+    '[ref]: https://abc.de\n    Code',
+  ];
+  for (let testCase of testCases) {
+    const editor = await initTinyMDE(testCase);
+    expect(await editor.lineType((await editor.numLines()) - 1)).toMatch('TMIndentedCode');
+    editor.destroy();
+  }
+});
 
-// // Fenced code blocks  -----------------------------------------------------------------------------------
-// test('Basic fenced code block works: ```\\nThis is\\ncode\\n```', async () => {
-//   const testCases = [
-//     '~~~\nFenced\nCode\n~~~',
-//     '```\nFenced\nCode\n```'
-//   ];
-//   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
-//     expect(editor.lineType(0)).toMatch(/^TMCodeFence[A-Za-z]*Open$/);
-//     for (let i = 1; i < editor.numLines() - 1; i++) {
-//       expect(editor.lineType(i)).toMatch(/^TMFencedCode[A-Za-z]*$/);
-//     }
-//     expect(editor.lineType(editor.numLines()-1)).toMatch(/^TMCodeFence[A-Za-z]*Close$/);
-//   }
-// });
+// Fenced code blocks  -----------------------------------------------------------------------------------
+test('Basic fenced code block works: ```\\nThis is\\ncode\\n```', async () => {
+  const testCases = [
+    '~~~\nFenced\nCode\n~~~',
+    '```\nFenced\nCode\n```'
+  ];
+  for (let testCase of testCases) {
+    const editor = await initTinyMDE(testCase);
+    expect(await editor.lineType(0)).toMatch(/^TMCodeFence[A-Za-z]*Open$/);
+    for (let i = 1; i < editor.numLines() - 1; i++) {
+      expect(await editor.lineType(i)).toMatch(/^TMFencedCode[A-Za-z]*$/);
+    }
+    expect(await editor.lineType(await editor.numLines()-1)).toMatch(/^TMCodeFence[A-Za-z]*Close$/);
+    editor.destroy();
+  }
+});
 
-// test('Opening fence can contain info string: ```js\\nthis.is();\\ncode = {};\\n```', async () => {
-//   const testCases = [
-//     '~~~javascript\nFenced\nCode\n~~~',
-//     '```javascript\nFenced\nCode\n```',
-//     '~~~  javascript   \nFenced\nCode\n~~~',
-//     '```  javascript   \nFenced\nCode\n```'
-//   ];
-//   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
-//     expect(editor.lineType(0)).toMatch(/^TMCodeFence[A-Za-z]*Open$/);
-//     for (let i = 1; i < editor.numLines() - 1; i++) {
-//       expect(editor.lineType(i)).toMatch(/^TMFencedCode[A-Za-z]*$/);
-//     }
-//     expect(editor.lineType(editor.numLines()-1)).toMatch(/^TMCodeFence[A-Za-z]*Close$/);
-//     expect(editor.lineHTML(0)).toMatch(classTagRegExp('javascript', 'TMInfoString'));
-//   }
-// });
+test('Opening fence can contain info string: ```js\\nthis.is();\\ncode = {};\\n```', async () => {
+  const testCases = [
+    '~~~javascript\nFenced\nCode\n~~~',
+    '```javascript\nFenced\nCode\n```',
+    '~~~  javascript   \nFenced\nCode\n~~~',
+    '```  javascript   \nFenced\nCode\n```'
+  ];
+  for (let testCase of testCases) {
+    const editor = await initTinyMDE(testCase);
+    expect(await editor.lineType(0)).toMatch(/^TMCodeFence[A-Za-z]*Open$/);
+    for (let i = 1; i < editor.numLines() - 1; i++) {
+      expect(await editor.lineType(i)).toMatch(/^TMFencedCode[A-Za-z]*$/);
+    }
+    expect(await editor.lineType(await editor.numLines()-1)).toMatch(/^TMCodeFence[A-Za-z]*Close$/);
+    expect(await editor.lineHTML(0)).toMatch(classTagRegExp('javascript', 'TMInfoString'));
+    editor.destroy();
+  }
+});
 
-// test('Opening and closing fence must match: ```\\ncode\\n~~~\\nstill\\n```', async () => {
-//   const testCases = [
-//     '```\ncode\n~~~\ncode\n```',
-//     '~~~\ncode\n```\ncode\n~~~',
-//   ];
-//   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
-//     expect(editor.lineType(0)).toMatch(/^TMCodeFence[A-Za-z]*Open$/);
-//     for (let i = 1; i < editor.numLines() - 1; i++) {
-//       expect(editor.lineType(i)).toMatch(/^TMFencedCode[A-Za-z]*$/);
-//     }
-//     expect(editor.lineType(editor.numLines()-1)).toMatch(/^TMCodeFence[A-Za-z]*Close$/);
-//   }
-// });
+test('Opening and closing fence must match: ```\\ncode\\n~~~\\nstill\\n```', async () => {
+  const testCases = [
+    '```\ncode\n~~~\ncode\n```',
+    '~~~\ncode\n```\ncode\n~~~',
+  ];
+  for (let testCase of testCases) {
+    const editor = await initTinyMDE(testCase);
+    expect(await editor.lineType(0)).toMatch(/^TMCodeFence[A-Za-z]*Open$/);
+    for (let i = 1; i < editor.numLines() - 1; i++) {
+      expect(await editor.lineType(i)).toMatch(/^TMFencedCode[A-Za-z]*$/);
+    }
+    expect(await editor.lineType(await editor.numLines()-1)).toMatch(/^TMCodeFence[A-Za-z]*Close$/);
+    editor.destroy();
+  }
+});
 
-// test('Info string for backtick fenced code can\'t contain backtick: ```js`\\nThis is not code\\n```', async () => {
-//   const editor = initTinyMDE('```javascript`\nThis is not code\n```');
-//   expect(editor.lineType(0)).toMatch('TMPara');
-//   expect(editor.lineType(1)).toMatch('TMPara');
-// });
+test('Info string for backtick fenced code can\'t contain backtick: ```js`\\nThis is not code\\n```', async () => {
+  const editor = await initTinyMDE('```javascript`\nThis is not code\n```');
+  expect(await editor.lineType(0)).toMatch('TMPara');
+  expect(await editor.lineType(1)).toMatch('TMPara');
+  editor.destroy();
+});
 
 
-// test('Closing code fence can\'t contain info string: ```\\ncode\\n```not closing\\ncode\\n```', async () => {
-//   const testCases = [
-//     '~~~\nFenced\n~~~still\nhere\n~~~',
-//     '```\nFenced\n```still\nhere\n```',
-//   ];
-//   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
-//     expect(editor.lineType(0)).toMatch(/^TMCodeFence[A-Za-z]*Open$/);
-//     for (let i = 1; i < editor.numLines() - 1; i++) {
-//       expect(editor.lineType(i)).toMatch(/^TMFencedCode[A-Za-z]*$/);
-//     }
-//     expect(editor.lineType(editor.numLines()-1)).toMatch(/^TMCodeFence[A-Za-z]*Close$/);
-//   }
-// });
+test('Closing code fence can\'t contain info string: ```\\ncode\\n```not closing\\ncode\\n```', async () => {
+  const testCases = [
+    '~~~\nFenced\n~~~still\nhere\n~~~',
+    '```\nFenced\n```still\nhere\n```',
+  ];
+  for (let testCase of testCases) {
+    const editor = await initTinyMDE(testCase);
+    expect(await editor.lineType(0)).toMatch(/^TMCodeFence[A-Za-z]*Open$/);
+    for (let i = 1; i < editor.numLines() - 1; i++) {
+      expect(await editor.lineType(i)).toMatch(/^TMFencedCode[A-Za-z]*$/);
+    }
+    expect(await editor.lineType(await editor.numLines()-1)).toMatch(/^TMCodeFence[A-Za-z]*Close$/);
+    editor.destroy();
+  }
+});
 
-// test('Closing code fence has to be same length or longer than opening: `````\\ncode\\n```\\nstill code\\n`````', async () => {
-//   const testCases = [
-//     '~~~~~\nFenced\n~~~\nhere\n~~~~~',
-//     '`````\nFenced\n```\nhere\n`````',
-//   ];
-//   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
-//     expect(editor.lineType(0)).toMatch(/^TMCodeFence[A-Za-z]*Open$/);
-//     for (let i = 1; i < editor.numLines() - 1; i++) {
-//       expect(editor.lineType(i)).toMatch(/^TMFencedCode[A-Za-z]*$/);
-//     }
-//     expect(editor.lineType(editor.numLines()-1)).toMatch(/^TMCodeFence[A-Za-z]*Close$/);
-//   }
-// });
+test('Closing code fence has to be same length or longer than opening: `````\\ncode\\n```\\nstill code\\n`````', async () => {
+  const testCases = [
+    '~~~~~\nFenced\n~~~\nhere\n~~~~~',
+    '`````\nFenced\n```\nhere\n`````',
+  ];
+  for (let testCase of testCases) {
+    const editor = await initTinyMDE(testCase);
+    expect(await editor.lineType(0)).toMatch(/^TMCodeFence[A-Za-z]*Open$/);
+    for (let i = 1; i < editor.numLines() - 1; i++) {
+      expect(await editor.lineType(i)).toMatch(/^TMFencedCode[A-Za-z]*$/);
+    }
+    expect(await editor.lineType(await editor.numLines()-1)).toMatch(/^TMCodeFence[A-Za-z]*Close$/);
+    editor.destroy();
+  }
+});
 
-// test('Empty fenced code includes a <br>: ~~~\\n\\n~~~', async () => {
-//   const testCases = [
-//     '~~~\n\n~~~',
-//     '```\n\n```',
-//   ];
-//   for (let testCase of testCases) {
-//     expect(initTinyMDE(testCase).lineHTML(1)).toMatch(/<br[^>]*>/);
-//   }
-// });
+test('Empty fenced code includes a <br>: ~~~\\n\\n~~~', async () => {
+  const testCases = [
+    '~~~\n\n~~~',
+    '```\n\n```',
+  ];
+  for (let testCase of testCases) {
+    const editor = await initTinyMDE(testCase);
+    expect(await editor.lineHTML(1)).toMatch(/<br[^>]*>/);
+    editor.destroy();
+  }
+});
 
 
 // // Link reference definition  -----------------------------------------------------------------------------------
@@ -276,8 +314,8 @@ test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', asyn
 //     '> Blockquote\n[ref]: https://abc.de'
 //   ];
 //   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
-//     expect(editor.lineType(1)).not.toMatch('TMLinkReferenceDefinition');
+//     const editor = await initTinyMDE(testCase);
+//     expect(await editor.lineType(1)).not.toMatch('TMLinkReferenceDefinition');
 //   }
 // });
 
@@ -291,8 +329,8 @@ test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', asyn
 //     '    Link reference definition\n[ref]: https://abc.de',
 //   ];
 //   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
-//     expect(editor.lineType(editor.numLines() - 1)).toMatch('TMLinkReferenceDefinition');
+//     const editor = await initTinyMDE(testCase);
+//     expect(await editor.lineType(await editor.numLines() - 1)).toMatch('TMLinkReferenceDefinition');
 //   }
 // });
 
@@ -308,8 +346,8 @@ test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', asyn
 //     '[ref]:<>()',
 //   ];
 //   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
-//     expect(editor.lineType(0)).toMatch('TMLinkReferenceDefinition');
+//     const editor = await initTinyMDE(testCase);
+//     expect(await editor.lineType(0)).toMatch('TMLinkReferenceDefinition');
 //   }
 // });
 
@@ -321,10 +359,10 @@ test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', asyn
 //     ['[ref]: XXXA (\\))', 'XXXA', '(\\))'],
 //   ];
 //   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase[0]);
-//     expect(editor.lineType(0)).toMatch('TMLinkReferenceDefinition');
-//     expect(editor.lineHTML(0)).toMatch(classTagRegExp(testCase[1], 'TMLinkDestination'));
-//     expect(editor.lineHTML(0)).toMatch(classTagRegExp(testCase[2], 'TMLinkTitle'));
+//     const editor = await initTinyMDE(testCase[0]);
+//     expect(await editor.lineType(0)).toMatch('TMLinkReferenceDefinition');
+//     expect(await editor.lineHTML(0)).toMatch(classTagRegExp(testCase[1], 'TMLinkDestination'));
+//     expect(await editor.lineHTML(0)).toMatch(classTagRegExp(testCase[2], 'TMLinkTitle'));
 //   }
 // });
 
@@ -340,8 +378,8 @@ test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', asyn
 //     '[ref]: XXXA "XXXB\'', // Delimiters of title have to be matched
 //   ];
 //   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
-//     expect(editor.lineType(0)).not.toMatch('TMLinkReferenceDefinition');
+//     const editor = await initTinyMDE(testCase);
+//     expect(await editor.lineType(0)).not.toMatch('TMLinkReferenceDefinition');
 //   }
 // })
 
@@ -357,11 +395,11 @@ test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', asyn
 //     '<STYLE type="text/css">XXXA</STyLE>XXXB\nXXXC', 
 //   ];
 //   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
+//     const editor = await initTinyMDE(testCase);
 //     for (let l = 0; l < editor.numLines() - 1; l++) {
-//       expect(editor.lineType(l)).toMatch('TMHTMLBlock');
+//       expect(await editor.lineType(l)).toMatch('TMHTMLBlock');
 //     }
-//     expect(editor.lineType(editor.numLines() - 1)).not.toMatch('TMHTMLBlock');
+//     expect(await editor.lineType(await editor.numLines() - 1)).not.toMatch('TMHTMLBlock');
 //   }
 // });
 
@@ -373,11 +411,11 @@ test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', asyn
 
 //   ];
 //   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
+//     const editor = await initTinyMDE(testCase);
 //     for (let l = 0; l < editor.numLines() - 1; l++) {
-//       expect(editor.lineType(l)).toMatch('TMHTMLBlock');
+//       expect(await editor.lineType(l)).toMatch('TMHTMLBlock');
 //     }
-//     expect(editor.lineType(editor.numLines() - 1)).not.toMatch('TMHTMLBlock');
+//     expect(await editor.lineType(await editor.numLines() - 1)).not.toMatch('TMHTMLBlock');
 //   }
 // });
 
@@ -388,11 +426,11 @@ test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', asyn
 //     '   <? \n Processing instruction \n?\n>\nXXXX?>YYYY\nXXXC', 
 //   ];
 //   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
+//     const editor = await initTinyMDE(testCase);
 //     for (let l = 0; l < editor.numLines() - 1; l++) {
-//       expect(editor.lineType(l)).toMatch('TMHTMLBlock');
+//       expect(await editor.lineType(l)).toMatch('TMHTMLBlock');
 //     }
-//     expect(editor.lineType(editor.numLines() - 1)).not.toMatch('TMHTMLBlock');
+//     expect(await editor.lineType(await editor.numLines() - 1)).not.toMatch('TMHTMLBlock');
 //   }
 // });
 
@@ -404,11 +442,11 @@ test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', asyn
 
 //   ];
 //   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
+//     const editor = await initTinyMDE(testCase);
 //     for (let l = 0; l < editor.numLines() - 1; l++) {
-//       expect(editor.lineType(l)).toMatch('TMHTMLBlock');
+//       expect(await editor.lineType(l)).toMatch('TMHTMLBlock');
 //     }
-//     expect(editor.lineType(editor.numLines() - 1)).not.toMatch('TMHTMLBlock');
+//     expect(await editor.lineType(await editor.numLines() - 1)).not.toMatch('TMHTMLBlock');
 //   }
 // });
 
@@ -418,11 +456,11 @@ test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', asyn
 //     '   <![CDATA[\nXXXA\n\n\nXXXB]]>XXXC\nXXXD', 
 //   ];
 //   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
+//     const editor = await initTinyMDE(testCase);
 //     for (let l = 0; l < editor.numLines() - 1; l++) {
-//       expect(editor.lineType(l)).toMatch('TMHTMLBlock');
+//       expect(await editor.lineType(l)).toMatch('TMHTMLBlock');
 //     }
-//     expect(editor.lineType(editor.numLines() - 1)).not.toMatch('TMHTMLBlock');
+//     expect(await editor.lineType(await editor.numLines() - 1)).not.toMatch('TMHTMLBlock');
 //   }
 // });
 
@@ -434,11 +472,11 @@ test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', asyn
 //     '<mAiN\nXXXA\nXXXB\n'
 //   ];
 //   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
+//     const editor = await initTinyMDE(testCase);
 //     for (let l = 0; l < editor.numLines() - 1; l++) {
-//       expect(editor.lineType(l)).toMatch('TMHTMLBlock');
+//       expect(await editor.lineType(l)).toMatch('TMHTMLBlock');
 //     }
-//     expect(editor.lineType(editor.numLines() - 1)).not.toMatch('TMHTMLBlock');
+//     expect(await editor.lineType(await editor.numLines() - 1)).not.toMatch('TMHTMLBlock');
 //   }
 // });
 
@@ -448,11 +486,11 @@ test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', asyn
 //     '   </W00T >\nXXXZ\nXXXA\nXXXB\n', 
 //   ];
 //   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
+//     const editor = await initTinyMDE(testCase);
 //     for (let l = 0; l < editor.numLines() - 1; l++) {
-//       expect(editor.lineType(l)).toMatch('TMHTMLBlock');
+//       expect(await editor.lineType(l)).toMatch('TMHTMLBlock');
 //     }
-//     expect(editor.lineType(editor.numLines() - 1)).not.toMatch('TMHTMLBlock');
+//     expect(await editor.lineType(await editor.numLines() - 1)).not.toMatch('TMHTMLBlock');
 //   }
 // });
 
@@ -466,8 +504,8 @@ test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', asyn
 //     'XXXA\n<p>'
 //   ];
 //   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
-//     expect(editor.lineType(1)).toMatch('TMHTMLBlock');
+//     const editor = await initTinyMDE(testCase);
+//     expect(await editor.lineType(1)).toMatch('TMHTMLBlock');
 //   }
 // });
 
@@ -479,8 +517,8 @@ test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', asyn
 //     '1. XXXA\n<bla>',
 //   ];
 //   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
-//     expect(editor.lineType(1)).not.toMatch('TMHTMLBlock');
+//     const editor = await initTinyMDE(testCase);
+//     expect(await editor.lineType(1)).not.toMatch('TMHTMLBlock');
 //   }
 // });
 
@@ -492,8 +530,8 @@ test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', asyn
 //     '</bla a="b">', // Invalid closing tag
 //   ];
 //   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
-//     expect(editor.lineType(0)).not.toMatch('TMHTMLBlock');
+//     const editor = await initTinyMDE(testCase);
+//     expect(await editor.lineType(0)).not.toMatch('TMHTMLBlock');
 //   }
 // });
 
@@ -508,8 +546,8 @@ test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', asyn
 //     '   +    XXXA',
 //   ];
 //   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
-//     expect(editor.lineType(0)).toMatch('TMUL');
+//     const editor = await initTinyMDE(testCase);
+//     expect(await editor.lineType(0)).toMatch('TMUL');
 //   }
 // });
 
@@ -525,8 +563,8 @@ test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', asyn
 //     '   +    ',
 //   ];
 //   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
-//     expect(editor.lineType(0)).toMatch('TMUL');
+//     const editor = await initTinyMDE(testCase);
+//     expect(await editor.lineType(0)).toMatch('TMUL');
 //   }
 // });
 
@@ -540,8 +578,8 @@ test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', asyn
 //     '0) XXXA',
 //   ];
 //   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
-//     expect(editor.lineType(0)).toMatch('TMOL');
+//     const editor = await initTinyMDE(testCase);
+//     expect(await editor.lineType(0)).toMatch('TMOL');
 //   }
 // });
 
@@ -555,8 +593,8 @@ test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', asyn
 //     '0) ',
 //   ];
 //   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
-//     expect(editor.lineType(0)).toMatch('TMOL');
+//     const editor = await initTinyMDE(testCase);
+//     expect(await editor.lineType(0)).toMatch('TMOL');
 //   }
 // });
 
@@ -569,9 +607,9 @@ test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', asyn
 //     '1. *XXXA*',
 //   ];
 //   for (let testCase of testCases) {
-//     const editor = initTinyMDE(testCase);
-//     expect(editor.lineType(0)).toMatch(/TM[OU]L/);
-//     expect(editor.lineHTML(0)).toMatch(classTagRegExp('XXXA', 'TMEm', 'em'));
+//     const editor = await initTinyMDE(testCase);
+//     expect(await editor.lineType(0)).toMatch(/TM[OU]L/);
+//     expect(await editor.lineHTML(0)).toMatch(classTagRegExp('XXXA', 'TMEm', 'em'));
 //   }
 // });
 
@@ -582,9 +620,9 @@ test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', asyn
 // //     '1. A\n2. B\n   1) C\n      1. d'
 // //   ];
 // //   for (let testCase of testCases) {
-// //     const editor = initTinyMDE(testCase);
+// //     const editor = await initTinyMDE(testCase);
 // //     for (let l = 0; l < editor.numLines(); l++) {
-// //       expect(editor.lineType(l)).toMatch(/TM[OU]L/);
+// //       expect(await editor.lineType(l)).toMatch(/TM[OU]L/);
 // //     }
 // //   }
 // // });
@@ -599,10 +637,10 @@ test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', asyn
 // //     // '- List item\n  Continued\n\n  Still continued\n      Indented code in list item\n  > Blockquote in list item'
 // //   ];
 // //   for (let testCase of cases) {
-// //     let editor = initTinyMDE(testCase);
-// //     expect(editor.lineType(0)).toMatch(/^TM[OU]L$/);
+// //     let editor = await initTinyMDE(testCase);
+// //     expect(await editor.lineType(0)).toMatch(/^TM[OU]L$/);
 // //     for (let l = 1; l <= editor.numLines(); l++) {
-// //       expect(editor.lineType(l)).toMatch(/^TM[OU]L/);
+// //       expect(await editor.lineType(l)).toMatch(/^TM[OU]L/);
 // //     }
 // //   }
 // // });
@@ -618,9 +656,9 @@ test('ATX headings\'  trailing #s must be preceded by space: # H1#####   ', asyn
 // })
 
 // test('Blockquote content parsed as markdown: > *em*', async () => {
-//   const editor = initTinyMDE('> *XXXA*');
-//   expect(editor.lineType(0)).toMatch('TMBlockquote');
-//   expect(editor.lineHTML(0)).toMatch(classTagRegExp('XXXA', 'TMEm', 'em'));
+//   const editor = await initTinyMDE('> *XXXA*');
+//   expect(await editor.lineType(0)).toMatch('TMBlockquote');
+//   expect(await editor.lineHTML(0)).toMatch(classTagRegExp('XXXA', 'TMEm', 'em'));
 // });
 
 
