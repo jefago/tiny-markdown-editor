@@ -4,9 +4,9 @@ global.initTinyMDE = async (content) => {
   const newPage = await browser.newPage();
   await newPage.goto(PATH, { waitUntil: 'load'});
   content = content.replace(/(['"\\])/g, '\\$1').replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t');
-  let tinyMDE = await newPage.evaluate(`
+  await newPage.evaluate(`
     tinyMDE = new TinyMDE.Editor({element: 'tinymde', content: '${content}'});
-  `); //new Editor({element: 'container', content: content});
+  `); 
   return {
     // editorInstance: () => tinyMDE,
     // editorElement: () => document.getElementById('container').firstChild,
