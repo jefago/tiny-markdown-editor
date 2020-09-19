@@ -99,13 +99,13 @@ test('correctly parses closing asterisk without opening: _a___', async () =>  {
 });
 
 test('Underscore in between punctuation can open emphasis: foo-_(bar)_', async () =>  {
-  const editor = await initTinyMDE('foo-_(bar);
-  expect(await editor_').lineHTML(0)).toMatch(/foo-.*<em[^>]*>.*\(bar\).*<\/em>.*/);
+  const editor = await initTinyMDE('foo-_(bar)_');
+  expect(await editor.lineHTML(0)).toMatch(/foo-.*<em[^>]*>.*\(bar\).*<\/em>.*/);
 });
 
 test('Underscore next to punctuation can enclose emphasis: _(bar)_', async () =>  {
-  const editor = await initTinyMDE('_(bar);
-  expect(await editor_').lineHTML(0)).toMatch(/<em[^>]*>.*\(bar\).*<\/em>.*/);
+  const editor = await initTinyMDE('_(bar)_');
+  expect(await editor.lineHTML(0)).toMatch(/<em[^>]*>.*\(bar\).*<\/em>.*/);
 });
 
 test('Emphasis works multiple times on the same line', async () =>  {
@@ -126,9 +126,11 @@ test('correctly parses ~~ strikethrough', async () =>  {
 });
 
 test('Strikethrough can be nested inside emphasis: *A ~~B~~ C*', async () =>  {
-  const html = initTinyMDE('*XXXA ~~XXXB~~ XXXC*').lineHTML(0);
+  const editor = await initTinyMDE('*XXXA ~~XXXB~~ XXXC*');
+  const html = await editor.lineHTML(0);
   expect(html).toMatch(classTagRegExp('XXXB', 'TMStrikethrough', 'del'));
   expect(html).toMatch(/<em[^>]*>/); // Ensure the emphasis is processed also
+  editor.destroy();
 });
 
 test('Strikethrough does not need to be left or right flanking: ~~ A ~~', async () =>  {
@@ -137,11 +139,12 @@ test('Strikethrough does not need to be left or right flanking: ~~ A ~~', async 
 });
 
 test('Emphasis and strikethrough bind left to right: *A ~~B* C~~', async () =>  {
-  const tinyMDE = initTinyMDE('*XXXA ~~XXXB* XXXC~~\n~~XXXA *XXXB~~ XXXC*');
-  expect(tinyMDE.lineHTML(0)).toMatch(/<em.*>/);
-  expect(tinyMDE.lineHTML(0)).not.toMatch(/<del.*>/);
-  expect(tinyMDE.lineHTML(1)).not.toMatch(/<em.*>/);
-  expect(tinyMDE.lineHTML(1)).toMatch(/<del.*>/);
+  const editor = await initTinyMDE('*XXXA ~~XXXB* XXXC~~\n~~XXXA *XXXB~~ XXXC*');
+  expect(await editor.lineHTML(0)).toMatch(/<em.*>/);
+  expect(await editor.lineHTML(0)).not.toMatch(/<del.*>/);
+  expect(await editor.lineHTML(1)).not.toMatch(/<em.*>/);
+  expect(await editor.lineHTML(1)).toMatch(/<del.*>/);
+  editor.destroy();
 });
 
 
@@ -149,10 +152,11 @@ test('Emphasis and strikethrough bind left to right: *A ~~B* C~~', async () =>  
 
 test('ASCII punctuation can be backslash-escaped', async () =>  {
   let punctuation =  ['!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/', ':', ';', '<', '=', '>', '?', '@', '[', '\\', ']', '^', '_', '`', '{', '|', '}', '~'];
-  for (let p of punctuation) {
-    const editor = await initTinyMDE(`\\${p}`);
-  expect(await editor.lineHTML(0)).toMatch(classTagRegExp('\\', 'TMMark_TMEscape'));
+  const editor = await initTinyMDE(punctuation.map(string => `\\${string}`).join('\n'));
+  for (let l = 0; l < punctuation.length; l++) {
+    expect(await editor.lineHTML(l)).toMatch(classTagRegExp('\\', 'TMMark_TMEscape'));  
   }
+  editor.destroy();
 });
 
 test('Non-ASCII-punctuation can NOT be backslash-escaped', async () =>  {
@@ -173,7 +177,7 @@ test('Backtick escapes NOT processed in code', async () =>  {
   expect(await editor.lineHTML(0)).toMatch(/<code[^>]*>\\!<\/code>/);
 })
 
-test('Backslash backtick ends code block: `code\\` ', async () =>  {
+test('Backslash backtick ends code block: `code\\`', async () =>  {
   const editor = await initTinyMDE('`XXXA\\`');
   expect(await editor.lineHTML(0)).toMatch(/<code[^>]*>XXXA\\<\/code>/);
 });
@@ -191,29 +195,35 @@ test('Escaped backtick doesn\'t start code span', async () =>  {
 // TODO Make this test pass
 // test('Single space is stripped from both sides of code block: `` `a` ``', async () =>  {
 //   const editor = await initTinyMDE('`` `XXXA` ``');
-  expect(await editor.lineHTML(0)).toMatch(/<code[^>]*>`XXXA`<\/code>/);
+  // expect(await editor.lineHTML(0)).toMatch(/<code[^>]*>`XXXA`<\/code>/);
 // });
 
 test('Autolink binds more strongly than inline link: [this <https://]()>', async () =>  {
-  let result = initTinyMDE('[XXXA <XXXB://]()>').lineHTML(0);
+  const editor = await initTinyMDE('[XXXA <XXXB://]()>');
+  const result = await editor.lineHTML(0);
   expect(result).not.toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMLink[^>]*>XXXA/);
   expect(result).toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMAutolink[^>]*>XXXB/);
+  editor.destroy();
 });
 
 test('HTML binds more strongly than inline link: [this <tag a="]()">', async () =>  {
-  let result = initTinyMDE('[XXXA <XXXB XXXC="]()">').lineHTML(0);
+  const editor = await initTinyMDE('[XXXA <XXXB XXXC="]()">');
+  const result = await editor.lineHTML(0);
   expect(result).not.toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMLink[^>]*>XXXA/);
   expect(result).toMatch(classTagRegExp(`<XXXB XXXC="]()">`, 'TMHTML'));
+  editor.destroy(); 
 });
 
 test('Code span binds more strongly than inline link: [this `code]()>`', async () =>  {
-  let result = initTinyMDE('[XXXA `XXXB]()`').lineHTML(0);
+  const editor = await initTinyMDE('[XXXA `XXXB]()`');
+  const result = await editor.lineHTML(0);
   expect(result).not.toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMLink[^>]*>XXXA/);
   expect(result).toMatch(/<code[^>]*>XXXB\]\(\)<\/code>/);
+  editor.destroy();
 });
 
 test(`HTML open tag recognized: <a foo="bar" bam = 'baz <em>"</em>' _boolean zoop:33=zoop:33 />`, async () =>  {
-  let html = `<a foo="bar" bam = 'baz <em>"</em>' _boolean zoop:33=zoop:33 />`;
+  const html = `<a foo="bar" bam = 'baz <em>"</em>' _boolean zoop:33=zoop:33 />`;
   const editor = await initTinyMDE(`XXXA ${html}`);
   expect(await editor.lineHTML(0)).toMatch(htmlRegExp(html));
 })
@@ -234,7 +244,7 @@ test('HTML close tag can\'t have attributes: </tag a="b">', async () =>  {
   expect(await editor.lineHTML(0)).not.toMatch('TMHTML');
 });
 
-test(`HTML comments recognized: <!--comment--> `, async () =>  {
+test(`HTML comments recognized: <!--comment-->`, async () =>  {
   const editor = await initTinyMDE('XXXA <!--XXXA-->');
   expect(await editor.lineHTML(0)).toMatch(htmlRegExp('<!--XXXA-->'));
 });
@@ -284,23 +294,23 @@ test(`Spaces not allowed in URI autolinks`, async () =>  {
 });
 
 test(`Simple inline link parsed correctly: [text](destination)`, async () =>  {
-  const editor = await initTinyMDE(`[XXXA](XXXB);
-  expect(await editor`).lineHTML(0)).toMatch(inlineLinkRegExp('XXXA', 'XXXB'));
+  const editor = await initTinyMDE(`[XXXA](XXXB)`);
+  expect(await editor.lineHTML(0)).toMatch(inlineLinkRegExp('XXXA', 'XXXB'));
 });
 
 test(`Inline link destination can be in angle brackets: [text](<desti nation>)`, async () =>  {
-  const editor = await initTinyMDE(`[XXXA](<XXXB XXXC>);
-  expect(await editor`).lineHTML(0)).toMatch(inlineLinkRegExp('XXXA', 'XXXB XXXC'));
+  const editor = await initTinyMDE(`[XXXA](<XXXB XXXC>)`);
+  expect(await editor.lineHTML(0)).toMatch(inlineLinkRegExp('XXXA', 'XXXB XXXC'));
 });
 
 test(`Inline link destination can't include spaces: [link](desti nation)`, async () =>  {
-  const editor = await initTinyMDE(`[XXXA](XXXB XXXC);
-  expect(await editor`).lineHTML(0)).not.toMatch('TMLink');
+  const editor = await initTinyMDE(`[XXXA](XXXB XXXC)`);
+  expect(await editor.lineHTML(0)).not.toMatch('TMLink');
 })
 
 test(`Inline link with unbalanced parenthesis in destination is invalid: [text]( ( )`, async () =>  {
-  const editor = await initTinyMDE(`[XXXA]( ( );
-  expect(await editor`).lineHTML(0)).not.toMatch('TMLink');
+  const editor = await initTinyMDE(`[XXXA]( ( )`);
+  expect(await editor.lineHTML(0)).not.toMatch('TMLink');
 });
 
 test(`All link destination (none, <>) and title (", ', ()) delimiters work`, async () =>  {
@@ -309,70 +319,78 @@ test(`All link destination (none, <>) and title (", ', ()) delimiters work`, asy
   for (let dd of destDelim) for (let td of titleDelim) {
     let link = `[XXXA](${dd[0]}XXXB${dd[1]} ${td[0]}XXXC XXXD${td[1]})`;
     const editor = await initTinyMDE(link);
-  expect(await editor.lineHTML(0)).toMatch(inlineLinkRegExp('XXXA', 'XXXB', 'XXXC XXXD'));
+    expect(await editor.lineHTML(0)).toMatch(inlineLinkRegExp('XXXA', 'XXXB', 'XXXC XXXD'));
   }
 });
 
 test(`Empty inline link works: []()`, async () =>  {
-  const editor = await initTinyMDE('[]();
-  expect(await editor').lineHTML(0)).toMatch(inlineLinkRegExp('','',''));
+  const editor = await initTinyMDE('[]()');
+  expect(await editor.lineHTML(0)).toMatch(inlineLinkRegExp('','',''));
 })
 
 test(`Formatting in link text works: [*em*](destination)`, async () =>  {
-  const editor = await initTinyMDE('[*XXXA*](XXXB);
-  expect(await editor').lineHTML(0)).toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMLink[^>]*>.*<em[^>]*>XXXA<\/em>/);
+  const editor = await initTinyMDE('[*XXXA*](XXXB)');
+  expect(await editor.lineHTML(0)).toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMLink[^>]*>.*<em[^>]*>XXXA<\/em>/);
 });
 
 test(`Links and emphasis bind left-to-right: [*em](destination)*`, async () =>  {
-  let output = initTinyMDE('[*XXXA](XXXB)*').lineHTML(0);
+  const editor = await initTinyMDE('[*XXXA](XXXB)*');
+  const output = await editor.lineHTML(0);
   expect(output).not.toMatch(/<em[^>]*>/);
   expect(output).toMatch(inlineLinkRegExp('*XXXA', 'XXXB'));
+  editor.destroy();
 });
 
 test(`Links can't be nested, inner link binds more strongly: [a [b](c) d](e)`, async () =>  {
-  const editor = await initTinyMDE('[XXXA [XXXB](XXXC);
-  expect(await editor XXXD](XXXE)').lineHTML(0)).toMatch(inlineLinkRegExp('XXXB', 'XXXC'));
+  const editor = await initTinyMDE('[XXXA [XXXB](XXXC) XXXD](XXXE)');
+  expect(await editor.lineHTML(0)).toMatch(inlineLinkRegExp('XXXB', 'XXXC'));
 })
 
 test(`Link text can contain images: [a ![b](c) d](e)`, async () =>  {
-  const result = initTinyMDE('[XXXA ![XXXB](XXXC) XXXD](XXXE)').lineHTML(0);
+  const editor = await initTinyMDE('[XXXA ![XXXB](XXXC) XXXD](XXXE)');
+  const result = await editor.lineHTML(0);
   expect(result).toMatch(inlineImageRegExp('XXXB', 'XXXC'));
   expect(result).toMatch(/<span[^>]*class\s*=\s*["']?[^>"']*TMLink[^>]*>XXXA.*<span[^>]*class\s*=\s*["']?[^>"']*TMImage[^>]*>XXXB/)
 })
 
 
 test(`Basic image works: ![](/url)`, async () =>  {
-  const editor = await initTinyMDE('![](/XXXA);
-  expect(await editor').lineHTML(0)).toMatch(inlineImageRegExp('','/XXXA'));
+  const editor = await initTinyMDE('![](/XXXA)');
+  expect(await editor.lineHTML(0)).toMatch(inlineImageRegExp('','/XXXA'));
 })
 
 test(`All image destination (none, <>) and title (", ', ()) delimiters work`, async () =>  {
   const destDelim = [['', ''], ['<', '>']];
   const titleDelim = [['"', '"'], [`'`, `'`], [`(`, `)`]];
   for (let dd of destDelim) for (let td of titleDelim) {
-    let link = `![XXXA XXXY](${dd[0]}XXXB${dd[1]} ${td[0]}XXXC XXXD${td[1]})`;
+    const link = `![XXXA XXXY](${dd[0]}XXXB${dd[1]} ${td[0]}XXXC XXXD${td[1]})`;
     const editor = await initTinyMDE(link);
-  expect(await editor.lineHTML(0)).toMatch(inlineImageRegExp('XXXA XXXY', 'XXXB', 'XXXC XXXD'));
+    expect(await editor.lineHTML(0)).toMatch(inlineImageRegExp('XXXA XXXY', 'XXXB', 'XXXC XXXD'));
+    editor.destroy();
   }
 });
 
 test(`Formatting in image text works: ![*em*](destination)`, async () =>  {
-  const editor = await initTinyMDE('![*XXXA*](XXXB);
-  expect(await editor').lineHTML(0)).toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMImage[^>]*>.*<em[^>]*>XXXA<\/em>/);
+  const editor = await initTinyMDE('![*XXXA*](XXXB)');
+  expect(await editor.lineHTML(0)).toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMImage[^>]*>.*<em[^>]*>XXXA<\/em>/);
 });
 
 test(`Image description can contain links: ![a [b](c) d](e)`, async () =>  {
   const text = '![XXXA [XXXB](XXXC) XXXD](XXXE)';
-  const result = initTinyMDE(text).lineHTML(0);
+  const editor = await initTinyMDE(text);
+  const result = await editor.lineHTML(0);
   expect(result).toMatch(inlineLinkRegExp('XXXB', 'XXXC')); // Just check the link is there...
   expect(result).toMatch(/<span[^>]*class\s*=\s*["']?[^>"']*TMImage[^>]*>XXXA.*<span[^>]*class\s*=\s*["']?[^>"']*TMLink[^>]*>XXXB/)
+  editor.destroy();
 });
 
 test(`Image description can contain images: ![a ![b](c) d](e)`, async () =>  {
   const text = '![XXXA ![XXXB](XXXC) XXXD](XXXE)';
-  const result = initTinyMDE(text).lineHTML(0);
+  const editor = await initTinyMDE(text);
+  const result = await editor.lineHTML(0);
   expect(result).toMatch(inlineImageRegExp('XXXB', 'XXXC')); // Just check the link is there...
   expect(result).toMatch(/<span[^>]*class\s*=\s*["']?[^>"']*TMImage[^>]*>XXXA.*<span[^>]*class\s*=\s*["']?[^>"']*TMImage[^>]*>XXXB/)
+  editor.destroy();
 });
 
 test(`Simple ref link works: [text][ref]`, async () =>  {
@@ -400,9 +418,9 @@ test(`Shortcut ref link works: [ref]`, async () =>  {
 });
 
 test(`Valid and invalid link references correctly identified`, async () =>  {
-  const editor = initTinyMDE('[XXXA]: https://abc.de\n[XXXA]\n[XXXB]');
-  expect (editor.lineHTML(1)).toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMLinkLabel_Valid[^>]*>XXXA/);
-  expect (editor.lineHTML(2)).toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMLinkLabel_Invalid[^>]*>XXXB/);
+  const editor = await initTinyMDE('[XXXA]: https://abc.de\n[XXXA]\n[XXXB]');
+  expect (await editor.lineHTML(1)).toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMLinkLabel_Valid[^>]*>XXXA/);
+  expect (await editor.lineHTML(2)).toMatch(/<span[^>]*class\s*=\s*["']?[^"'>]*TMLinkLabel_Invalid[^>]*>XXXB/);
 });
 
 test(`Simple ref image works: ![text][ref]`, async () =>  {
