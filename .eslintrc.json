@@ -1,25 +1,15 @@
 {
     "env": {
         "browser": true,
-        "es2020": true,
-        "jest/globals": true
+        "es2020": true
     },
-    "extends": ["eslint:recommended", "plugin:jest/recommended"],
+    "extends": ["eslint:recommended"],
     "parserOptions": {
         "ecmaVersion": 2019,
         "sourceType": "module"
     },
-    "ignorePatterns": ["gulpfile.js"],
-    "plugins": ["jest"],
+    "ignorePatterns": ["gulpfile.js", "src/jest/*.js", "**/*.test.js"],
     "rules": {
         "no-fallthrough": "off"
-    },
-    "globals": {
-        "initTinyMDE": "readonly",
-        "classTagRegExp": "readonly",
-        "global": "readonly",
-        "page": "readonly",
-        "browser": "readonly",
-        "PATH": "readonly"
     }
 }
