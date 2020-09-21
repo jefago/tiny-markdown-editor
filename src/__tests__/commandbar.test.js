@@ -42,3 +42,17 @@ test('Command bar buttons can be clicked', async () => {
 
   expect(await page.evaluate(() => document.tinyMDE.getContent())).toEqual('# XXXA');
 });
+
+test('Keyboard shortcuts work', async () => {
+  await page.evaluate(() => {
+    document.tinyMDE = new TinyMDE.Editor({element: 'tinymde', content: 'This is a test'});
+    document.commandBar = new TinyMDE.CommandBar({element: 'tinymde_commandbar', editor: document.tinyMDE, commands: [{name: 'bold', hotkey: 'Ctrl-B'}]}); // Manually setting ctrl-B as shortcut so this works on all platforms
+    document.getElementById('tinymde').firstChild.focus();
+  });
+  await select(page, 0, 5, 0, 7); // Select "is"
+  await page.keyboard.down('ControlLeft');
+  await page.keyboard.press('KeyB');
+  await page.keyboard.up('ControlLeft');
+  expect(await page.evaluate(() => document.tinyMDE.getContent())).toEqual('This **is** a test');
+
+});
