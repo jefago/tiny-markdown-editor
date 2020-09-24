@@ -47,7 +47,7 @@ const rollupConfig = (inputFile, sourcemaps = false) => { return {
 
 const clean = () => del(['./dist']);
 
-const test = () => jestCLI.run([]); 
+const jest = () => jestCLI.run([]); 
 
 const jsMax = () => 
   rollupStream({...rollupConfig('./src/index.js', true), cache})
@@ -74,7 +74,7 @@ const jsTiny = () =>
 const js = gulp.series(jsMax, jsTiny);
 
 const html = () => 
-  gulp.src('./src/demo.html')
+  gulp.src('./src/html/*.html')
     .pipe(gulp.dest('./dist'));
 
 const css = () =>
@@ -112,9 +112,11 @@ const svg = () => {
     .then((values) => writefile(path.join('.', 'src', 'svg', 'svg.js'), `const svg = \{\n  ${values.join(',\n  ')}\n\};\n\nexport default svg;`, {encoding: 'utf8'}));
 }
 
-const build = gulp.series(clean, test, svg, js, css, html);
+const build = gulp.series(clean, svg, js, css, html);
 
 const dev = gulp.series(clean, svg, jsMax, css, html, watch);
+
+const test = gulp.series(build, jest);
 
 exports.default = build;
 exports.dev = dev;

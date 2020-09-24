@@ -3,12 +3,12 @@
         "browser": true,
         "es2020": true
     },
-    "extends": "eslint:recommended",
+    "extends": ["eslint:recommended"],
     "parserOptions": {
         "ecmaVersion": 2019,
         "sourceType": "module"
     },
-    "ignorePatterns": ["gulpfile.js"],
+    "ignorePatterns": ["gulpfile.js", "src/jest/*.js", "**/*.test.js"],
     "rules": {
         "no-fallthrough": "off"
     }
