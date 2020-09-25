@@ -1,8 +1,8 @@
 {
   "name": "tiny-markdown-editor",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "TinyMDE: A tiny, dependency-free embeddable HTML/JavaScript Markdown editor.",
-  "main": "src/tiny-mde.js",
+  "main": "src/index.js",
   "scripts": {
     "test": "npx gulp test",
     "build": "npx gulp",
@@ -12,7 +12,7 @@
     "type": "git",
     "url": "git+https://github.com/jefago/tiny-markdown-editor.git"
   },
-  "author": "Jens-Fabian Goetzmann",
+  "author": "Jens-Fabian Goetzmann <mail@jefago.com>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/jefago/tiny-markdown-editor/issues"
