@@ -102,7 +102,24 @@ If neither `content` nor `textarea` are given, the content of the editor is init
 
 ### Customizing commands
 
+In order to customize the commands shown on the command bar, pass an array to the `commands` attribute. Each of the entries of the array defines one command bar element (button or separator), left to right. Each of the entries of the `commands` array can be one of the following:
+
+- A string with the content `|` (vertical pipe), which will create a separator line.
+- A string with one of the command identifiers `bold`, `italic`, `strikethrough`, `code`, `h1`, `h2`, `ul`, `ol`, `blockquote`, `hr`, `insertLink`, or `insertImage`, which will create the default button for that command
+- A key-value object to create a customized or custom button.
+
+If an entry of the `commands` array is an object, you can either customize one of the existing commands (e.g., use a different icon or keyboard shortcut for the `bold` command), or use a completely custom command. To customize an existing command, the object needs to contain a `name` attribute 
+
+
+        commands: ['bold', {name: 'X', innerHTML: 'X', title: 'X', action: (editor) => { editor.setContent('Bla') } } ]
+
+
+The default array of commands is as follows: `['bold', 'italic', 'strikethrough', '|', 'code', '|', 'h1', 'h2', '|', 'ul', 'ol', '|', 'blockquote', 'hr', '|', 'insertLink', 'insertImage']`.
+
 ### Event listeners
+
+
+### Styling TinyMDE
 
 
 

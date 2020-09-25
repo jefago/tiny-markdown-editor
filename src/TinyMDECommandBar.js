@@ -129,6 +129,7 @@ class CommandBar {
             commandName = command;
             this.commands[commandName] = DefaultCommands[commandName];
 
+            
           } else {
             continue;
           }
