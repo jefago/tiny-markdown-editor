@@ -91,6 +91,14 @@ If neither `content` nor `textarea` are given, the content of the editor is init
 
 ### CommandBar constructor parameters
 
+`TinyMDE.Editor` takes as argument a key-value object with the following possible attributes:
+
+| Attribute              | Description                           | 
+| ---------------------- | ------------------------------------- | 
+| `element`              | The DOM element under which the command bar DOM element will be created. The `element` attribute can be given as either an ID or the DOM element itself (i.e., the result of a call to `document.getElementById()`). If `element` is not given, the commandbar will be created as the last child of the `body` element (probably not what you want in most cases). |
+| `editor`               | The editor object that this command bar will be linked to (i.e., the return value of `new TinyMDE.Editor()`).  |
+| `commands`             | The list of commands to show. See [below](#customizing-commands). |
+
 
 ### Customizing commands
 
