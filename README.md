@@ -26,7 +26,6 @@ TODO
 TODO
 
 ### Self-host
-
 To self-host TinyMDE, follow these steps:
 
 - [Download and build TinyMDE](#build-tinymde)
@@ -37,10 +36,67 @@ To self-host TinyMDE, follow these steps:
     <link rel="stylesheet" type="text/css" href="tiny-mde.min.css" />
     ```
 
-
 ## Creating an editor and toolbar on your page
+### Simple creation
+To create a simple editor as child of an HTML `div` element with the ID `editor`, use the following HTML / JS code:
+
+```html
+<div id="editor"></div>
+<script type="text/javascript">
+var tinyMDE = new TinyMDE.Editor({element: 'editor'});
+</script>
+```
+
+### Command bar creation
+To create a toolbar (command bar) along with the editor, create another container div (here called `toolbar`), and instantiate editor and toolbar as follows:
+
+```html
+<div id="toolbar"></div>
+<div id="editor"></div>
+<script type="text/javascript">
+var tinyMDE = new TinyMDE.Editor({element: 'editor'});
+var commandBar = new TinyMDE.CommandBar({element: 'toolbar', editor: tinyMDE});
+</script>
+```
+
+### Creation from a textarea
+TinyMDE can be used as a drop-in textarea replacement. This means that when TinyMDE is passed a textarea, the editor will act as if the user is directly editing the textarea: The editor is initialized with the content of the textarea, and changing text in the editor changes the textarea's content. The easiest code to do so is as follows:
+
+```html
+<div class="txtcontainer"><textarea id="txt">This is some **Markdown** formatted text</textarea></div>
+<script type="text/javascript">
+var tinyMDE = new TinyMDE.Editor({textarea: 'txt'});
+</script>
+```
+
+Please note:
+- The editor doesn't quite *replace* the textarea. The textarea just gets hidden, and the editor content is mirrored in the textarea. If you programmatically change the contents of the textarea, the editor would get out of sync.
+- The editor element will be inserted in the DOM as a sibling of the textarea element. In order to size and format the editor element properly, apply styles to the parent element of the textarea (in the example above, `div.txtcontainer`).
 
 ## Configure TinyMDE
+
+### Editor constructor parameters
+
+`TinyMDE.Editor` takes as argument a key-value object with the following possible attributes:
+
+| Attribute              | Description                           | 
+| ---------------------- | ------------------------------------- | 
+| `element`              | The DOM element under which the TinyMDE DOM element will be created. The `element` attribute can be given as either an ID or the DOM element itself (i.e., the result of a call to `document.getElementById()`). |
+| `content`              | The initial content of the editor, given as a string. May contain newlines. |
+| `textarea`             | The textarea that will be linked to the editor. The textarea can be given as an ID or as the DOM element itself (i.e., the result of a call to `document.getElementById()`). The content of the editor will be reflected in the value of the textarea at any given point in time. If `textarea` is given and `content` isn't, then the editor content will be initialized to the textarea's value. If `textarea` is given and `element` isn't, then the editor element will be created as the next sibling of the textarea element. |
+
+If neither `element` not `textarea` are given, the editor element will be created as the last child element of the `body` element (probably not what you want in most cases, so you probably want to pass at least one of `element` or `textarea`).
+
+If neither `content` nor `textarea` are given, the content of the editor is initialized with a placeholder text (`# Hello TinyMDE!\nEdit **here**`). This is probably not what you want, so you probably want to pass at least one of `content` or `textarea`.
+
+### CommandBar constructor parameters
+
+
+### Customizing commands
+
+### Event listeners
+
+
 
 ## Build TinyMDE
 

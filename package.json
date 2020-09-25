@@ -3,10 +3,20 @@
   "version": "0.1.0",
   "description": "TinyMDE: A tiny, dependency-free embeddable HTML/JavaScript Markdown editor.",
   "main": "src/index.js",
+  "files": [
+    "dist/*",
+    "src/*.js"
+  ],
+  "keywords": [
+    "embeddable",
+    "markdown",
+    "editor"
+  ],
   "scripts": {
     "test": "npx gulp test",
     "build": "npx gulp",
-    "dev": "npx gulp dev"
+    "dev": "npx gulp dev",
+    "prepublishOnly": "npx gulp"
   },
   "repository": {
     "type": "git",
