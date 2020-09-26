@@ -56,3 +56,14 @@ test('Keyboard shortcuts work', async () => {
   expect(await page.evaluate(() => document.tinyMDE.getContent())).toEqual('This **is** a test');
 
 });
+
+test('Minimal custom command works', async () => {
+  await page.evaluate(() => {
+    document.tinyMDE = new TinyMDE.Editor({element: 'tinymde', content: 'This\nis\na\ntest'});
+    document.commandBar = new TinyMDE.CommandBar({element: 'tinymde_commandbar', editor: document.tinyMDE, commands: [{name: 'X', innerHTML: 'X', action: editor => editor.setContent('XXXA')}]}); 
+    document.getElementById('tinymde').firstChild.focus();
+  });
+  await page.mouse.click(12, 12)
+  expect(await page.evaluate(() => document.tinyMDE.getContent())).toEqual('XXXA');
+
+});
