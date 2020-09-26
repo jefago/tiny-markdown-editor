@@ -11,7 +11,7 @@ TinyMDE can be used as a drop-in text area replacement.
 ## Motivation 
 TinyMDE was motivated by wanting to improve on [EasyMDE](https://github.com/Ionaru/easy-markdown-editor) which is extremely flexible but had two shortcomings:
 
-- It depends on [Code Mirror](https://codemirror.net/) for editing and formatting. CodeMirror is a full fledged and customizable in-browser code editor, and has a price: EasyMDE's JS file is 280kb in size. TinyMDE is less than 70kb (less than a quarter of EasyMDE's size), the "tiny" version without the toolbar even below 60kb!
+- EasyMDE depends on [Code Mirror](https://codemirror.net/) for editing and formatting. CodeMirror is a full fledged and customizable in-browser code editor, and has a price: EasyMDE's JS file is 280kb in size. TinyMDE is less than 70kb (less than a quarter of EasyMDE's size), the "tiny" version without the toolbar even below 60kb!
 - CodeMirror doesn't work well on mobile, at least not for writing prose: mobile phone OS auto-correction functionality, which many people rely on to quickly type on mobile, is not supported by CodeMirror.
 
 ## Install TinyMDE
@@ -140,7 +140,12 @@ There are two event listener types that can be registered on the editor: `change
 
 #### `change` event
 
-A `change` event is fired any time the content of the editor changes. 
+A `change` event is fired any time the content of the editor changes. The event object passed to the listener function contains the following properties:
+
+| Attribute              | Description                           | 
+| ---------------------- | ------------------------------------- | 
+| `content`              | The current content as a string.      |
+| `linesDirty`           | An array of booleans, which for each line contains `true` if the line might have changed in terms of either its content or its block type since the last change, and `false` if the line is guaranteed to not have changed.      |
 
 #### `selection` event
 
