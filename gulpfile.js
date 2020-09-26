@@ -87,10 +87,10 @@ const css = () =>
     .pipe(gulp.dest('./dist'));
 
 const watch = () => {
-  gulp.watch('./src/svg/*.svg', svg);
+  gulp.watch('./src/**/*.svg', svg);
   gulp.watch('./src/**/*.js', jsMax);
-  gulp.watch('./src/css/*.css', css);
-  gulp.watch('./src/*.html', html);
+  gulp.watch('./src/**/*.css', css);
+  gulp.watch('./src/**/*.html', html);
 }
 
 const svg = () => {
