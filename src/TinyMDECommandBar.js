@@ -145,7 +145,7 @@ class CommandBar {
           continue;
         }
 
-        let title = this.commands[commandName].title;
+        let title = this.commands[commandName].title || commandName;
 
         if (this.commands[commandName].hotkey) {
           const keys = this.commands[commandName].hotkey.split('-');
