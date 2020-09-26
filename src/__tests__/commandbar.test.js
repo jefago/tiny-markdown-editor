@@ -67,3 +67,13 @@ test('Minimal custom command works', async () => {
   expect(await page.evaluate(() => document.tinyMDE.getContent())).toEqual('XXXA');
 
 });
+
+test('Custom command title defaults to name', async () => {
+  await page.evaluate(() => {
+    document.tinyMDE = new TinyMDE.Editor({element: 'tinymde', content: 'This\nis\na\ntest'});
+    document.commandBar = new TinyMDE.CommandBar({element: 'tinymde_commandbar', editor: document.tinyMDE, commands: [{name: 'X', innerHTML: 'X', action: editor => editor.setContent('XXXA')}]}); 
+    document.getElementById('tinymde').firstChild.focus();
+  });
+  expect(await page.$eval('#tinymde_commandbar', (el) => el.firstChild.firstChild.title)).toEqual('X');
+
+});
