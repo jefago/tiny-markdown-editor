@@ -152,11 +152,9 @@ A `selection` event is fired any time the selection within the editor changes. T
 | `anchor`               | The anchor (start point) of the current selection, in the format as returned by `getSelection()` (two attributes `row` and `col` denoting the zero based row and column). |
 | `commandState`         | An array which contains an attribute for every default command name `bold`, `italic`, `strikethrough`, `code`, `h1`, `h2`, `ul`, `ol`, `blockquote`, `hr`, `insertLink`, and `insertImage`). The value of each attribute is one of `true`, `false`, or `null`. The value is `true` if the command is currently active (e.g., if the cursor is within a bold stretch of text, then the state for `bold` will be `true`). The value is `false` if the command is currently inactive but could be activated (e.g., if the selection encompasses a stretch of text that could be bolded, then the state for `bold` will be `false`). The value is `null` if the command is currently not applicable (e.g., if the cursor is within a code block where inline formatting is not available, the state will be `null` for `bold`). |
 
-
-
 ### Styling TinyMDE
 
-
+In order to style TinyMDE, edit the CSS file. You can see the classes that can be assigned styles within the file, simply edit them to your heart's content.
 
 ## Build TinyMDE
 
