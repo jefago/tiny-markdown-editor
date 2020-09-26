@@ -167,7 +167,7 @@ There are some generally interesting CSS classes that can be formatted. Most of 
 
 - `TinyMDE` is the editor element.
 - `TMMark` is any markup. Any element with the class `TMMark` will also have another class called `TMMark_*`, where `*` is replaced by the class name of the respective block or inline style. For example, in a H1 line with the content `# Heading 1`, the `#` is contained in an element with the classes `TMMark TMMark_TMH1`.
-- `TMInlineFormatted` contains text that is inline formatted
+- `TMInlineFormatted` contains text that is inline formatted.
 
 The following classes denote Markdown blocks: `TMPara`, `TMBlankLine`, `TMH1`, `TMH2`, `TMH3`, `TMH4`, `TMH5`, `TMH6`, `TMBlockquote`, `TMCodeFenceBacktickOpen`, `TMFencedCodeBacktick`, `TMCodeFenceBacktickClose`, `TMCodeFenceTildeOpen`, `TMFencedCodeTilde`, `TMCodeFenceTildeClose`, `TMSetextH1`, `TMSetextH1Marker`, `TMSetextH2`, `TMSetextH2Marker`, `TMHR`, `TMUL`, `TMOL`, `TMIndentedCode`, `TMLinkReferenceDefinition`, `TMHTMLBlock`.
 
