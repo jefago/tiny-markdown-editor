@@ -132,9 +132,26 @@ Here are some methods of the Editor object that might be useful in general inter
 | `setSelection(focus, anchor)` | Sets the selection within the editor. The parameters `focus` and `offset` are both of the format returned by `getSelection()` (containing attributes `row` and `col`). If `anchor` is `null` or omitted, a single-point selection (cursor position) will be set. |
 | `paste(text, anchor, focus)` | Pastes / inserts text over either the current selection (if `anchor` and `focus` are null or omitted) or a specific range (if `anchor` and `focus` are passed in in the format as returned by `getSelection()`). |
 | `wrapSelection(pre, post, anchor, focus)` | Wraps the current selection (if `anchor` and `focus` are `null` or omitted) or a specific selection (if `anchor` and `focus` are given) in the strings `pre` and `post`. For example, `wrapSelection('[', '](https://www.github.com)')` will wrap the selection with a link to GitHub. |
-
+| `addEventListener(type, listener`) | Adds an [event listener](#event-listeners) to the editor. `type` is a string denoting the type (`change` or `selection`), and `listener` is a function which takes one parameter, the event. |
 
 ### Event listeners
+
+There are two event listener types that can be registered on the editor: `change` and `selection`.
+
+#### `change` event
+
+A `change` event is fired any time the content of the editor changes. 
+
+#### `selection` event
+
+A `selection` event is fired any time the selection within the editor changes. The event object passed to the listener function contains the following properties:
+
+| Attribute              | Description                           | 
+| ---------------------- | ------------------------------------- | 
+| `focus`                | The focus (end point) of the current selection, in the format as returned by `getSelection()` (two attributes `row` and `col` denoting the zero based row and column). |
+| `anchor`               | The anchor (start point) of the current selection, in the format as returned by `getSelection()` (two attributes `row` and `col` denoting the zero based row and column). |
+| `commandState`         | An array which contains an attribute for every default command name `bold`, `italic`, `strikethrough`, `code`, `h1`, `h2`, `ul`, `ol`, `blockquote`, `hr`, `insertLink`, and `insertImage`). The value of each attribute is one of `true`, `false`, or `null`. The value is `true` if the command is currently active (e.g., if the cursor is within a bold stretch of text, then the state for `bold` will be `true`). The value is `false` if the command is currently inactive but could be activated (e.g., if the selection encompasses a stretch of text that could be bolded, then the state for `bold` will be `false`). The value is `null` if the command is currently not applicable (e.g., if the cursor is within a code block where inline formatting is not available, the state will be `null` for `bold`). |
+
 
 
 ### Styling TinyMDE
