@@ -108,13 +108,31 @@ In order to customize the commands shown on the command bar, pass an array to th
 - A string with one of the command identifiers `bold`, `italic`, `strikethrough`, `code`, `h1`, `h2`, `ul`, `ol`, `blockquote`, `hr`, `insertLink`, or `insertImage`, which will create the default button for that command
 - A key-value object to create a customized or custom button.
 
-If an entry of the `commands` array is an object, you can either customize one of the existing commands (e.g., use a different icon or keyboard shortcut for the `bold` command), or use a completely custom command. To customize an existing command, the object needs to contain a `name` attribute 
+If an entry of the `commands` array is an object, you can either customize one of the existing commands (e.g., use a different icon or keyboard shortcut for the `bold` command), or use a completely custom command. An object entry of the `commands` array can contain the following attributes:
 
-
-        commands: ['bold', {name: 'X', innerHTML: 'X', title: 'X', action: (editor) => { editor.setContent('Bla') } } ]
-
+| Attribute              | Description                           | 
+| ---------------------- | ------------------------------------- | 
+| `name` *mandatory*     | A string that is unique within the scope of this CommandBar instance that identifies the command. If one of the default commands (`bold`, `italic`, `strikethrough`, `code`, `h1`, `h2`, `ul`, `ol`, `blockquote`, `hr`, `insertLink`, or `insertImage`) is given as the `name` attribute, then the command is initialized with all the default values of the default commands and they can be overridden by specifying additional attributes. In other words, `{ name: 'bold' }` as a command array entry behaves the same as `'bold'`. If the `name` attribute is set to a string other than one of the default command, a custom command can be defined. |
+| `title`                | The title of the command, shown as a tooltip on hover. Defaults to be the same as `name`. |
+| `innerHTML`            | The HTML content of the command button. In the default styling, the content will have a space of 18x18 CSS pixels. |
+| `action`               | For custom commands, you need to set the `action` attribute to a function taking the Editor object as a parameter, for example: `action: editor => { editor.setContent('Test')}`. |
+| `hotkey`               | A keyboard shortcut for the command. The keyboard shortcut needs to be a string containing a key (e.g., 'A' or '1'), preceded by one or more modifier keys (`Ctrl`, `Shift`, `Alt`, `Cmd`, `Win`, `Option`), each separated with `-`. Examples: `Alt-I`, `Ctrl-Shift-3`. There are two convenience modifier keys that are recognized for easy cross-platform development: `Mod` is set to `Cmd` on macOS / iOS / iPadOS and `Ctrl` elsewhere (e.g., `Mod-B` as a shortcut for the `bold` command ends up as either `Ctrl` + `B` or `⌘` + `B`); `Mod2` is set to `Option` on macOS / iOS / iPadOS and `Alt` elsewhere. |
 
 The default array of commands is as follows: `['bold', 'italic', 'strikethrough', '|', 'code', '|', 'h1', 'h2', '|', 'ul', 'ol', '|', 'blockquote', 'hr', '|', 'insertLink', 'insertImage']`.
+
+### Editor methods
+
+Here are some methods of the Editor object that might be useful in general interaction or custom CommandBar commands:
+
+| Method                   | Description                           | 
+| ------------------------ | ------------------------------------- | 
+| `getContent()`           | Returns the content of the editor as a string. |
+| `setContent(content)`    | Sets the content of the editor to the string `content`. |
+| `getSelection(anchor)`   | Gets the current selection / cursor position inside the editor. The parameter `anchor` (defaults to false) determines if the anchor (starting point) of the selection should be returned—if `anchor` is false (or omitted), the focus (end point) is returned, otherwise the starting point. If the selection is not inside the editor, `null` is returned. The method returns an object with the attributes `row` and `col` which contain the zero-based row (line) and column number of the selection position. |
+| `setSelection(focus, anchor)` | Sets the selection within the editor. The parameters `focus` and `offset` are both of the format returned by `getSelection()` (containing attributes `row` and `col`). If `anchor` is `null` or omitted, a single-point selection (cursor position) will be set. |
+| `paste(text, anchor, focus)` | Pastes / inserts text over either the current selection (if `anchor` and `focus` are null or omitted) or a specific range (if `anchor` and `focus` are passed in in the format as returned by `getSelection()`). |
+| `wrapSelection(pre, post, anchor, focus)` | Wraps the current selection (if `anchor` and `focus` are `null` or omitted) or a specific selection (if `anchor` and `focus` are given) in the strings `pre` and `post`. For example, `wrapSelection('[', '](https://www.github.com)')` will wrap the selection with a link to GitHub. |
+
 
 ### Event listeners
 
