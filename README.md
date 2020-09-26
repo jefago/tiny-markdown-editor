@@ -159,7 +159,23 @@ A `selection` event is fired any time the selection within the editor changes. T
 
 ### Styling TinyMDE
 
-In order to style TinyMDE, edit the CSS file. You can see the classes that can be assigned styles within the file, simply edit them to your heart's content.
+In order to style TinyMDE, edit the CSS file. You can see the classes that can be assigned styles within the file. For a bit more detail about the classes, read on.
+
+#### Editor styling
+
+There are some generally interesting CSS classes that can be formatted. Most of them start with `TM`, short for `TinyMDE`.
+
+- `TinyMDE` is the editor element.
+- `TMMark` is any markup. Any element with the class `TMMark` will also have another class called `TMMark_*`, where `*` is replaced by the class name of the respective block or inline style. For example, in a H1 line with the content `# Heading 1`, the `#` is contained in an element with the classes `TMMark TMMark_TMH1`.
+- `TMInlineFormatted` contains text that is inline formatted
+
+The following classes denote Markdown blocks: `TMPara`, `TMBlankLine`, `TMH1`, `TMH2`, `TMH3`, `TMH4`, `TMH5`, `TMH6`, `TMBlockquote`, `TMCodeFenceBacktickOpen`, `TMFencedCodeBacktick`, `TMCodeFenceBacktickClose`, `TMCodeFenceTildeOpen`, `TMFencedCodeTilde`, `TMCodeFenceTildeClose`, `TMSetextH1`, `TMSetextH1Marker`, `TMSetextH2`, `TMSetextH2Marker`, `TMHR`, `TMUL`, `TMOL`, `TMIndentedCode`, `TMLinkReferenceDefinition`, `TMHTMLBlock`.
+
+The following classes denote Markdown inline formatted stretches of text: `TMCode`, `TMAutolink`, `TMHTML`, `TMStrong`, `TMEm`, `TMStrikethrough`, `TMImage`, `TMLink`, (`TMLinkLabel` (also marked as `TMLinkLabel_Valid` or `TMLinkLabel_Invalid` depending on whether or not the label references a valid reference), `TMLinkDestination`, `TMLinkTitle`, `TMImageDestination`, `TMImageTitle`.
+
+#### CommandBar styling
+
+The main toolbar element has the class `TMCommandBar`. Buttons have the class `TMCommandButton`, with an additional class of `TMCommandButton_Active`, `TMCommandButton_Inactive`, or `TMCommandButton_Disabled`, depending on the state of the respective command. Divider elements have the class `TMCommandDivider`.
 
 ## Build TinyMDE
 
