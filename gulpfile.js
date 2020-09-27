@@ -6,11 +6,14 @@ const source = require('vinyl-source-stream');
 const buffer = require('vinyl-buffer');
 
 const rollupStream = require('@rollup/stream');
-const { babel } = require('@rollup/plugin-babel');
+const { babel: rollupBabel } = require('@rollup/plugin-babel');
 const commonjs = require('@rollup/plugin-commonjs');
 const { eslint } = require("rollup-plugin-eslint");
 const { nodeResolve } = require('@rollup/plugin-node-resolve');
 const terser = require('gulp-terser');
+
+const gulpBabel = require('gulp-babel');
+ 
 
 const postcss = require('gulp-postcss');
 const autoprefixer = require('autoprefixer');
@@ -39,7 +42,7 @@ const rollupConfig = (inputFile, sourcemaps = false) => { return {
   },
   plugins: [
     eslint({throwOnError: true}), 
-    babel({babelHelpers: 'bundled'}), 
+    rollupBabel({babelHelpers: 'bundled'}), 
     nodeResolve(), 
     commonjs()
   ]
@@ -72,6 +75,11 @@ const jsTiny = () =>
     .pipe(size({ showFiles: true }));
 
 const js = gulp.series(jsMax, jsTiny);
+
+const transpile = () => 
+  gulp.src(('./src/*.js'))
+    .pipe(gulpBabel())
+    .pipe(gulp.dest('./lib'));
 
 const html = () => 
   gulp.src('./src/html/*.html')
@@ -122,3 +130,4 @@ exports.default = build;
 exports.dev = dev;
 exports.test = test;
 exports.svg = svg;
+exports.transpile = transpile;
