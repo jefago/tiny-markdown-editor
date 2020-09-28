@@ -6,11 +6,14 @@ const source = require('vinyl-source-stream');
 const buffer = require('vinyl-buffer');
 
 const rollupStream = require('@rollup/stream');
-const { babel } = require('@rollup/plugin-babel');
+const { babel: rollupBabel } = require('@rollup/plugin-babel');
 const commonjs = require('@rollup/plugin-commonjs');
 const { eslint } = require("rollup-plugin-eslint");
 const { nodeResolve } = require('@rollup/plugin-node-resolve');
 const terser = require('gulp-terser');
+
+const gulpBabel = require('gulp-babel');
+ 
 
 const postcss = require('gulp-postcss');
 const autoprefixer = require('autoprefixer');
@@ -39,13 +42,13 @@ const rollupConfig = (inputFile, sourcemaps = false) => { return {
   },
   plugins: [
     eslint({throwOnError: true}), 
-    babel({babelHelpers: 'bundled'}), 
+    rollupBabel({babelHelpers: 'bundled'}), 
     nodeResolve(), 
     commonjs()
   ]
 }};
 
-const clean = () => del(['./dist']);
+const clean = () => del(['./dist', './lib']);
 
 const jest = () => jestCLI.run([]); 
 
@@ -73,6 +76,11 @@ const jsTiny = () =>
 
 const js = gulp.series(jsMax, jsTiny);
 
+const transpile = () => 
+  gulp.src(('./src/**/*.js'))
+    .pipe(gulpBabel())
+    .pipe(gulp.dest('./lib'));
+
 const html = () => 
   gulp.src('./src/html/*.html')
     .pipe(gulp.dest('./dist'));
@@ -87,10 +95,10 @@ const css = () =>
     .pipe(gulp.dest('./dist'));
 
 const watch = () => {
-  gulp.watch('./src/svg/*.svg', svg);
+  gulp.watch('./src/**/*.svg', svg);
   gulp.watch('./src/**/*.js', jsMax);
-  gulp.watch('./src/css/*.css', css);
-  gulp.watch('./src/*.html', html);
+  gulp.watch('./src/**/*.css', css);
+  gulp.watch('./src/**/*.html', html);
 }
 
 const svg = () => {
@@ -118,7 +126,10 @@ const dev = gulp.series(clean, svg, jsMax, css, html, watch);
 
 const test = gulp.series(build, jest);
 
+const prepublish = gulp.series(build, jest, transpile);
+
 exports.default = build;
 exports.dev = dev;
 exports.test = test;
 exports.svg = svg;
+exports.prepublish = prepublish;

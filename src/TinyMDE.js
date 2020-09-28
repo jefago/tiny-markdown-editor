@@ -24,6 +24,7 @@ class Editor {
 
     if (this.textarea && !this.textarea.tagName) {
       this.textarea = document.getElementById(this.textarea);
+      if (!element) element = this.textarea;
     }
 
     if (element && !element.tagName) {

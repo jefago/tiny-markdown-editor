@@ -8,7 +8,10 @@
   </head>
   <body>
     <h1>TinyMDE demo</h1>
-        <textarea id="txt"># Hello TinyMDE
+        
+    <div id="tinymde_commandbar"></div>
+    <div id="tinymde" style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0">
+      <textarea id="txt"># Hello TinyMDE
 [ref]: https://www.jefago.com
 [ref link]: </this has spaces> "and a title"
 
@@ -97,12 +100,11 @@ block
 
 1) OL
 2) OL</textarea>
-    <div id="tinymde_commandbar"></div>
-    <div id="tinymde" style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0"></div>
+    </div>
     <div id="status" style="text-align:right">- : -</div>
     <script>
       // Create editor element, initialized to a textarea
-      tinyMDE = new TinyMDE.Editor({element: 'tinymde', textarea: 'txt'});
+      tinyMDE = new TinyMDE.Editor({textarea: 'txt'});
 
       // Create a command bar for that editor
       cmdBar = new TinyMDE.CommandBar({

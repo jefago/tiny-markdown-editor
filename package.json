@@ -1,24 +1,37 @@
 {
   "name": "tiny-markdown-editor",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "TinyMDE: A tiny, dependency-free embeddable HTML/JavaScript Markdown editor.",
-  "main": "src/tiny-mde.js",
+  "main": "lib/index.js",
+  "files": [
+    "dist/*",
+    "lib/*"
+  ],
+  "keywords": [
+    "embeddable",
+    "markdown",
+    "editor"
+  ],
   "scripts": {
     "test": "npx gulp test",
     "build": "npx gulp",
-    "dev": "npx gulp dev"
+    "dev": "npx gulp dev",
+    "prepublishOnly": "npx gulp prepublish"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jefago/tiny-markdown-editor.git"
   },
-  "author": "Jens-Fabian Goetzmann",
+  "author": "Jens-Fabian Goetzmann <mail@jefago.com>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/jefago/tiny-markdown-editor/issues"
   },
   "homepage": "https://github.com/jefago/tiny-markdown-editor#readme",
   "browserslist": "> 0.25%, not dead",
+  "dependencies": {
+    "core-js": "^3.6.5"
+  },
   "devDependencies": {
     "@babel/core": "^7.11.6",
     "@babel/preset-env": "^7.11.5",
@@ -27,12 +40,12 @@
     "@rollup/plugin-node-resolve": "^9.0.0",
     "@rollup/stream": "^1.0.0",
     "autoprefixer": "^9.8.6",
-    "core-js": "^3.6.5",
     "cssnano": "^4.1.10",
     "del": "^5.1.0",
     "eslint": "^7.9.0",
     "express": "^4.17.1",
     "gulp": "^4.0.2",
+    "gulp-babel": "^8.0.0",
     "gulp-postcss": "^8.0.0",
     "gulp-rename": "^2.0.0",
     "gulp-size": "^3.0.0",

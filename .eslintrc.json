@@ -8,7 +8,7 @@
         "ecmaVersion": 2019,
         "sourceType": "module"
     },
-    "ignorePatterns": ["gulpfile.js", "src/jest/*.js", "**/*.test.js"],
+    "ignorePatterns": ["gulpfile.js", "jest/**/*.js"],
     "rules": {
         "no-fallthrough": "off"
     }

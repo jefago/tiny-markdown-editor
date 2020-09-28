@@ -1,8 +1,8 @@
-const { PORT } = require('./src/jest/config');
+const { PORT } = require('./jest/util/config');
 
 module.exports = {
   server: {
-    command: 'node src/jest/server.js',
+    command: 'node jest/util/server.js',
     port: PORT
   }
 }
