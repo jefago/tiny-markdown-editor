@@ -19,11 +19,22 @@ You can install TinyMDE from NPM (e.g., if you want to use it in a bundled JS ap
 
 ### Install TinyMDE from NPM
 
-TODO
+Install the `tiny-markdown-editor` package from NPM:
 
-### Hosted version
+```bash
+npm install --save tiny-markdown-editor
+```
 
-TODO
+Then, in your JavaScript file, simply import the package like this:
+
+```JavaScript
+const TinyMDE = require('tiny-markdown-editor');
+var tinyMDE = new TinyMDE.Editor({element: 'editor'});
+```
+
+Bundle the JavaScript with your favorite bundler like Webpack or Rollup to ensure the TinyMDE code gets included in the shipped JavaScript file.
+
+**Please note:** If you go down the NPM package route, you will also need to make sure to [style the components](#styling-tinymde). After installing TinyMDE from NPM, you will find a CSS file `tiny-mde.css` you can use as a base in the directory `node_modules/tiny-markdown-editor/dist`.
 
 ### Self-host
 To self-host TinyMDE, follow these steps:
