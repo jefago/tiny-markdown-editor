@@ -73,8 +73,7 @@ var commandBar4 = new TinyMDE.CommandBar({
     {
       name: 'insertLink', 
       action: editor => {
-        let dest = window.prompt('Link destination'); 
-        if (dest) editor.wrapSelection('[', `](<${dest}>)`);
+        editor.wrapSelection('[', `]('https://www.github.com/jefago/tiny-markdown-editor')`);
       }
     },
     {
@@ -102,8 +101,7 @@ var commandBar4 = new TinyMDE.CommandBar({
     {
       name: 'insertLink', 
       action: editor => {
-        let dest = window.prompt('Link destination'); 
-        if (dest) editor.wrapSelection('[', `](<${dest}>)`);
+        editor.wrapSelection('[', `]('https://www.github.com/jefago/tiny-markdown-editor')`);
       }
     },
     {
