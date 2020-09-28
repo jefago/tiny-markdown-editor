@@ -5,7 +5,7 @@ This is a demo page for [TinyMDE](https://github.com/jefago/tiny-markdown-editor
 
 ```html
 <div id="tinymde_commandbar1"></div>
-<div id="tinymde1" style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0">
+<div id="tinymde1" style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0"></div>
 <script>
 var tinyMDE1 = new TinyMDE.Editor({element: 'tinymde1'});
 var commandBar1 = new TinyMDE.CommandBar({element: 'tinymde_commandbar1', editor: tinyMDE});
@@ -13,7 +13,7 @@ var commandBar1 = new TinyMDE.CommandBar({element: 'tinymde_commandbar1', editor
 ```
 
 <div id="tinymde_commandbar1"></div>
-<div id="tinymde1" style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0">
+<div id="tinymde1" style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0"></div>
 <script>
 var tinyMDE1 = new TinyMDE.Editor({element: 'tinymde1'});
 var commandBar1 = new TinyMDE.CommandBar({element: 'tinymde_commandbar1', editor: tinyMDE1});
@@ -22,7 +22,7 @@ var commandBar1 = new TinyMDE.CommandBar({element: 'tinymde_commandbar1', editor
 ### Editor without command bar
 
 ```html
-<div id="tinymde2" style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0">
+<div id="tinymde2" style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0"></div>
 <script>
 var tinyMDE2 = new TinyMDE.Editor({element: 'tinymde2'});
 </script>
@@ -59,7 +59,7 @@ var tinyMDE3 = new TinyMDE.Editor({textarea: 'txt3'});
 
 ```html
 <div id="tinymde_commandbar4"></div>
-<div id="tinymde4" style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0">
+<div id="tinymde4" style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0"></div>
 <script>
 var tinyMDE4 = new TinyMDE.Editor({element: 'tinymde4'});
 var commandBar4 = new TinyMDE.CommandBar({
@@ -87,7 +87,7 @@ var commandBar4 = new TinyMDE.CommandBar({
 ```
 
 <div id="tinymde_commandbar4"></div>
-<div id="tinymde4" style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0">
+<div id="tinymde4" style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0"></div>
 <script>
 var tinyMDE4 = new TinyMDE.Editor({element: 'tinymde4'});
 var commandBar4 = new TinyMDE.CommandBar({
