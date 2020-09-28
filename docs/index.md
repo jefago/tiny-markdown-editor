@@ -78,7 +78,8 @@ var commandBar4 = new TinyMDE.CommandBar({
       }
     },
     {
-      name: 'More information about TinyMDE',
+      name: 'moreInfo',
+      title: 'More information about TinyMDE',
       innerHTML: '<b>?</b>',
       action: editor => window.open('https://github.com/jefago/tiny-markdown-editor', '_blank')
     }
@@ -106,7 +107,8 @@ var commandBar4 = new TinyMDE.CommandBar({
       }
     },
     {
-      name: 'More information about TinyMDE',
+      name: 'moreInfo',
+      title: 'More information about TinyMDE',
       innerHTML: '<b>?</b>',
       action: editor => window.open('https://github.com/jefago/tiny-markdown-editor', '_blank')
     }
