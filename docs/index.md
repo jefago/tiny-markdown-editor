@@ -37,8 +37,8 @@ var tinyMDE2 = new TinyMDE.Editor({element: 'tinymde2'});
 ### Editor from text field
 
 ```html
-<div>
-<textarea id="txt3"># Textarea
+<div style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0">
+<textarea id="txt3" style="height:100%"># Textarea
 This is a <textarea> formatted in **Markdown**.</textarea>
 </div>
 <script>
