@@ -36,7 +36,7 @@ Bundle the JavaScript with your favorite bundler like Webpack or Rollup to ensur
 
 **Please note:** If you go down the NPM package route, you will also need to make sure to [style the components](#styling-tinymde). After installing TinyMDE from NPM, you will find a CSS file `tiny-mde.css` you can use as a base in the directory `node_modules/tiny-markdown-editor/dist`.
 
-## Hosted version
+### Hosted version
 
 You can simply include the JavaScript and CSS files from Unpkg on your website, using the following code:
 
