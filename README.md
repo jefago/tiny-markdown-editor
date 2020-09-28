@@ -3,6 +3,8 @@ TinyMDE: A tiny, low-dependency<sup>(1)</sup> embeddable HTML/JavaScript Markdow
 
 <sup>(1)</sup>: TinyMDE's runtime only depends on `core-js` for polyfills to support older browsers. 
 
+Visit the [demo page](https://jefago.github.io/tiny-markdown-editor/) to see TinyMDE in action.
+
 ## Overview
 TinyMDE is an in-browser markdown editor that allows editing Markdown files with in-line formatting previews (bold, italic, headings, code etc.) as well as a toolbar with familiar point-and-click or keyboard shortcut interaction. 
 
