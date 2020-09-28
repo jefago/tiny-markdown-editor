@@ -2,6 +2,7 @@
   background-color:#f8f8f8;
   height:24px;
   border:4px solid #f8f8f8;
+  box-sizing: content-box;
   display:flex;
   user-select: none;
   overflow-x: scroll;
@@ -32,6 +33,7 @@
 }
 
 .TMCommandDivider {
+  box-sizing: content-box;
   height:24px;
   margin-left:4px;
   margin-right:8px;
