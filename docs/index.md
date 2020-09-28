@@ -8,7 +8,7 @@ This is a demo page for [TinyMDE](https://github.com/jefago/tiny-markdown-editor
 <div id="tinymde1" style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0"></div>
 <script>
 var tinyMDE1 = new TinyMDE.Editor({element: 'tinymde1'});
-var commandBar1 = new TinyMDE.CommandBar({element: 'tinymde_commandbar1', editor: tinyMDE});
+var commandBar1 = new TinyMDE.CommandBar({element: 'tinymde_commandbar1', editor: tinyMDE1});
 </script>
 ```
 
@@ -64,7 +64,7 @@ var tinyMDE3 = new TinyMDE.Editor({textarea: 'txt3'});
 var tinyMDE4 = new TinyMDE.Editor({element: 'tinymde4'});
 var commandBar4 = new TinyMDE.CommandBar({
   element: 'tinymde_commandbar4', 
-  editor: tinyMDE1,
+  editor: tinyMDE4,
   commands: [
     'bold',
     'italic',
@@ -73,7 +73,8 @@ var commandBar4 = new TinyMDE.CommandBar({
     {
       name: 'insertLink', 
       action: editor => {
-        editor.wrapSelection('[', `]('https://www.github.com/jefago/tiny-markdown-editor')`);
+        let dest = window.prompt('Link destination'); 
+        if (dest) editor.wrapSelection('[', `](<${dest}>)`);
       }
     },
     {
@@ -92,7 +93,7 @@ var commandBar4 = new TinyMDE.CommandBar({
 var tinyMDE4 = new TinyMDE.Editor({element: 'tinymde4'});
 var commandBar4 = new TinyMDE.CommandBar({
   element: 'tinymde_commandbar4', 
-  editor: tinyMDE1,
+  editor: tinyMDE4,
   commands: [
     'bold',
     'italic',
@@ -101,7 +102,8 @@ var commandBar4 = new TinyMDE.CommandBar({
     {
       name: 'insertLink', 
       action: editor => {
-        editor.wrapSelection('[', `]('https://www.github.com/jefago/tiny-markdown-editor')`);
+        let dest = window.prompt('Link destination'); 
+        if (dest) editor.wrapSelection('[', `](<${dest}>)`);
       }
     },
     {
