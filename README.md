@@ -50,7 +50,7 @@ You can simply include the JavaScript and CSS files from Unpkg on your website, 
 ### Self-host
 To self-host TinyMDE, follow these steps:
 
-- [Download and build TinyMDE](#build-tinymde)
+- [Download and build TinyMDE](#build-tinymde). Alternatively, download the newest [release](https://github.com/jefago/tiny-markdown-editor/releases) and unpack the archive.
 - Copy the output JS and CSS files `tiny-mde.min.js` and `tiny-mde.min.css` from the `dist` directory to your website's directory.
 - Include these files on your website:
     ```html
