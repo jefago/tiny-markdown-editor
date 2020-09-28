@@ -7,5 +7,8 @@ module.exports = {
   },
   setupFiles: [
     "./src/jest/test-helpers.js"
+  ],
+  setupFilesAfterEnv: [
+    "./src/jest/setup.js"
   ]
 }

@@ -126,8 +126,10 @@ const dev = gulp.series(clean, svg, jsMax, css, html, watch);
 
 const test = gulp.series(build, jest);
 
+const prepublish = gulp.series(build, jest, transpile);
+
 exports.default = build;
 exports.dev = dev;
 exports.test = test;
 exports.svg = svg;
-exports.transpile = transpile;
+exports.prepublish = prepublish;
