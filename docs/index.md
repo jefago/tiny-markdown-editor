@@ -2,6 +2,7 @@
 This is a demo page for [TinyMDE](https://github.com/jefago/tiny-markdown-editor/).
 
 ### Simple setup
+This is a very basic setup with two containers for command bar and editor. 
 
 ```html
 <div id="tinymde_commandbar1"></div>
@@ -20,6 +21,7 @@ var commandBar1 = new TinyMDE.CommandBar({element: 'tinymde_commandbar1', editor
 </script>
 
 ### Editor without command bar
+An even simpler setup can be achieved if you don't need a command bar.
 
 ```html
 <div id="tinymde2" style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0"></div>
@@ -35,6 +37,7 @@ var tinyMDE2 = new TinyMDE.Editor({element: 'tinymde2'});
 
 
 ### Editor from text field
+This example shows how you can use TinyMDE as a drop-in textarea replacement. The editor content is synced to the textarea.
 
 ```html
 <div style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0">
@@ -56,6 +59,7 @@ var tinyMDE3 = new TinyMDE.Editor({textarea: 'txt3'});
 
 
 ### Custom command bar
+This example shows how the command bar can be customized—showing only a subset of commands, customizing existing commands, and even adding completely new commands. 
 
 ```html
 <div id="tinymde_commandbar4"></div>
@@ -114,4 +118,57 @@ var commandBar4 = new TinyMDE.CommandBar({
     }
   ]
 });
+</script>
+
+### Using event listeners
+This demo uses event listeners to display a status bar.
+
+```html
+<div id="tinymde_commandbar5"></div>
+<div id="tinymde5" style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0"></div>
+<div id="tinymde_status5" style="display:flex">
+  <div id="wc" style="box-sizing:border-box; width:50%; padding:4px 0px; text-align:left"></div>
+  <div id="pos" style="box-sizing:border-box; width:50%; padding:4px 0px; text-align:right">– : –</div>
+</div>
+<script>
+  var tinyMDE5 = new TinyMDE.Editor({element: 'tinymde5', content: '# Event listener demo\nThis is a demo for TinyMDE event listeners'});
+  var commandBar5 = new TinyMDE.CommandBar({
+    element: 'tinymde_commandbar5', 
+    editor: tinyMDE5,
+  });
+  tinyMDE5.addEventListener('selection', e => { 
+    let st = `${e.focus ? e.focus.row : '–'} : ${e.focus ? e.focus.col : '–'}`;
+    for (let command in e.commandState) {
+      if (e.commandState[command]) st = command.concat(' ', st);
+    }
+    document.getElementById('pos').innerHTML = st; 
+  });
+  tinyMDE5.addEventListener('change', e => { 
+    document.getElementById('wc').innerHTML = `${e.content.length} characters, ${e.content.split(/\s+/).length} words`; 
+  });
+</script>
+```
+
+<div id="tinymde_commandbar5"></div>
+<div id="tinymde5" style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0"></div>
+<div id="tinymde_status5" style="display:flex">
+  <div id="wc" style="box-sizing:border-box; width:50%; padding:4px 0px; text-align:left"></div>
+  <div id="pos" style="box-sizing:border-box; width:50%; padding:4px 0px; text-align:right">– : –</div>
+</div>
+<script>
+  var tinyMDE5 = new TinyMDE.Editor({element: 'tinymde5', content: '# Event listener demo\nThis is a demo for TinyMDE event listeners'});
+  var commandBar5 = new TinyMDE.CommandBar({
+    element: 'tinymde_commandbar5', 
+    editor: tinyMDE5,
+  });
+  tinyMDE5.addEventListener('selection', e => { 
+    let st = `${e.focus ? e.focus.row : '–'} : ${e.focus ? e.focus.col : '–'}`;
+    for (let command in e.commandState) {
+      if (e.commandState[command]) st = command.concat(' ', st);
+    }
+    document.getElementById('pos').innerHTML = st; 
+  });
+  tinyMDE5.addEventListener('change', e => { 
+    document.getElementById('wc').innerHTML = `${e.content.length} characters, ${e.content.split(/\s+/).length} words`; 
+  });
 </script>
