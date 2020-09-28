@@ -28,7 +28,7 @@ var tinyMDE2 = new TinyMDE.Editor({element: 'tinymde2'});
 </script>
 ```
 
-<div id="tinymde2" style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0">
+<div id="tinymde2" style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0"></div>
 <script>
 var tinyMDE2 = new TinyMDE.Editor({element: 'tinymde2'});
 </script>
