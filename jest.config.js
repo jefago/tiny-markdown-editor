@@ -1,4 +1,4 @@
-const { PORT } = require('./src/jest/config');
+const { PORT } = require('./jest/util/config');
 
 module.exports = {
   preset: "jest-puppeteer",
@@ -6,9 +6,9 @@ module.exports = {
     PATH: `http://localhost:${PORT}/blank.html`
   },
   setupFiles: [
-    "./src/jest/test-helpers.js"
+    "./jest/util/test-helpers.js"
   ],
   setupFilesAfterEnv: [
-    "./src/jest/setup.js"
+    "./jest/util//setup.js"
   ]
 }

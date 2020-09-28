@@ -48,7 +48,7 @@ const rollupConfig = (inputFile, sourcemaps = false) => { return {
   ]
 }};
 
-const clean = () => del(['./dist']);
+const clean = () => del(['./dist', './lib']);
 
 const jest = () => jestCLI.run([]); 
 
@@ -77,7 +77,7 @@ const jsTiny = () =>
 const js = gulp.series(jsMax, jsTiny);
 
 const transpile = () => 
-  gulp.src(('./src/*.js'))
+  gulp.src(('./src/**/*.js'))
     .pipe(gulpBabel())
     .pipe(gulp.dest('./lib'));
 
