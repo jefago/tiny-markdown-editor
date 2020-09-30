@@ -49,7 +49,7 @@ var tinyMDE3 = new TinyMDE.Editor({textarea: 'txt3'});
 </script>
 ```
 
-<div>
+<div style="height:300px; overflow-y:scroll; border:1px solid #c0c0c0">
 <textarea id="txt3"># Textarea
 This is a &lt;textarea&gt; formatted in **Markdown**.</textarea>
 </div>
