@@ -1235,7 +1235,7 @@ class Editor {
     if (!focus) focus = this.getSelection(false);
     let beginning, end;
     if (!focus) {
-      focus = { row: this.lines.length, col: this.lines[this.lines.length - 1].length }; // Insert at end
+      focus = { row: this.lines.length - 1, col: this.lines[this.lines.length - 1].length }; // Insert at end
     }
     if (!anchor) {
       anchor = focus;
