@@ -1,32 +1,32 @@
-const gulp = require('gulp');
+import gulp from "gulp";
 
-const size = require('gulp-size');
-const rename = require('gulp-rename');
-const source = require('vinyl-source-stream');
-const buffer = require('vinyl-buffer');
+import size from "gulp-size";
+import rename from "gulp-rename";
+import source from "vinyl-source-stream";
+import buffer from "vinyl-buffer";
 
-const rollupStream = require('@rollup/stream');
-const { babel: rollupBabel } = require('@rollup/plugin-babel');
-const commonjs = require('@rollup/plugin-commonjs');
-const { eslint } = require("rollup-plugin-eslint");
-const { nodeResolve } = require('@rollup/plugin-node-resolve');
-const terser = require('gulp-terser');
+import rollupStream from "@rollup/stream";
+import { babel as rollupBabel } from "@rollup/plugin-babel";
+import commonjs from "@rollup/plugin-commonjs";
+import { eslint } from "rollup-plugin-eslint";
+import { nodeResolve } from "@rollup/plugin-node-resolve";
+import terser from "gulp-terser";
 
-const gulpBabel = require('gulp-babel');
+import gulpBabel from "gulp-babel";
  
 
-const postcss = require('gulp-postcss');
-const autoprefixer = require('autoprefixer');
-const postcss_import = require('postcss-import');
-const cssnano = require('cssnano');
+import postcss from "gulp-postcss";
+import autoprefixer from "autoprefixer";
+import postcss_import from "postcss-import";
+import cssnano from "cssnano";
 
-const jestCLI = require('jest-cli');
+import jestCLI from "jest-cli";
 
-const del = require('del');
-const fs = require('fs');
-const path = require('path');
+import {deleteAsync as del} from "del";
+import fs from "fs";
+import path from "path";
 
-const util = require('util');
+import util from "util";
 
 const readfile = util.promisify(fs.readFile);
 const writefile = util.promisify(fs.writeFile);
@@ -104,7 +104,7 @@ const watch = () => {
 const svg = () => {
   const dirEntries = fs.readdirSync(path.join('.', 'src', 'svg'), {withFileTypes: true});
   let promises = [];
-  for (entry of dirEntries) {
+  for (let entry of dirEntries) {
     if (entry.isFile() && entry.name.match(/\.svg$/i)) {
       let fn = entry.name;
       promises.push(
@@ -128,8 +128,16 @@ const test = gulp.series(build, jest);
 
 const prepublish = gulp.series(build, jest, transpile);
 
-exports.default = build;
-exports.dev = dev;
-exports.test = test;
-exports.svg = svg;
-exports.prepublish = prepublish;
+export {
+  dev,
+  test,
+  svg,
+  prepublish,
+}
+
+export default build;
+// exports.default = build;
+// exports.dev = dev;
+// exports.test = test;
+// exports.svg = svg;
+// exports.prepublish = prepublish;
