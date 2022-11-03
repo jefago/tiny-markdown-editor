@@ -253,6 +253,30 @@ const commands = {
     set: {pattern: /^( {0,3}(?:(?:#+|[0-9]{1,9}[).]|[>\-*+])\s+)?)(.*)$/, replacement: '## $2'}, 
     unset: {pattern: /^( {0,3}##\s+)(.*?)((?:\s+#+\s*)?)$/, replacement: '$2'}
   },
+  h3: {
+    type: 'line', 
+    className: 'TMH3', 
+    set: {pattern: /^( {0,3}(?:(?:#+|[0-9]{1,9}[).]|[>\-*+])\s+)?)(.*)$/, replacement: '### $2'}, 
+    unset: {pattern: /^( {0,3}###\s+)(.*?)((?:\s+#+\s*)?)$/, replacement: '$2'}
+  },
+  h4: {
+    type: 'line', 
+    className: 'TMH4', 
+    set: {pattern: /^( {0,3}(?:(?:#+|[0-9]{1,9}[).]|[>\-*+])\s+)?)(.*)$/, replacement: '#### $2'}, 
+    unset: {pattern: /^( {0,3}####\s+)(.*?)((?:\s+#+\s*)?)$/, replacement: '$2'}
+  },
+  h5: {
+    type: 'line', 
+    className: 'TMH5', 
+    set: {pattern: /^( {0,3}(?:(?:#+|[0-9]{1,9}[).]|[>\-*+])\s+)?)(.*)$/, replacement: '##### $2'}, 
+    unset: {pattern: /^( {0,3}#####\s+)(.*?)((?:\s+#+\s*)?)$/, replacement: '$2'}
+  },
+  h6: {
+    type: 'line', 
+    className: 'TMH6', 
+    set: {pattern: /^( {0,3}(?:(?:#+|[0-9]{1,9}[).]|[>\-*+])\s+)?)(.*)$/, replacement: '###### $2'}, 
+    unset: {pattern: /^( {0,3}######\s+)(.*?)((?:\s+#+\s*)?)$/, replacement: '$2'}
+  },
   ul: {
     type: 'line', 
     className: 'TMUL', 
