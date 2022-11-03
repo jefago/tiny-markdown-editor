@@ -1,8 +1,13 @@
+const { PORT } = require('./config');
+
+
+global.PATH = `http://localhost:${PORT}/blank.html`;
+
 global.initTinyMDE = async (content) => {
 
   // document.body.innerHTML = '<div id="container"></div>';
   const newPage = await browser.newPage();
-  await newPage.goto(PATH, { waitUntil: 'load'});
+  await newPage.goto(global.PATH, { waitUntil: 'load'});
   content = content.replace(/(['"\\])/g, '\\$1').replace(/\n/g, '\\n').replace(/\r/g, '\\r').replace(/\t/g, '\\t');
   await newPage.evaluate(`
     tinyMDE = new TinyMDE.Editor({element: 'tinymde', content: '${content}'});
