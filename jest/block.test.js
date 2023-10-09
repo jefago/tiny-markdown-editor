@@ -686,3 +686,11 @@ test('Blockquote content parsed as markdown: > *em*', async () => {
   editor.destroy();
 });
 
+// Miscellaneous
+
+test("Content with dollar signs is parsed correctly", async() => {
+  const editor = await initTinyMDE('$1');
+  expect(await editor.lineHTML(0)).toMatch(/\$1/);
+  editor.destroy();
+});
+
