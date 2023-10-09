@@ -141,8 +141,10 @@ class Editor {
    */
   replace(replacement, capture) {
     return replacement
-      .replace(/\$\$([0-9])/g, (str, p1) => `<span class="TMInlineFormatted">${this.processInlineStyles(capture[p1])}</span>`) 
-      .replace(/\$([0-9])/g, (str, p1) => htmlescape(capture[p1]));
+      .replace(/(\${1,2})([0-9])/g, (str, p1, p2) => {
+        if (p1 == '$') return htmlescape(capture[p2]);
+        else return `<span class="TMInlineFormatted">${this.processInlineStyles(capture[p2])}</span>`;
+      });
   }
 
   /**

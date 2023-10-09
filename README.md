@@ -43,8 +43,8 @@ Bundle the JavaScript with your favorite bundler like Webpack or Rollup to ensur
 You can simply include the JavaScript and CSS files from Unpkg on your website, using the following code:
 
 ```html
-<script src="https://unpkg.com/tiny-markdown-editor@0.1.5/dist/tiny-mde.min.js"></script>
-<link rel="stylesheet" type="text/css" href="https://unpkg.com/tiny-markdown-editor@0.1.5/dist/tiny-mde.min.css" />
+<script src="https://unpkg.com/tiny-markdown-editor@0.1.6/dist/tiny-mde.min.js"></script>
+<link rel="stylesheet" type="text/css" href="https://unpkg.com/tiny-markdown-editor@0.1.6/dist/tiny-mde.min.css" />
 ```
 
 ### Self-host
