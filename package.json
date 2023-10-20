@@ -17,7 +17,7 @@
     "build": "npx gulp",
     "dev": "npx gulp dev",
     "prepublishOnly": "npx gulp prepublish",
-    "releaseMinor": "npx gulp releaseMinor"
+    "releasePatch": "npx gulp releasePatch"
   },
   "repository": {
     "type": "git",
