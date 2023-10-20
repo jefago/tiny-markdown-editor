@@ -28,10 +28,13 @@ import path from "path";
 
 import util from "util";
 import child_process from "node:child_process";
+import 'dotenv/config';
+import process from "process";
+
+import { Octokit } from "@octokit/rest";
 
 const readfile = util.promisify(fs.readFile);
 const writefile = util.promisify(fs.writeFile);
-const spawn = util.promisify(child_process.spawn);
 
 let cache;
 
@@ -122,59 +125,44 @@ const svg = () => {
     .then((values) => writefile(path.join('.', 'src', 'svg', 'svg.js'), `const svg = {\n  ${values.join(',\n  ')}\n};\n\nexport default svg;`, {encoding: 'utf8'}));
 }
 
-// let _packageFile = null;
-
-// const readPackageFileIfNecessary = () => {
-//   return new Promise((resolve, reject) => {
-//     if (_packageFile) {
-//       resolve(_packageFile);
-//     } else {
-//       readfile('./package.json')
-//       .then((buffer) => {
-//         try {
-//           _packageFile = JSON.parse(buffer.toString());
-//           resolve(_packageFile);
-//         } catch (e) {
-//           reject(e);
-//         }
-//       })
-//       .catch((reason) => reject(reason));
-//     }
-//   });
-// }
-
-// const writePackageFile = (packageFile) => {
-//   return writefile('./package.json', JSON.stringify(packageFile, null, 2));
-// }
-
-const bumpVersion = () => {
-
-  console.log(`Bumping version`);
-  const cp = child_process.exec('npm version patch', {shell: '/bin/zsh'});
+const exec = (command) => {
+  const cp = child_process.exec(command, {shell: '/bin/zsh'});
   cp.stdout.on('data', (data) => {
     console.log(data.toString());
   });
-  
   cp.stderr.on('data', (data) => {
     console.error(data.toString());
   });
-  
   return cp;
-  // return readPackageFileIfNecessary().then((packageFile) => {
-  //   const versionComponents = packageFile.version.split('.');
-  //   versionComponents[versionComponents.length - 1] = parseInt(versionComponents[versionComponents.length - 1]) + 1;
-  //   const newVersion = versionComponents.join('.')
-  //   console.log(`Bumping version from ${packageFile.version} to ${newVersion}`);
-  //   packageFile.version = newVersion;
-  //   return writePackageFile(packageFile);
-  // });
 }
 
-const release = (cb) => {
-
-  console.log(`Releasing`);
-  cb();
+const bumpVersion = () => {
+  return exec('npm version patch');
 }
+
+const npmRelease = () => {
+  return exec('npm publish');
+}
+
+const gitPush = () => {
+  return exec('git push');
+}
+
+const ghRelease = async () => {
+  const { version } = JSON.parse(await readfile('package.json'));
+
+  const octokit = new Octokit({ auth: process.env.GITHUB_ACCESS_TOKEN });
+  return octokit.repos.createRelease({
+    owner: 'jefago',
+    repo: 'tiny-markdown-editor',
+    tag_name: `v${version}`,  // The name of the tag
+    name: `v${version}`,
+    body: '',
+    draft: false,
+    prerelease: false
+  })
+}
+ 
 
 const build = gulp.series(clean, svg, js, css, html);
 
@@ -184,7 +172,7 @@ const test = gulp.series(build, jest);
 
 const prepublish = gulp.series(build, jest, transpile);
 
-const releaseMinor = gulp.series(bumpVersion, prepublish, release);
+const releaseMinor = gulp.series(bumpVersion, prepublish, npmRelease, gitPush, ghRelease);
 
 export {
   dev,
