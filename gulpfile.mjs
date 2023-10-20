@@ -172,7 +172,9 @@ const test = gulp.series(build, jest);
 
 const prepublish = gulp.series(build, jest, transpile);
 
-const releasePatch = gulp.series(bumpVersion, prepublish, npmRelease, gitPush, ghRelease);
+const release = gulp.series(prepublish, npmRelease, gitPush, ghRelease);
+
+const releasePatch = gulp.series(bumpVersion, release);
 
 export {
   dev,
@@ -180,6 +182,7 @@ export {
   svg,
   prepublish,
   releasePatch,
+  release,
 }
 
 export default build;
