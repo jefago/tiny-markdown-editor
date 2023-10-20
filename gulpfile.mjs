@@ -28,6 +28,7 @@ import path from "path";
 
 import util from "util";
 import child_process from "node:child_process";
+import readline  from 'node:readline/promises';
 import 'dotenv/config';
 import process from "process";
 
@@ -140,8 +141,14 @@ const bumpVersion = () => {
   return exec('npm version patch');
 }
 
-const npmRelease = () => {
-  return exec('npm publish');
+const npmRelease = async () => {
+  const otp = await readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  }).question("Please enter a one-time password for NPM");
+  await new Promise((resolve, reject) => { 
+    exec(`npm publish --otp=${otp}`).on('exit', (code) => code ? reject() : resolve());
+  });
 }
 
 const gitPush = () => {
