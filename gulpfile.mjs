@@ -27,9 +27,11 @@ import fs from "fs";
 import path from "path";
 
 import util from "util";
+import child_process from "node:child_process";
 
 const readfile = util.promisify(fs.readFile);
 const writefile = util.promisify(fs.writeFile);
+const spawn = util.promisify(child_process.spawn);
 
 let cache;
 
@@ -111,13 +113,67 @@ const svg = () => {
         readfile(path.join('.', 'src', 'svg', fn), {encoding: 'utf8'})
         .then((buffer) => {
           // console.log(entry.name + ': ' + buffer.toString().replace(/([`\$\\])/g, '\\$1'));
-          return `${fn.replace(/^(.*)\.svg$/i, '$1')}: \`${buffer.toString().replace(/([`\$\\])/g, '\\$1')}\``;
+          return `${fn.replace(/^(.*)\.svg$/i, '$1')}: \`${buffer.toString().replace(/([`$\\])/g, '\\$1')}\``;
         })
       );
     }
   }
   return Promise.all(promises)
-    .then((values) => writefile(path.join('.', 'src', 'svg', 'svg.js'), `const svg = \{\n  ${values.join(',\n  ')}\n\};\n\nexport default svg;`, {encoding: 'utf8'}));
+    .then((values) => writefile(path.join('.', 'src', 'svg', 'svg.js'), `const svg = {\n  ${values.join(',\n  ')}\n};\n\nexport default svg;`, {encoding: 'utf8'}));
+}
+
+// let _packageFile = null;
+
+// const readPackageFileIfNecessary = () => {
+//   return new Promise((resolve, reject) => {
+//     if (_packageFile) {
+//       resolve(_packageFile);
+//     } else {
+//       readfile('./package.json')
+//       .then((buffer) => {
+//         try {
+//           _packageFile = JSON.parse(buffer.toString());
+//           resolve(_packageFile);
+//         } catch (e) {
+//           reject(e);
+//         }
+//       })
+//       .catch((reason) => reject(reason));
+//     }
+//   });
+// }
+
+// const writePackageFile = (packageFile) => {
+//   return writefile('./package.json', JSON.stringify(packageFile, null, 2));
+// }
+
+const bumpVersion = () => {
+
+  console.log(`Bumping version`);
+  const cp = child_process.exec('npm version patch', {shell: '/bin/zsh'});
+  cp.stdout.on('data', (data) => {
+    console.log(data.toString());
+  });
+  
+  cp.stderr.on('data', (data) => {
+    console.error(data.toString());
+  });
+  
+  return cp;
+  // return readPackageFileIfNecessary().then((packageFile) => {
+  //   const versionComponents = packageFile.version.split('.');
+  //   versionComponents[versionComponents.length - 1] = parseInt(versionComponents[versionComponents.length - 1]) + 1;
+  //   const newVersion = versionComponents.join('.')
+  //   console.log(`Bumping version from ${packageFile.version} to ${newVersion}`);
+  //   packageFile.version = newVersion;
+  //   return writePackageFile(packageFile);
+  // });
+}
+
+const release = (cb) => {
+
+  console.log(`Releasing`);
+  cb();
 }
 
 const build = gulp.series(clean, svg, js, css, html);
@@ -128,11 +184,14 @@ const test = gulp.series(build, jest);
 
 const prepublish = gulp.series(build, jest, transpile);
 
+const releaseMinor = gulp.series(bumpVersion, prepublish, release);
+
 export {
   dev,
   test,
   svg,
   prepublish,
+  releaseMinor,
 }
 
 export default build;
