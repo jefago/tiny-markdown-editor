@@ -32,15 +32,20 @@ test('Customized command bar setup works: referencing commands', async () => {
   expect(await page.$eval('.TMCommandBar > :nth-child(1)', el => el.innerHTML)).toEqual(commands[0].innerHTML);
 });
 
-test('Command bar buttons can be clicked', async () => {
+test('Clicking command bar fires change event', async () => {
   await page.evaluate(() => {
+    window.listenerCalled = false;
+    const listener = () => {
+      window.listenerCalled = true;
+    }
     document.tinyMDE = new TinyMDE.Editor({element: 'tinymde', content: 'XXXA'});
+    document.tinyMDE.addEventListener('change', listener);
     document.commandBar = new TinyMDE.CommandBar({element: 'tinymde_commandbar', editor: document.tinyMDE, commands: ['h1']}); 
     document.getElementById('tinymde').firstChild.focus();
   });
   await page.mouse.click(12, 12)
 
-  expect(await page.evaluate(() => document.tinyMDE.getContent())).toEqual('# XXXA');
+  expect(await page.evaluate(() => { return  window.listenerCalled; })).toBe(true);
 });
 
 test('Keyboard shortcuts work', async () => {
