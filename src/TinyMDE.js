@@ -1411,6 +1411,7 @@ class Editor {
         focus.col = anchor.col + len;
         this.updateFormatting();
         this.setSelection(focus, anchor);  
+        this.fireChange();
 
       // Second case: Empty selection with surrounding formatting markers, remove those
       } else if (
@@ -1425,6 +1426,7 @@ class Editor {
         focus.col = anchor.col = left.length;
         this.updateFormatting();
         this.setSelection(focus, anchor);
+        this.fireChange();
 
       // Not currently formatted, insert formatting markers
       } else {
@@ -1443,6 +1445,7 @@ class Editor {
 
         // Just insert markup before and after and hope for the best. 
         this.wrapSelection(commands[command].set.pre, commands[command].set.post, focus, anchor);
+        this.fireChange();
         // TODO clean this up so that markup remains properly nested
       }
 
@@ -1470,6 +1473,7 @@ class Editor {
       }
       this.updateFormatting();
       this.setSelection({row: end.row, col: this.lines[end.row].length}, {row: start.row, col: 0});
+      this.fireChange();
     }
   }
 
