@@ -1120,6 +1120,7 @@ class Editor {
   /**
    * Sets the selection based on rows and columns within the editor Markdown content.
    * @param {object} focus Object representing the selection, needs to have properties row and col.
+   * @param anchor Anchor of the selection. If not given, assumes the current anchor.
    */
   setSelection(focus, anchor = null) {
     if (!focus) return;
@@ -1319,6 +1320,7 @@ class Editor {
   /**
    * Returns the state (true / false) of all commands.
    * @param focus Focus of the selection. If not given, assumes the current focus.
+   * @param anchor Anchor of the selection. If not given, assumes the current anchor.
    */
   getCommandState(focus = null, anchor = null) {
     let commandState = {};

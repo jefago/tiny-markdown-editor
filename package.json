@@ -31,6 +31,7 @@
   "bugs": {
     "url": "https://github.com/jefago/tiny-markdown-editor/issues"
   },
+  "type": "commonjs",
   "homepage": "https://github.com/jefago/tiny-markdown-editor#readme",
   "browserslist": "> 0.25%, not dead",
   "dependencies": {
