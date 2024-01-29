@@ -5,8 +5,10 @@
   "main": "lib/index.js",
   "files": [
     "dist/*",
-    "lib/*"
+    "lib/*",
+    "globals.d.ts"
   ],
+  "types": "globals.d.ts",
   "keywords": [
     "embeddable",
     "markdown",
