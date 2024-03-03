@@ -1,4 +1,4 @@
-import { inlineGrammar, lineGrammar, punctuationLeading, punctuationTrailing, htmlescape, htmlBlockGrammar, commands } from "./grammar";
+import { inlineGrammar, lineGrammar, punctuationLeading, punctuationTrailing, htmlescape, htmlBlockGrammar, commands } from "./grammar.mjs";
 
 class Editor {
 

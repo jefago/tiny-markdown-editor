@@ -6,9 +6,10 @@
   "files": [
     "dist/*",
     "lib/*",
-    "globals.d.ts"
+    "src/**/*.mjs",
+    "src/**/*.ts"
   ],
-  "types": "globals.d.ts",
+  "types": "lib/index.d.ts",
   "keywords": [
     "embeddable",
     "markdown",
@@ -37,8 +38,10 @@
   "dependencies": {
     "core-js": "^3.6.5"
   },
+  "exports": "./src/index.mjs",
   "devDependencies": {
     "@babel/core": "^7.11.6",
+    "@babel/plugin-transform-modules-commonjs": "^7.23.3",
     "@babel/preset-env": "^7.22.20",
     "@octokit/rest": "^20.0.2",
     "@rollup/plugin-babel": "^6.0.2",
