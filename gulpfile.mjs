@@ -84,7 +84,7 @@ const js = gulp.series(jsMax, jsTiny);
 
 const transpile = () => 
   gulp.src(('./src/**/*.js'))
-    .pipe(gulpBabel())
+    .pipe(gulpBabel({ plugins: ["@babel/plugin-transform-modules-commonjs"] }))
     .pipe(gulp.dest('./lib'));
 
 const html = () => 

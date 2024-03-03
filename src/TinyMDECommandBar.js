@@ -1,6 +1,6 @@
 import svg from './svg/svg';
 
-const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);
+const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(typeof navigator !== "undefined" ? navigator.platform : "");
 
 const DefaultCommands = {
   'bold': {
