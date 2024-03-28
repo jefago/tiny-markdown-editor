@@ -1486,7 +1486,7 @@ class Editor {
   isInlineFormattingAllowed() {
     // TODO Remove parameters from all calls
     const sel = window.getSelection();
-    if (!sel) return false;
+    if (!sel || !sel.focusNode || !sel.anchorNode) return false;
 
     // Check if we can find a common ancestor with the class `TMInlineFormatted` 
 
