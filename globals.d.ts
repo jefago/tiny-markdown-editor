@@ -157,7 +157,7 @@ declare module "tiny-markdown-editor" {
         name: CommandBarCommandName | string;
         title?: string | undefined;
         innerHTML?: string;
-        action?: (editor: Editor) => void;
+        action?: EditorCommandName |  ((editor: Editor) => void);
         hotkey?: HotKey;
       };
 
