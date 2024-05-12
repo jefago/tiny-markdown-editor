@@ -68,7 +68,7 @@ class Editor {
     this.e.className = "TinyMDE";
     this.e.contentEditable = true;
     // The following is important for formatting purposes, but also since otherwise the browser replaces subsequent spaces with  &nbsp; &nbsp;
-    // That breaks a lot of stuff, so we do this here and not in CSS—therefore, you don't have to remember to but this in the CSS file
+    // That breaks a lot of stuff, so we do this here and not in CSS—therefore, you don't have to remember to put this in the CSS file
     this.e.style.whiteSpace = "pre-wrap";
     // Avoid formatting (B / I / U) popping up on iOS
     this.e.style.webkitUserModify = "read-write-plaintext-only";
@@ -83,12 +83,10 @@ class Editor {
     }
 
     this.e.addEventListener("input", (e) => this.handleInputEvent(e));
-    // this.e.addEventListener("keydown", (e) => this.handleKeydownEvent(e));
     document.addEventListener("selectionchange", (e) =>
       this.handleSelectionChangeEvent(e)
     );
     this.e.addEventListener("paste", (e) => this.handlePaste(e));
-    // this.e.addEventListener('keydown', (e) => this.handleKeyDown(e));
     this.lineElements = this.e.childNodes; // this will automatically update
   }
 
@@ -1165,13 +1163,7 @@ class Editor {
     const selection = window.getSelection();
     let startNode = getAnchor ? selection.anchorNode : selection.focusNode;
     if (!startNode) return null;
-    let offset =
-      startNode.nodeType === Node.TEXT_NODE
-        ? getAnchor
-          ? selection.anchorOffset
-          : selection.focusOffset
-        : 0;
-
+    let offset = getAnchor ? selection.anchorOffset : selection.focusOffset;
     if (startNode == this.e) {
       return { row: 0, col: offset };
     }
@@ -1212,14 +1204,28 @@ class Editor {
    */
   computeColumn(startNode, offset) {
     let node = startNode;
-    let col = offset;
+    let col;
     // First, make sure we're actually in the editor.
     while (node && node.parentNode != this.e) {
       node = node.parentNode;
     }
     if (node == null) return null;
 
-    node = startNode;
+    // There are two ways that offset can be defined:
+    // - Either, the node is a text node, in which case it is the offset within the text
+    // - Or, the node is an element with child notes, in which case the offset refers to the
+    //   child node after which the selection is located
+    if (startNode.nodeType === Node.TEXT_NODE || offset === 0) {
+      // In the case that the node is non-text node but the offset is 0,
+      // The selection is at the beginning of that element so we
+      // can simply use the same approach as if it were at the beginning
+      // of a text node.
+      col = offset;
+      node = startNode;
+    } else if (offset > 0) {
+      node = startNode.childNodes[offset - 1];
+      col = node.textContent.length;
+    }
     while (node.parentNode != this.e) {
       if (node.previousSibling) {
         node = node.previousSibling;
