@@ -1334,7 +1334,6 @@ class Editor {
    */
   handleInputEvent(event) {
     let focus = this.getSelection();
-    console.log(focus);
 
     if (
       (event.inputType == "insertParagraph" ||
@@ -1347,24 +1346,46 @@ class Editor {
       if (!this.e.firstChild) {
         this.e.innerHTML = '<div class="TMBlankLine"><br></div>';
       } else {
-        for (
-          let childNode = this.e.firstChild;
-          childNode;
-          childNode = childNode.nextSibling
-        ) {
-          if (childNode.nodeType != 3 || childNode.tagName != "DIV") {
-            // Found a child node that's either not an element or not a div. Wrap it in a div.
-            let divWrapper = document.createElement("div");
-            this.e.insertBefore(divWrapper, childNode);
-            this.e.removeChild(childNode);
-            divWrapper.appendChild(childNode);
-          }
-        }
+        this.fixNodeHierarchy();
       }
       this.updateLineContentsAndFormatting();
     }
     if (focus) this.setSelection(focus);
     this.fireChange();
+  }
+
+  /**
+   * Fixes the node hierarchy – makes sure that each line is in a div, and there are no nested divs
+   */
+  fixNodeHierarchy() {
+    const originalChildren = Array.from(this.e.childNodes);
+
+    originalChildren
+      .flatMap((child) => {
+        child.parentElement.removeChild(child);
+        if (child.nodeType !== Node.ELEMENT_NODE || child.tagName !== "DIV") {
+          // Found a child node that's either not an element or not a div. Wrap it in a div.
+          const divWrapper = document.createElement("div");
+          divWrapper.appendChild(child);
+          return divWrapper;
+        } else {
+          const grandChildren = Array.from(child.childNodes);
+          if (
+            grandChildren.some(
+              (grandChild) =>
+                grandChild.nodeType === Node.ELEMENT_NODE &&
+                grandChild.tagName === "DIV"
+            )
+          ) {
+            return grandChildren;
+          } else {
+            return child;
+          }
+        }
+      })
+      .forEach((child) => {
+        this.e.appendChild(child);
+      });
   }
 
   /**
