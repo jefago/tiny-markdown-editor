@@ -83,6 +83,7 @@ class Editor {
     }
 
     this.e.addEventListener("input", (e) => this.handleInputEvent(e));
+    this.e.addEventListener("compositionend", (e) => this.handleInputEvent(e));
     document.addEventListener("selectionchange", (e) =>
       this.handleSelectionChangeEvent(e)
     );
@@ -1333,6 +1334,11 @@ class Editor {
    * Event handler for input events
    */
   handleInputEvent(event) {
+    // For composition input, we are only updating the text after we have received
+    // a compositionend event, so we return upon insertCompositionText.
+    // Otherwise, the DOM changes break the text input.
+    if (event.inputType == "insertCompositionText") return;
+
     let focus = this.getSelection();
 
     if (
@@ -1350,7 +1356,10 @@ class Editor {
       }
       this.updateLineContentsAndFormatting();
     }
-    if (focus) this.setSelection(focus);
+    if (focus) {
+      this.setSelection(focus);
+    }
+
     this.fireChange();
   }
 
@@ -1360,32 +1369,37 @@ class Editor {
   fixNodeHierarchy() {
     const originalChildren = Array.from(this.e.childNodes);
 
-    originalChildren
-      .flatMap((child) => {
-        child.parentElement.removeChild(child);
-        if (child.nodeType !== Node.ELEMENT_NODE || child.tagName !== "DIV") {
-          // Found a child node that's either not an element or not a div. Wrap it in a div.
-          const divWrapper = document.createElement("div");
-          divWrapper.appendChild(child);
-          return divWrapper;
-        } else {
-          const grandChildren = Array.from(child.childNodes);
-          if (
-            grandChildren.some(
-              (grandChild) =>
-                grandChild.nodeType === Node.ELEMENT_NODE &&
-                grandChild.tagName === "DIV"
-            )
-          ) {
-            return grandChildren;
-          } else {
-            return child;
-          }
+    const replaceChild = (child, ...newChildren) => {
+      const parent = child.parentElement;
+      const nextSibling = child.nextSibling;
+      parent.removeChild(child);
+      newChildren.forEach((newChild) =>
+        nextSibling
+          ? parent.insertBefore(nextSibling, newChild)
+          : parent.appendChild(newChild)
+      );
+    };
+
+    originalChildren.forEach((child) => {
+      // child.parentElement.removeChild(child);
+      if (child.nodeType !== Node.ELEMENT_NODE || child.tagName !== "DIV") {
+        // Found a child node that's either not an element or not a div. Wrap it in a div.
+        const divWrapper = document.createElement("div");
+        replaceChild(child, divWrapper);
+        divWrapper.appendChild(child);
+      } else {
+        const grandChildren = Array.from(child.childNodes);
+        if (
+          grandChildren.some(
+            (grandChild) =>
+              grandChild.nodeType === Node.ELEMENT_NODE &&
+              grandChild.tagName === "DIV"
+          )
+        ) {
+          return replaceChild(child, grandChildren);
         }
-      })
-      .forEach((child) => {
-        this.e.appendChild(child);
-      });
+      }
+    });
   }
 
   /**
