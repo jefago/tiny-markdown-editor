@@ -1166,7 +1166,11 @@ class Editor {
     if (!startNode) return null;
     let offset = getAnchor ? selection.anchorOffset : selection.focusOffset;
     if (startNode == this.e) {
-      return { row: 0, col: offset };
+      if (offset == 0) return { row: 0, col: 0 };
+      return {
+        row: offset - 1,
+        col: this.lines[offset - 1].length,
+      };
     }
 
     let col = this.computeColumn(startNode, offset);
