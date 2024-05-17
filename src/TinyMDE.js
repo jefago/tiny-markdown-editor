@@ -29,8 +29,10 @@ class Editor {
     let element = props.element;
     this.textarea = props.textarea;
 
-    if (this.textarea && !this.textarea.tagName) {
-      this.textarea = document.getElementById(this.textarea);
+    if (this.textarea) {
+      if (!this.textarea.tagName) {
+        this.textarea = document.getElementById(this.textarea);
+      }
       if (!element) element = this.textarea;
     }
 
