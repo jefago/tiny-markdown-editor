@@ -221,7 +221,7 @@ class Editor {
           codeBlockType = false;
         } else {
           lineType = "TMFencedCodeBacktick";
-          lineReplacement = "$0";
+          lineReplacement = '<span class="TMFencedCode">$0<br /></span>';
           lineCapture = [this.lines[lineNum]];
         }
       }
@@ -238,7 +238,7 @@ class Editor {
           codeBlockType = false;
         } else {
           lineType = "TMFencedCodeTilde";
-          lineReplacement = "$0";
+          lineReplacement = '<span class="TMFencedCode">$0<br /></span>';
           lineCapture = [this.lines[lineNum]];
         }
       }
@@ -267,7 +267,7 @@ class Editor {
 
       if (htmlBlock !== false) {
         lineType = "TMHTMLBlock";
-        lineReplacement = "$0"; // No formatting in TMHTMLBlock
+        lineReplacement = '<span class="TMHTMLContent">$0<br /></span>'; // No formatting in TMHTMLBlock
         lineCapture = [this.lines[lineNum]]; // This should already be set but better safe than sorry
 
         // Check if HTML block should be closed
@@ -1387,12 +1387,14 @@ class Editor {
     };
 
     originalChildren.forEach((child) => {
-      // child.parentElement.removeChild(child);
       if (child.nodeType !== Node.ELEMENT_NODE || child.tagName !== "DIV") {
         // Found a child node that's either not an element or not a div. Wrap it in a div.
         const divWrapper = document.createElement("div");
         replaceChild(child, divWrapper);
         divWrapper.appendChild(child);
+      } else if (child.childNodes.length == 0) {
+        // Empty div child node, include at least a <br />
+        child.appendChild(document.createElement("br"));
       } else {
         const grandChildren = Array.from(child.childNodes);
         if (

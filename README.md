@@ -213,6 +213,8 @@ The following classes denote Markdown blocks: `TMPara`, `TMBlankLine`, `TMH1`, `
 
 The following classes denote Markdown inline formatted stretches of text: `TMCode`, `TMAutolink`, `TMHTML`, `TMStrong`, `TMEm`, `TMStrikethrough`, `TMImage`, `TMLink`, (`TMLinkLabel` (also marked as `TMLinkLabel_Valid` or `TMLinkLabel_Invalid` depending on whether or not the label references a valid reference), `TMLinkDestination`, `TMLinkTitle`, `TMImageDestination`, `TMImageTitle`.
 
+Each line of a code fenced blocks (ie. starting and ending with ` ``` ` or `~~~`) will also be wrapped in an element with the class `TMFencedCode`. Each line of an HTML block (ie. starting with an HTML element) will also be wrapped in an element with the class `TMHTMLContent`.
+
 #### CommandBar styling
 
 The main toolbar element has the class `TMCommandBar`. Buttons have the class `TMCommandButton`, with an additional class of `TMCommandButton_Active`, `TMCommandButton_Inactive`, or `TMCommandButton_Disabled`, depending on the state of the respective command. Divider elements have the class `TMCommandDivider`.
