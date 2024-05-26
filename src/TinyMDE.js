@@ -1168,7 +1168,11 @@ class Editor {
     if (!startNode) return null;
     let offset = getAnchor ? selection.anchorOffset : selection.focusOffset;
     if (startNode == this.e) {
-      if (offset == 0) return { row: 0, col: 0 };
+      if (offset < this.lines.length)
+        return {
+          row: offset,
+          col: 0,
+        };
       return {
         row: offset - 1,
         col: this.lines[offset - 1].length,
@@ -1381,7 +1385,7 @@ class Editor {
       parent.removeChild(child);
       newChildren.forEach((newChild) =>
         nextSibling
-          ? parent.insertBefore(nextSibling, newChild)
+          ? parent.insertBefore(newChild, nextSibling)
           : parent.appendChild(newChild)
       );
     };
