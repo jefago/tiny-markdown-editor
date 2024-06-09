@@ -1822,6 +1822,7 @@ class Editor {
     while (ancestor && ancestor != this.e) {
       if (
         ancestor.className &&
+        typeof ancestor.className.includes == "function" &&
         (ancestor.className.includes("TMInlineFormatted") ||
           ancestor.className.includes("TMBlankLine"))
       )
