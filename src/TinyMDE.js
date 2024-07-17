@@ -54,10 +54,11 @@ class Editor {
     this.createEditorElement(element);
     // TODO Placeholder for empty content
     this.setContent(
-      props.content ||
-        (this.textarea
-          ? this.textarea.value
-          : "# Hello TinyMDE!\nEdit **here**")
+      typeof props.content === "string"
+        ? props.content
+        : this.textarea
+        ? this.textarea.value
+        : "# Hello TinyMDE!\nEdit **here**"
     );
   }
 

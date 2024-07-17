@@ -162,3 +162,21 @@ test('Change event listeners called on setContent()', async () => {
 
   return expect(promise).resolves.not.toThrow();
 });
+
+test('Placeholder is not shown for Empty content', async () => {
+  const newPage = await browser.newPage();
+  await newPage.goto(PATH, { waitUntil: 'load' });
+
+  const content = '';
+
+  const tinymdeContent = await newPage.evaluate((content) => {
+    const tinyMDE = new TinyMDE.Editor({
+      element: 'tinymde',
+      content: '',
+    });
+    return tinyMDE.getContent();
+  }, content);
+
+  expect(tinymdeContent).toEqual(content);
+  newPage.close();
+});
