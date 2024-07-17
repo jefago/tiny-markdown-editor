@@ -52,7 +52,6 @@ class Editor {
     }
 
     this.createEditorElement(element);
-    // TODO Placeholder for empty content
     this.setContent(
       typeof props.content === "string"
         ? props.content
