@@ -62,7 +62,7 @@
     "jest-cli": "^29.2.2",
     "jest-puppeteer": "^9.0.2",
     "postcss-import": "^15.0.0",
-    "puppeteer": "^19.2.2",
+    "puppeteer": "^22.13.0",
     "rollup": "^2.79.1",
     "rollup-plugin-eslint": "^7.0.0",
     "terser": "^5.3.3",
