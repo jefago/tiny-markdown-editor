@@ -232,17 +232,22 @@ The main toolbar element has the class `TMCommandBar`. Buttons have the class `T
 Building TinyMDE is pretty straight forward:
 
 1. Clone this repository:
-   ```bash
-   git clone git@github.com:jefago/tiny-markdown-editor.git
-   ```
-2. In the repository directory, run the build script:
-   ```bash
-   npm run build
-   ```
+  ```bash
+  git clone git@github.com:jefago/tiny-markdown-editor.git
+  ```
 
-The build output is in the `dist` directory. You will find the following files there:
+2. In the repository directory, install dependencies and run the build script:
+  ```bash
+  npm install
 
-- `tiny-mde.css` and `tiny-mde.min.css`: CSS files to style the editor. These can be edited at will to make the editor look like you want to. `tiny-mde.min.css` has the same content as `tiny-mde.css`, it's just minified. You will only need to use one of the files on your page. If you want to edit the CSS file, it's easier to edit `tiny-mde.css` and then minify the edited version.
-- `tiny-mde.js`: Debug version of the editor. The JS file is not minified and contains a sourcemap. It is not recommended to use this in production settings, since the file is large.
-- `tiny-mde.min.js`: Minified JS file for most use cases. Simply copy this to your project to use it.
-- `tiny-mde.tiny.js`: Minified and stripped-down JS file. Contains only the editor itself, not the toolbar.
+  # You may need to run npm install --force
+
+  npm run prepublishOnly
+  ```
+
+The build output is in the `dist` and `lib` directories. You will find the following files there:
+
+- `dist/tiny-mde.css` and `dist/tiny-mde.min.css`: CSS files to style the editor. These can be edited at will to make the editor look like you want to. `dist/tiny-mde.min.css` has the same content as `dist/tiny-mde.css`, it's just minified. You will only need to use one of the files on your page. If you want to edit the CSS file, it's easier to edit `dist/tiny-mde.css` and then minify the edited version.
+- `dist/tiny-mde.js`: Debug version of the editor. The JS file is not minified and contains a sourcemap. It is not recommended to use this in production settings, since the file is large.
+- `dist/tiny-mde.min.js`: Minified JS file for most use cases. Simply copy this to your project to use it.
+- `dist/tiny-mde.tiny.js`: Minified and stripped-down JS file. Contains only the editor itself, not the toolbar.
