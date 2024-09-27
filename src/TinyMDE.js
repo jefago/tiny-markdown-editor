@@ -1933,7 +1933,7 @@ class Editor {
 
   /**
    * Adds an event listener.
-   * @param {string} type The type of event to listen to. Can be 'change', 'selection' or 'drop.
+   * @param {string} type The type of event to listen to. Can be 'change', 'selection' or 'drop'.
    * @param {*} listener Function of the type (event) => {} to be called when the event occurs.
    */
   addEventListener(type, listener) {
