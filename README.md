@@ -182,20 +182,28 @@ There are two event listener types that can be registered on the editor: `change
 
 A `change` event is fired any time the content of the editor changes. The event object passed to the listener function contains the following properties:
 
-| Attribute    | Description                                                                                                                                                                                                                 |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `content`    | The current content as a string.                                                                                                                                                                                            |
+| Attribute | Description |
+| --- | ----------- |
+| `content` | The current content as a string. |
 | `linesDirty` | An array of booleans, which for each line contains `true` if the line might have changed in terms of either its content or its block type since the last change, and `false` if the line is guaranteed to not have changed. |
 
 #### `selection` event
 
 A `selection` event is fired any time the selection within the editor changes. The event object passed to the listener function contains the following properties:
 
-| Attribute      | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `focus`        | The focus (end point) of the current selection, in the format as returned by `getSelection()` (two attributes `row` and `col` denoting the zero based row and column).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `anchor`       | The anchor (start point) of the current selection, in the format as returned by `getSelection()` (two attributes `row` and `col` denoting the zero based row and column).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Attribute | Description |
+| --- | ----------- |
+| `focus` | The focus (end point) of the current selection, in the format as returned by `getSelection()` (two attributes `row` and `col` denoting the zero based row and column). |
+| `anchor` | The anchor (start point) of the current selection, in the format as returned by `getSelection()` (two attributes `row` and `col` denoting the zero based row and column). |
 | `commandState` | An array which contains an attribute for every default command name `bold`, `italic`, `strikethrough`, `code`, `h1`, `h2`, `ul`, `ol`, `blockquote`, `hr`, `insertLink`, and `insertImage`). The value of each attribute is one of `true`, `false`, or `null`. The value is `true` if the command is currently active (e.g., if the cursor is within a bold stretch of text, then the state for `bold` will be `true`). The value is `false` if the command is currently inactive but could be activated (e.g., if the selection encompasses a stretch of text that could be bolded, then the state for `bold` will be `false`). The value is `null` if the command is currently not applicable (e.g., if the cursor is within a code block where inline formatting is not available, the state will be `null` for `bold`). |
+
+#### `drop` event
+
+A `drop` event is mirroring a native `drop` event. It was added to TinyMDE to allow drag & dropping images into Markdown textarea (like on Github). The event object passed to the listener function contains the following properties:
+
+| Attribute | Description |
+| --- | ----------- |
+| `dataTransfer` | The event's [DataTransfer](https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer) data (dropped files). |
 
 ### Styling TinyMDE
 
