@@ -205,6 +205,29 @@ A `drop` event is mirroring a native `drop` event. It was added to TinyMDE to al
 | --- | ----------- |
 | `dataTransfer` | The event's [DataTransfer](https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer) data (dropped files). |
 
+Here's how to add image drag & drop to your TinyMDE editor:
+
+```js
+editor.addEventListener("drop", function (event) {
+  let formData = new FormData();
+
+  // You can add use event.dataTransfer.items or event.dataTransfer.files
+  // to build the form data object:
+  for (let i = 0; i < event.dataTransfer.items.length; i++) {
+    if (event.dataTransfer.items[i].kind === "file") {
+      let file = event.dataTransfer.items[i].getAsFile();
+      formData.append("image", file);
+    }
+  }
+
+  // Call your API endpoint that accepts "Content-Type": "multipart/form-data"
+  // requests and responds with the images names and URL-s.
+  //
+  // Now you can add Markdown images like so:
+  editor.paste(`![${imageName}](${imageUrl})`);
+});
+```
+
 ### Styling TinyMDE
 
 In order to style TinyMDE, edit the CSS file. You can see the classes that can be assigned styles within the file. For a bit more detail about the classes, read on.
@@ -232,20 +255,22 @@ The main toolbar element has the class `TMCommandBar`. Buttons have the class `T
 Building TinyMDE is pretty straight forward:
 
 1. Clone this repository:
-  ```bash
-  git clone git@github.com:jefago/tiny-markdown-editor.git
-  ```
 
-2. In the repository directory, install dependencies and run the build script:
-  ```bash
-  npm install
+```bash
+git clone git@github.com:jefago/tiny-markdown-editor.git
+```
 
-  # You may need to run npm install --force
+2. In the repository directory, install dependencies and build the project:
 
-  npm run prepublishOnly
-  ```
+```bash
+npm install
 
-The build output is in the `dist` and `lib` directories. You will find the following files there:
+# You may need to run npm install --force
+
+npm run prepublishOnly
+```
+
+The latter command generates the `dist` and `lib` directories. You will find the following files there:
 
 - `dist/tiny-mde.css` and `dist/tiny-mde.min.css`: CSS files to style the editor. These can be edited at will to make the editor look like you want to. `dist/tiny-mde.min.css` has the same content as `dist/tiny-mde.css`, it's just minified. You will only need to use one of the files on your page. If you want to edit the CSS file, it's easier to edit `dist/tiny-mde.css` and then minify the edited version.
 - `dist/tiny-mde.js`: Debug version of the editor. The JS file is not minified and contains a sourcemap. It is not recommended to use this in production settings, since the file is large.
