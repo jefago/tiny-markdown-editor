@@ -50,6 +50,8 @@ declare module "tiny-markdown-editor" {
 
     public getContent(): string;
 
+    public setContent(content: string): void;
+
     public getSelection(getAnchor: boolean): CursorPosition | null;
 
     public setSelection(
@@ -157,7 +159,7 @@ declare module "tiny-markdown-editor" {
         name: CommandBarCommandName | string;
         title?: string | undefined;
         innerHTML?: string;
-        action?: EditorCommandName |  ((editor: Editor) => void);
+        action?: EditorCommandName | ((editor: Editor) => void);
         hotkey?: HotKey;
       };
 
