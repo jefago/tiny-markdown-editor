@@ -221,7 +221,7 @@ editor.addEventListener("drop", function (event) {
   }
 
   // Call your API endpoint that accepts "Content-Type": "multipart/form-data"
-  // requests and responds with the images names and URL-s.
+  // requests and responds with the image names and URL-s.
   //
   // Now you can add Markdown images like so:
   editor.paste(`![${imageName}](${imageUrl})`);
