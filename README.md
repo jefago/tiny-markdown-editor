@@ -182,20 +182,51 @@ There are two event listener types that can be registered on the editor: `change
 
 A `change` event is fired any time the content of the editor changes. The event object passed to the listener function contains the following properties:
 
-| Attribute    | Description                                                                                                                                                                                                                 |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `content`    | The current content as a string.                                                                                                                                                                                            |
+| Attribute | Description |
+| --- | ----------- |
+| `content` | The current content as a string. |
 | `linesDirty` | An array of booleans, which for each line contains `true` if the line might have changed in terms of either its content or its block type since the last change, and `false` if the line is guaranteed to not have changed. |
 
 #### `selection` event
 
 A `selection` event is fired any time the selection within the editor changes. The event object passed to the listener function contains the following properties:
 
-| Attribute      | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `focus`        | The focus (end point) of the current selection, in the format as returned by `getSelection()` (two attributes `row` and `col` denoting the zero based row and column).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `anchor`       | The anchor (start point) of the current selection, in the format as returned by `getSelection()` (two attributes `row` and `col` denoting the zero based row and column).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Attribute | Description |
+| --- | ----------- |
+| `focus` | The focus (end point) of the current selection, in the format as returned by `getSelection()` (two attributes `row` and `col` denoting the zero based row and column). |
+| `anchor` | The anchor (start point) of the current selection, in the format as returned by `getSelection()` (two attributes `row` and `col` denoting the zero based row and column). |
 | `commandState` | An array which contains an attribute for every default command name `bold`, `italic`, `strikethrough`, `code`, `h1`, `h2`, `ul`, `ol`, `blockquote`, `hr`, `insertLink`, and `insertImage`). The value of each attribute is one of `true`, `false`, or `null`. The value is `true` if the command is currently active (e.g., if the cursor is within a bold stretch of text, then the state for `bold` will be `true`). The value is `false` if the command is currently inactive but could be activated (e.g., if the selection encompasses a stretch of text that could be bolded, then the state for `bold` will be `false`). The value is `null` if the command is currently not applicable (e.g., if the cursor is within a code block where inline formatting is not available, the state will be `null` for `bold`). |
+
+#### `drop` event
+
+A `drop` event is mirroring a native `drop` event. It was added to TinyMDE to allow drag & dropping images into Markdown textarea (like on Github). The event object passed to the listener function contains the following properties:
+
+| Attribute | Description |
+| --- | ----------- |
+| `dataTransfer` | The event's [DataTransfer](https://developer.mozilla.org/en-US/docs/Web/API/DataTransfer) data (dropped files). |
+
+Here's how to add image drag & drop to your TinyMDE editor:
+
+```js
+editor.addEventListener("drop", function (event) {
+  let formData = new FormData();
+
+  // You can add use event.dataTransfer.items or event.dataTransfer.files
+  // to build the form data object:
+  for (let i = 0; i < event.dataTransfer.items.length; i++) {
+    if (event.dataTransfer.items[i].kind === "file") {
+      let file = event.dataTransfer.items[i].getAsFile();
+      formData.append("image", file);
+    }
+  }
+
+  // Call your API endpoint that accepts "Content-Type": "multipart/form-data"
+  // requests and responds with the image names and URL-s.
+  //
+  // Now you can add Markdown images like so:
+  editor.paste(`![${imageName}](${imageUrl})`);
+});
+```
 
 ### Styling TinyMDE
 
@@ -224,17 +255,24 @@ The main toolbar element has the class `TMCommandBar`. Buttons have the class `T
 Building TinyMDE is pretty straight forward:
 
 1. Clone this repository:
-   ```bash
-   git clone git@github.com:jefago/tiny-markdown-editor.git
-   ```
-2. In the repository directory, run the build script:
-   ```bash
-   npm run build
-   ```
 
-The build output is in the `dist` directory. You will find the following files there:
+```bash
+git clone git@github.com:jefago/tiny-markdown-editor.git
+```
 
-- `tiny-mde.css` and `tiny-mde.min.css`: CSS files to style the editor. These can be edited at will to make the editor look like you want to. `tiny-mde.min.css` has the same content as `tiny-mde.css`, it's just minified. You will only need to use one of the files on your page. If you want to edit the CSS file, it's easier to edit `tiny-mde.css` and then minify the edited version.
-- `tiny-mde.js`: Debug version of the editor. The JS file is not minified and contains a sourcemap. It is not recommended to use this in production settings, since the file is large.
-- `tiny-mde.min.js`: Minified JS file for most use cases. Simply copy this to your project to use it.
-- `tiny-mde.tiny.js`: Minified and stripped-down JS file. Contains only the editor itself, not the toolbar.
+2. In the repository directory, install dependencies and build the project:
+
+```bash
+npm install
+
+# You may need to run npm install --force
+
+npm run prepublishOnly
+```
+
+The latter command generates the `dist` and `lib` directories. You will find the following files there:
+
+- `dist/tiny-mde.css` and `dist/tiny-mde.min.css`: CSS files to style the editor. These can be edited at will to make the editor look like you want to. `dist/tiny-mde.min.css` has the same content as `dist/tiny-mde.css`, it's just minified. You will only need to use one of the files on your page. If you want to edit the CSS file, it's easier to edit `dist/tiny-mde.css` and then minify the edited version.
+- `dist/tiny-mde.js`: Debug version of the editor. The JS file is not minified and contains a sourcemap. It is not recommended to use this in production settings, since the file is large.
+- `dist/tiny-mde.min.js`: Minified JS file for most use cases. Simply copy this to your project to use it.
+- `dist/tiny-mde.tiny.js`: Minified and stripped-down JS file. Contains only the editor itself, not the toolbar.
