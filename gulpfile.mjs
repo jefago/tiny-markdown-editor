@@ -249,15 +249,7 @@ const release = gulp.series(
 
 const releasePatch = gulp.series(gitCheckBranch, bumpVersion, release);
 
-export {
-  dev,
-  test,
-  svg,
-  prepublish,
-  releasePatch,
-  release,
-  ghGenerateReleaseNotes,
-};
+export { dev, test, svg, prepublish, releasePatch, release, ghRelease };
 
 export default build;
 // exports.default = build;
