@@ -188,7 +188,8 @@ const ghRepo = {
   repo: "tiny-markdown-editor",
 };
 
-const ghGenerateReleaseNotes = async (octokit) => {
+const ghGenerateReleaseNotes = async () => {
+  const octokit = new Octokit({ auth: process.env.GITHUB_ACCESS_TOKEN });
   try {
     // Step 1: Get the latest release
     const latestRelease = await octokit.rest.repos.getLatestRelease(ghRepo);
@@ -209,6 +210,7 @@ const ghGenerateReleaseNotes = async (octokit) => {
       .join("\n");
 
     console.log("Generated Release Notes:\n", releaseNotes);
+    return releaseNotes;
   } catch (error) {
     console.error("Error generating release notes:", error);
     return "";
@@ -247,7 +249,15 @@ const release = gulp.series(
 
 const releasePatch = gulp.series(gitCheckBranch, bumpVersion, release);
 
-export { dev, test, svg, prepublish, releasePatch, release };
+export {
+  dev,
+  test,
+  svg,
+  prepublish,
+  releasePatch,
+  release,
+  ghGenerateReleaseNotes,
+};
 
 export default build;
 // exports.default = build;
