@@ -183,16 +183,47 @@ const gitPush = () => {
   return execPromise("git push");
 };
 
+const ghRepo = {
+  owner: "jefago",
+  repo: "tiny-markdown-editor",
+};
+
+const ghGenerateReleaseNotes = async (octokit) => {
+  try {
+    // Step 1: Get the latest release
+    const latestRelease = await octokit.rest.repos.getLatestRelease(ghRepo);
+
+    const latestTag = latestRelease.data.tag_name;
+
+    console.log(`Previous tag: ${latestTag}`);
+
+    // Step 2: Get commits since the latest release tag
+    const commits = await octokit.rest.repos.listCommits({
+      ...ghRepo,
+      since: latestRelease.data.published_at, // Get commits since the latest release
+    });
+
+    // Step 3: Generate release notes
+    const releaseNotes = commits.data
+      .map((commit) => `- ${commit.commit.message}`)
+      .join("\n");
+
+    console.log("Generated Release Notes:\n", releaseNotes);
+  } catch (error) {
+    console.error("Error generating release notes:", error);
+    return "";
+  }
+};
+
 const ghRelease = async () => {
   const { version } = JSON.parse(await readfile("package.json"));
 
   const octokit = new Octokit({ auth: process.env.GITHUB_ACCESS_TOKEN });
   return octokit.repos.createRelease({
-    owner: "jefago",
-    repo: "tiny-markdown-editor",
+    ...ghRepo,
     tag_name: `v${version}`, // The name of the tag
     name: `v${version}`,
-    body: "",
+    body: ghGenerateReleaseNotes(octokit),
     draft: false,
     prerelease: false,
   });
