@@ -221,11 +221,12 @@ const ghRelease = async () => {
   const { version } = JSON.parse(await readfile("package.json"));
 
   const octokit = new Octokit({ auth: process.env.GITHUB_ACCESS_TOKEN });
+  const releaseNotes = await ghGenerateReleaseNotes(octokit);
   return octokit.repos.createRelease({
     ...ghRepo,
     tag_name: `v${version}`, // The name of the tag
     name: `v${version}`,
-    body: ghGenerateReleaseNotes(octokit),
+    body: releaseNotes,
     draft: false,
     prerelease: false,
   });
