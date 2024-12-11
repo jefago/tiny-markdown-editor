@@ -52,7 +52,7 @@ class Editor {
       this.textarea.style.display = "none";
     }
 
-    this.createEditorElement(element);
+    this.createEditorElement(element,props);
     this.setContent(
       typeof props.content === "string"
         ? props.content
@@ -66,23 +66,26 @@ class Editor {
    * Creates the editor element inside the target element of the DOM tree
    * @param element The target element of the DOM tree
    */
-  createEditorElement(element) {
-    this.e = document.createElement("div");
-    this.e.className = "TinyMDE";
+  createEditorElement(element, props) {
+    this.e = props.editor ?? document.createElement("div");
+    this.e.classList.add("TinyMDE");
     this.e.contentEditable = true;
     // The following is important for formatting purposes, but also since otherwise the browser replaces subsequent spaces with  &nbsp; &nbsp;
     // That breaks a lot of stuff, so we do this here and not in CSS—therefore, you don't have to remember to put this in the CSS file
     this.e.style.whiteSpace = "pre-wrap";
     // Avoid formatting (B / I / U) popping up on iOS
     this.e.style.webkitUserModify = "read-write-plaintext-only";
-    if (
-      this.textarea &&
-      this.textarea.parentNode == element &&
-      this.textarea.nextSibling
-    ) {
-      element.insertBefore(this.e, this.textarea.nextSibling);
-    } else {
-      element.appendChild(this.e);
+    
+    if(props.editor === undefined){
+      if (
+        this.textarea &&
+        this.textarea.parentNode == element &&
+        this.textarea.nextSibling
+      ) {
+        element.insertBefore(this.e, this.textarea.nextSibling);
+      } else {
+        element.appendChild(this.e);
+      }
     }
 
     this.e.addEventListener("input", (e) => this.handleInputEvent(e));
