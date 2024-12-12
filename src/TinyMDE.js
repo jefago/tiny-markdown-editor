@@ -67,7 +67,14 @@ class Editor {
    * @param element The target element of the DOM tree
    */
   createEditorElement(element, props) {
-    this.e = props.editor ?? document.createElement("div");
+    if(props.editor !== undefined){
+      if(props.editor.tagName)
+        this.e = props.editor;
+      else
+        this.e = document.getElementById(props.editor);
+    }else
+      this.e = document.createElement("div");
+    
     this.e.classList.add("TinyMDE");
     this.e.contentEditable = true;
     // The following is important for formatting purposes, but also since otherwise the browser replaces subsequent spaces with  &nbsp; &nbsp;
