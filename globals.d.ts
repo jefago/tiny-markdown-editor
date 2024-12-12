@@ -40,8 +40,8 @@ declare module "tiny-markdown-editor" {
   ) => void;
 
   type EditorParams = {
-    editor?: string | HTMLElement;
     element?: string | HTMLElement;
+    editor?: string | HTMLElement;
     content?: string;
     textarea?: string | HTMLElement;
   };
