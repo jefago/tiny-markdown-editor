@@ -65,9 +65,10 @@ class Editor {
   /**
    * Creates the editor element inside the target element of the DOM tree
    * @param element The target element of the DOM tree
+   * @param props options, passed from constructor's props
    */
   createEditorElement(element, props) {
-    if(props.editor !== undefined){
+    if(props && props.editor !== undefined){
       if(props.editor.tagName)
         this.e = props.editor;
       else

@@ -47,7 +47,7 @@ declare module "tiny-markdown-editor" {
   };
 
   export class Editor {
-    constructor(params: EditorParams?);
+    constructor(params?: EditorParams);
 
     public getContent(): string;
 
