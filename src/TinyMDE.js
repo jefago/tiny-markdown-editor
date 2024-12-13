@@ -52,7 +52,7 @@ class Editor {
       this.textarea.style.display = "none";
     }
 
-    this.createEditorElement(element,props);
+    this.createEditorElement(element, props);
     this.setContent(
       typeof props.content === "string"
         ? props.content
@@ -68,14 +68,11 @@ class Editor {
    * @param props options, passed from constructor's props
    */
   createEditorElement(element, props) {
-    if(props && props.editor !== undefined){
-      if(props.editor.tagName)
-        this.e = props.editor;
-      else
-        this.e = document.getElementById(props.editor);
-    }else
-      this.e = document.createElement("div");
-    
+    if (props && props.editor !== undefined) {
+      if (props.editor.tagName) this.e = props.editor;
+      else this.e = document.getElementById(props.editor);
+    } else this.e = document.createElement("div");
+
     this.e.classList.add("TinyMDE");
     this.e.contentEditable = true;
     // The following is important for formatting purposes, but also since otherwise the browser replaces subsequent spaces with  &nbsp; &nbsp;
@@ -83,8 +80,8 @@ class Editor {
     this.e.style.whiteSpace = "pre-wrap";
     // Avoid formatting (B / I / U) popping up on iOS
     this.e.style.webkitUserModify = "read-write-plaintext-only";
-    
-    if(props.editor === undefined){
+
+    if (props.editor === undefined) {
       if (
         this.textarea &&
         this.textarea.parentNode == element &&
@@ -208,7 +205,7 @@ class Editor {
   /**
    * Determines line types for all lines based on the line / block grammar. Captures the results of the respective line
    * grammar regular expressions.
-   * Updates this.lineTypes, this.lineCaptures, and this.lineReplacements.
+   * Updates this.lineTypes, this.lineCaptures, and this.lineReplacements, as well as this.lineDirty.
    */
   updateLineTypes() {
     let codeBlockType = false;
@@ -1035,7 +1032,9 @@ class Editor {
         firstChangedLine <= this.lineElements.length &&
         this.lineElements[firstChangedLine] && // Check that the line element hasn't been deleted
         this.lines[firstChangedLine] ==
-          this.lineElements[firstChangedLine].textContent
+          this.lineElements[firstChangedLine].textContent &&
+        this.lineTypes[firstChangedLine] ==
+          this.lineElements[firstChangedLine].className
       ) {
         firstChangedLine++;
       }
@@ -1047,7 +1046,10 @@ class Editor {
         -lastChangedLine < this.lineElements.length &&
         this.lines[this.lines.length + lastChangedLine] ==
           this.lineElements[this.lineElements.length + lastChangedLine]
-            .textContent
+            .textContent &&
+        this.lineTypes[this.lines.length + lastChangedLine] ==
+          this.lineElements[this.lineElements.length + lastChangedLine]
+            .className
       ) {
         lastChangedLine--;
       }
@@ -1067,9 +1069,10 @@ class Editor {
       for (let line = 0; line < this.lineElements.length; line++) {
         let e = this.lineElements[line];
         let ct = e.textContent;
-        if (this.lines[line] !== ct) {
+        if (this.lines[line] !== ct || this.lineTypes[line] !== e.className) {
           // Line changed, update it
           this.lines[line] = ct;
+          this.lineTypes[line] = e.className;
           this.lineDirty[line] = true;
         }
       }
@@ -1105,14 +1108,12 @@ class Editor {
     let lines = this.lines[sel.row]
       .replace(/\n\n$/, "\n")
       .split(/(?:\r\n|\n|\r)/);
-    if (lines.length == 1) {
-      // No new line
-      this.updateFormatting();
-      return;
+    if (lines.length > 1) {
+      // New line
+      this.spliceLines(sel.row, 1, lines, true);
+      sel.row++;
+      sel.col = 0;
     }
-    this.spliceLines(sel.row, 1, lines, true);
-    sel.row++;
-    sel.col = 0;
 
     if (continuableType) {
       // Check if the previous line was non-empty
@@ -1937,7 +1938,7 @@ class Editor {
   fireDrop(dataTransfer) {
     for (let listener of this.listeners.drop) {
       listener({
-        dataTransfer
+        dataTransfer,
       });
     }
   }
