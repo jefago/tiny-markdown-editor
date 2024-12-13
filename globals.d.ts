@@ -41,12 +41,13 @@ declare module "tiny-markdown-editor" {
 
   type EditorParams = {
     element?: string | HTMLElement;
+    editor?: string | HTMLElement;
     content?: string;
     textarea?: string | HTMLElement;
   };
 
   export class Editor {
-    constructor(params: EditorParams?);
+    constructor(params?: EditorParams);
 
     public getContent(): string;
 
