@@ -1,23 +1,33 @@
-# tiny-markdown-editor
+# Tiny Markdown Editor (TinyMDE)
 
-TinyMDE: A tiny, low-dependency<sup>(1)</sup> embeddable HTML/JavaScript Markdown editor.
+**TinyMDE**: A lightweight, low-dependency<sup>(1)</sup> embeddable Markdown editor for modern web applications.
 
-<sup>(1)</sup>: TinyMDE's runtime only depends on `core-js` for polyfills to support older browsers.
+<sup>(1)</sup>: TinyMDE's runtime only requires `core-js` for polyfills, ensuring compatibility with older browsers.
 
-Visit the [demo page](https://jefago.github.io/tiny-markdown-editor/) to see TinyMDE in action.
+➡ **[Try the Live Demo](https://jefago.github.io/tiny-markdown-editor/)**
 
-## Overview
+---
 
-TinyMDE is an in-browser markdown editor that allows editing Markdown files with in-line formatting previews (bold, italic, headings, code etc.) as well as a toolbar with familiar point-and-click or keyboard shortcut interaction.
+## ✨ Overview
 
-TinyMDE can be used as a drop-in text area replacement.
+TinyMDE is a fast, in-browser Markdown editor that provides:  
+- **Inline formatting previews** (bold, italic, headings, code, etc.).  
+- **A simple yet powerful toolbar** for quick editing via point-and-click or keyboard shortcuts.  
+- **Seamless integration** as a drop-in replacement for text areas.  
 
-## Motivation
+With its minimal footprint, TinyMDE is an ideal choice for applications needing a lightweight yet functional Markdown editing experience.
 
-TinyMDE was motivated by wanting to improve on [EasyMDE](https://github.com/Ionaru/easy-markdown-editor) which is extremely flexible but had two shortcomings:
+---
 
-- EasyMDE depends on [Code Mirror](https://codemirror.net/) for editing and formatting. CodeMirror is a full fledged and customizable in-browser code editor, and has a price: EasyMDE's JS file is 280kb in size. TinyMDE is less than 70kb (less than a quarter of EasyMDE's size), the "tiny" version without the toolbar even below 60kb!
-- CodeMirror doesn't work well on mobile, at least not for writing prose: mobile phone OS auto-correction functionality, which many people rely on to quickly type on mobile, is not supported by CodeMirror.
+## 🚀 Why TinyMDE?
+
+TinyMDE was created to improve upon [EasyMDE](https://github.com/Ionaru/easy-markdown-editor), a flexible but bulky alternative. **Here’s how TinyMDE stands out:**  
+
+✔ **Ultra Lightweight** – TinyMDE is under **70KB** (or **<60KB** without the toolbar), compared to EasyMDE's **280KB**.  
+✔ **Better Mobile Support** – Unlike EasyMDE (which relies on [CodeMirror](https://codemirror.net/)), TinyMDE allows mobile OS **auto-correction**, making it easier to type on touchscreens.  
+✔ **Zero Bloat** – No unnecessary dependencies; just a fast, responsive Markdown editor.  
+
+If you need a **lightweight, mobile-friendly, and efficient Markdown editor**, TinyMDE is the perfect solution!Visit the 
 
 ## Install TinyMDE
 
