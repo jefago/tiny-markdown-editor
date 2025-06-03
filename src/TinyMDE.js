@@ -72,12 +72,6 @@ class Editor {
   pushHistory() {
     if (this.isRestoringHistory) return;
     this.pushCurrentState();
-    console.log(
-      "[pushHistory] undoStack: ",
-      this.undoStack[this.undoStack.length - 1].content,
-      this.undoStack[this.undoStack.length - 1].selection,
-      this.undoStack[this.undoStack.length - 1].anchor
-    );
     this.redoStack = [];
   }
 
@@ -100,16 +94,9 @@ class Editor {
     const current = this.undoStack.pop();
     this.redoStack.push(current);
     const prev = this.undoStack[this.undoStack.length - 1];
-    console.log("[undo] prev: ", prev.content, prev.selection, prev.anchor);
     this.setContent(prev.content);
     if (prev.selection) this.setSelection(prev.selection, prev.anchor);
     this.undoStack.pop();
-    console.log(
-      "[undo] undoStack: ",
-      this.undoStack[this.undoStack.length - 1].content,
-      this.undoStack[this.undoStack.length - 1].selection,
-      this.undoStack[this.undoStack.length - 1].anchor
-    );
     this.isRestoringHistory = false;
   }
 
@@ -117,19 +104,12 @@ class Editor {
    * Redoes the last undone action.
    */
   redo() {
-    console.log("redo");
     if (!this.redoStack.length) return;
     this.isRestoringHistory = true;
     this.pushCurrentState();
     const next = this.redoStack.pop();
     this.setContent(next.content);
     if (next.selection) this.setSelection(next.selection, next.anchor);
-    console.log(
-      "[redo] undoStack: ",
-      this.undoStack[this.undoStack.length - 1].content,
-      this.undoStack[this.undoStack.length - 1].selection,
-      this.undoStack[this.undoStack.length - 1].anchor
-    );
     this.isRestoringHistory = false;
   }
 
@@ -1390,8 +1370,6 @@ class Editor {
   setSelection(focus, anchor = null) {
     if (!focus) return;
 
-    let range = document.createRange();
-
     let { node: focusNode, offset: focusOffset } = this.computeNodeAndOffset(
       focus.row,
       focus.col,
@@ -1409,13 +1387,13 @@ class Editor {
       anchorOffset = offset;
     }
 
-    if (anchorNode) range.setStart(anchorNode, anchorOffset);
-    else range.setStart(focusNode, focusOffset);
-    range.setEnd(focusNode, focusOffset);
-
     let windowSelection = window.getSelection();
-    windowSelection.removeAllRanges();
-    windowSelection.addRange(range);
+    windowSelection.setBaseAndExtent(
+      focusNode,
+      focusOffset,
+      anchorNode || focusNode,
+      anchorNode ? anchorOffset : focusOffset
+    );
   }
 
   /**
