@@ -1,94 +1,115 @@
-import svg from './svg/svg';
+import svg from "./svg/svg";
 
-const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(typeof navigator !== "undefined" ? navigator.platform : "");
+const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(
+  typeof navigator !== "undefined" ? navigator.platform : ""
+);
 
 const DefaultCommands = {
-  'bold': {
-    name: 'bold',
-    action: 'bold',
+  bold: {
+    name: "bold",
+    action: "bold",
     innerHTML: svg.bold,
-    title: 'Bold',
-    hotkey: 'Mod-B',
+    title: "Bold",
+    hotkey: "Mod-B",
   },
-  'italic': {
-    name: 'italic',
-    action: 'italic',
+  italic: {
+    name: "italic",
+    action: "italic",
     innerHTML: svg.italic,
-    title: 'Italic',
-    hotkey: 'Mod-I',
+    title: "Italic",
+    hotkey: "Mod-I",
   },
-  'strikethrough': {
-    name: 'strikethrough',
-    action: 'strikethrough',
+  strikethrough: {
+    name: "strikethrough",
+    action: "strikethrough",
     innerHTML: svg.strikethrough,
-    title: 'Strikethrough',
-    hotkey: 'Mod2-Shift-5',
+    title: "Strikethrough",
+    hotkey: "Mod2-Shift-5",
   },
-  'code': {
-    name: 'code',
-    action: 'code',
+  code: {
+    name: "code",
+    action: "code",
     innerHTML: svg.code,
-    title: 'Format as code',
+    title: "Format as code",
   },
-  'h1': {
-    name: 'h1',
-    action: 'h1',
+  h1: {
+    name: "h1",
+    action: "h1",
     innerHTML: svg.h1,
-    title: 'Level 1 heading',
-    hotkey: 'Mod-Shift-1',
+    title: "Level 1 heading",
+    hotkey: "Mod-Shift-1",
   },
-  'h2': {
-    name: 'h2',
-    action: 'h2',
+  h2: {
+    name: "h2",
+    action: "h2",
     innerHTML: svg.h2,
-    title: 'Level 2 heading',
-    hotkey: 'Mod-Shift-2',
+    title: "Level 2 heading",
+    hotkey: "Mod-Shift-2",
   },
-  'ul': {
-    name: 'ul',
-    action: 'ul',
+  ul: {
+    name: "ul",
+    action: "ul",
     innerHTML: svg.ul,
-    title: 'Bulleted list',
+    title: "Bulleted list",
   },
-  'ol': {
-    name: 'ol',
-    action: 'ol',
+  ol: {
+    name: "ol",
+    action: "ol",
     innerHTML: svg.ol,
-    title: 'Numbered list',
+    title: "Numbered list",
   },
-  'blockquote': {
-    name: 'blockquote',
-    action: 'blockquote',
+  blockquote: {
+    name: "blockquote",
+    action: "blockquote",
     innerHTML: svg.blockquote,
-    title: 'Quote',
-    hotkey: 'Mod2-Shift-Q',
+    title: "Quote",
+    hotkey: "Mod2-Shift-Q",
   },
-  'insertLink': {
-    name: 'insertLink',
-    action: (editor) => {if (editor.isInlineFormattingAllowed()) editor.wrapSelection('[', ']()')},
-    enabled: (editor, focus, anchor) => editor.isInlineFormattingAllowed(focus, anchor) ? false : null,
+  insertLink: {
+    name: "insertLink",
+    action: (editor) => {
+      if (editor.isInlineFormattingAllowed()) editor.wrapSelection("[", "]()");
+    },
+    enabled: (editor, focus, anchor) =>
+      editor.isInlineFormattingAllowed(focus, anchor) ? false : null,
     innerHTML: svg.link,
-    title: 'Insert link',
-    hotkey: 'Mod-K',
+    title: "Insert link",
+    hotkey: "Mod-K",
   },
-  'insertImage': {
-    name: 'insertImage',
-    action: (editor) => {if (editor.isInlineFormattingAllowed()) editor.wrapSelection('![', ']()')},
-    enabled: (editor, focus, anchor) => editor.isInlineFormattingAllowed(focus, anchor) ? false : null,
+  insertImage: {
+    name: "insertImage",
+    action: (editor) => {
+      if (editor.isInlineFormattingAllowed()) editor.wrapSelection("![", "]()");
+    },
+    enabled: (editor, focus, anchor) =>
+      editor.isInlineFormattingAllowed(focus, anchor) ? false : null,
     innerHTML: svg.image,
-    title: 'Insert image',
-    hotkey: 'Mod2-Shift-I',
+    title: "Insert image",
+    hotkey: "Mod2-Shift-I",
   },
-  'hr': {
-    name: 'hr',
-    action: (editor) => editor.paste('\n***\n'),
+  hr: {
+    name: "hr",
+    action: (editor) => editor.paste("\n***\n"),
     enabled: () => false,
     innerHTML: svg.hr,
-    title: 'Insert horizontal line',
-    hotkey: 'Mod2-Shift-L'
-  }
-}
-
+    title: "Insert horizontal line",
+    hotkey: "Mod2-Shift-L",
+  },
+  undo: {
+    name: "undo",
+    action: (editor) => editor.undo(),
+    enabled: (editor) => (editor.canUndo ? false : null),
+    innerHTML: svg.undo,
+    title: "Undo",
+  },
+  redo: {
+    name: "redo",
+    action: (editor) => editor.redo(),
+    enabled: (editor) => (editor.canRedo ? false : null),
+    innerHTML: svg.redo,
+    title: "Redo",
+  },
+};
 
 class CommandBar {
   constructor(props) {
@@ -104,21 +125,45 @@ class CommandBar {
       element = document.getElementById(props.element);
     }
     if (!element) {
-      element = document.body; 
+      element = document.body;
     }
-    this.createCommandBarElement(element, props.commands || ['bold', 'italic', 'strikethrough', '|', 'code', '|', 'h1', 'h2', '|', 'ul', 'ol', '|', 'blockquote', 'hr', '|', 'insertLink', 'insertImage']);
-    document.addEventListener('keydown', (e) => this.handleKeydown(e));
+    this.createCommandBarElement(
+      element,
+      props.commands || [
+        "bold",
+        "italic",
+        "strikethrough",
+        "|",
+        "code",
+        "|",
+        "h1",
+        "h2",
+        "|",
+        "ul",
+        "ol",
+        "|",
+        "blockquote",
+        "hr",
+        "|",
+        "undo",
+        "redo",
+        "|",
+        "insertLink",
+        "insertImage",
+      ]
+    );
+    document.addEventListener("keydown", (e) => this.handleKeydown(e));
     if (props.editor) this.setEditor(props.editor);
   }
 
   createCommandBarElement(parentElement, commands) {
-    this.e = document.createElement('div');
-    this.e.className = 'TMCommandBar';
+    this.e = document.createElement("div");
+    this.e.className = "TMCommandBar";
 
     for (let command of commands) {
-      if (command == '|') {
-        let el = document.createElement('div');
-        el.className = 'TMCommandDivider';
+      if (command == "|") {
+        let el = document.createElement("div");
+        el.className = "TMCommandDivider";
         this.e.appendChild(el);
       } else {
         let commandName;
@@ -128,19 +173,18 @@ class CommandBar {
           if (DefaultCommands[command]) {
             commandName = command;
             this.commands[commandName] = DefaultCommands[commandName];
-
-            
           } else {
             continue;
           }
-          
         } else if (typeof command == "object" && command.name) {
           commandName = command.name;
-          this.commands[commandName] = {}; 
-          if (DefaultCommands[commandName]) Object.assign(this.commands[commandName], DefaultCommands[commandName]);
+          this.commands[commandName] = {};
+          if (DefaultCommands[commandName])
+            Object.assign(
+              this.commands[commandName],
+              DefaultCommands[commandName]
+            );
           Object.assign(this.commands[commandName], command);
-        
-
         } else {
           continue;
         }
@@ -148,34 +192,56 @@ class CommandBar {
         let title = this.commands[commandName].title || commandName;
 
         if (this.commands[commandName].hotkey) {
-          const keys = this.commands[commandName].hotkey.split('-');
+          const keys = this.commands[commandName].hotkey.split("-");
           // construct modifiers
           let modifiers = [];
           let modifierexplanation = [];
           for (let i = 0; i < keys.length - 1; i++) {
             switch (keys[i]) {
-              case 'Ctrl': modifiers.push('ctrlKey'); modifierexplanation.push('Ctrl'); break;
-              case 'Cmd': modifiers.push('metaKey'); modifierexplanation.push('⌘'); break;
-              case 'Alt': modifiers.push('altKey'); modifierexplanation.push('Alt'); break;
-              case 'Option': modifiers.push('altKey'); modifierexplanation.push('⌥'); break;
-              case 'Win': modifiers.push('metaKey'); modifierexplanation.push('⊞ Win'); break;
+              case "Ctrl":
+                modifiers.push("ctrlKey");
+                modifierexplanation.push("Ctrl");
+                break;
+              case "Cmd":
+                modifiers.push("metaKey");
+                modifierexplanation.push("⌘");
+                break;
+              case "Alt":
+                modifiers.push("altKey");
+                modifierexplanation.push("Alt");
+                break;
+              case "Option":
+                modifiers.push("altKey");
+                modifierexplanation.push("⌥");
+                break;
+              case "Win":
+                modifiers.push("metaKey");
+                modifierexplanation.push("⊞ Win");
+                break;
 
-              case 'Shift':  modifiers.push('shiftKey'); modifierexplanation.push('⇧'); break;
+              case "Shift":
+                modifiers.push("shiftKey");
+                modifierexplanation.push("⇧");
+                break;
 
-              case 'Mod': // Mod is a convenience mechanism: Ctrl on Windows, Cmd on Mac
-                if (isMacLike) {modifiers.push('metaKey'); modifierexplanation.push('⌘');} 
-                else {modifiers.push('ctrlKey'); modifierexplanation.push('Ctrl');} 
-                break; 
-              case 'Mod2': 
-                modifiers.push('altKey'); 
-                if (isMacLike) modifierexplanation.push('⌥');
-                else modifierexplanation.push('Alt');
+              case "Mod": // Mod is a convenience mechanism: Ctrl on Windows, Cmd on Mac
+                if (isMacLike) {
+                  modifiers.push("metaKey");
+                  modifierexplanation.push("⌘");
+                } else {
+                  modifiers.push("ctrlKey");
+                  modifierexplanation.push("Ctrl");
+                }
+                break;
+              case "Mod2":
+                modifiers.push("altKey");
+                if (isMacLike) modifierexplanation.push("⌥");
+                else modifierexplanation.push("Alt");
                 break; // Mod2 is a convenience mechanism: Alt on Windows, Option on Mac
             }
           }
           modifierexplanation.push(keys[keys.length - 1]);
           let hotkey = {
-            
             modifiers: modifiers,
             command: commandName,
           };
@@ -186,15 +252,19 @@ class CommandBar {
             hotkey.key = keys[keys.length - 1].toLowerCase();
           }
           this.hotkeys.push(hotkey);
-          title = title.concat(` (${modifierexplanation.join('+')})`);
+          title = title.concat(` (${modifierexplanation.join("+")})`);
         }
 
-        this.buttons[commandName] = document.createElement('div');
-        this.buttons[commandName].className = 'TMCommandButton TMCommandButton_Disabled';
+        this.buttons[commandName] = document.createElement("div");
+        this.buttons[commandName].className =
+          "TMCommandButton TMCommandButton_Disabled";
         this.buttons[commandName].title = title;
-        this.buttons[commandName].innerHTML = this.commands[commandName].innerHTML;
+        this.buttons[commandName].innerHTML =
+          this.commands[commandName].innerHTML;
 
-        this.buttons[commandName].addEventListener('mousedown', (e) => this.handleClick(commandName, e));
+        this.buttons[commandName].addEventListener("mousedown", (e) =>
+          this.handleClick(commandName, e)
+        );
         this.e.appendChild(this.buttons[commandName]);
       }
     }
@@ -205,8 +275,9 @@ class CommandBar {
     if (!this.editor) return;
     event.preventDefault();
     if (typeof this.commands[commandName].action == "string") {
-      if (this.state[commandName] === false) this.editor.setCommandState(commandName, true);
-      else this.editor.setCommandState(commandName, false);  
+      if (this.state[commandName] === false)
+        this.editor.setCommandState(commandName, true);
+      else this.editor.setCommandState(commandName, false);
     } else if (typeof this.commands[commandName].action == "function") {
       this.commands[commandName].action(this.editor);
     }
@@ -214,25 +285,33 @@ class CommandBar {
 
   setEditor(editor) {
     this.editor = editor;
-    editor.addEventListener('selection', (e) => this.handleSelection(e));
+    editor.addEventListener("selection", (e) => this.handleSelection(e));
   }
 
   handleSelection(event) {
     if (event.commandState) {
       for (let command in this.commands) {
         if (event.commandState[command] === undefined) {
-          if (this.commands[command].enabled) this.state[command] = this.commands[command].enabled(this.editor, event.focus, event.anchor);
+          if (this.commands[command].enabled)
+            this.state[command] = this.commands[command].enabled(
+              this.editor,
+              event.focus,
+              event.anchor
+            );
           else this.state[command] = event.focus ? false : null;
         } else {
           this.state[command] = event.commandState[command];
         }
 
         if (this.state[command] === true) {
-          this.buttons[command].className = 'TMCommandButton TMCommandButton_Active';
+          this.buttons[command].className =
+            "TMCommandButton TMCommandButton_Active";
         } else if (this.state[command] === false) {
-          this.buttons[command].className = 'TMCommandButton TMCommandButton_Inactive';
+          this.buttons[command].className =
+            "TMCommandButton TMCommandButton_Inactive";
         } else {
-          this.buttons[command].className =  'TMCommandButton TMCommandButton_Disabled';
+          this.buttons[command].className =
+            "TMCommandButton TMCommandButton_Disabled";
         }
       }
     }
@@ -240,7 +319,10 @@ class CommandBar {
 
   handleKeydown(event) {
     outer: for (let hotkey of this.hotkeys) {
-      if ((hotkey.key && event.key.toLowerCase() == hotkey.key) || (hotkey.code && event.code == hotkey.code)) {
+      if (
+        (hotkey.key && event.key.toLowerCase() == hotkey.key) ||
+        (hotkey.code && event.code == hotkey.code)
+      ) {
         // Key matches hotkey. Look for any required modifier that wasn't pressed
         for (let modifier of hotkey.modifiers) {
           if (!event[modifier]) continue outer;
