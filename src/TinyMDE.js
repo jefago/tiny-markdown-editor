@@ -52,6 +52,11 @@ class Editor {
       this.textarea.style.display = "none";
     }
 
+    this.undoStack = [];
+    this.redoStack = [];
+    this.isRestoringHistory = false;
+    this.maxHistory = 100;
+
     this.createEditorElement(element, props);
     this.setContent(
       typeof props.content === "string"
@@ -60,6 +65,70 @@ class Editor {
         ? this.textarea.value
         : "# Hello TinyMDE!\nEdit **here**"
     );
+    // Keyboard shortcuts for undo/redo
+    this.e.addEventListener("keydown", (e) => this.handleUndoRedoKey(e));
+  }
+
+  pushHistory() {
+    if (this.isRestoringHistory) return;
+    this.pushCurrentState();
+    this.redoStack = [];
+  }
+
+  pushCurrentState() {
+    this.undoStack.push({
+      content: this.getContent(),
+      selection: this.getSelection(),
+      anchor: this.getSelection(true),
+    });
+    if (this.undoStack.length > this.maxHistory) this.undoStack.shift();
+  }
+
+  /**
+   * Undoes the last action.
+   */
+  undo() {
+    if (this.undoStack.length < 2) return; // Don't undo initial state
+    this.isRestoringHistory = true;
+    this.pushCurrentState();
+    const current = this.undoStack.pop();
+    this.redoStack.push(current);
+    const prev = this.undoStack[this.undoStack.length - 1];
+    this.setContent(prev.content);
+    if (prev.selection) this.setSelection(prev.selection, prev.anchor);
+    this.undoStack.pop();
+    this.isRestoringHistory = false;
+  }
+
+  /**
+   * Redoes the last undone action.
+   */
+  redo() {
+    if (!this.redoStack.length) return;
+    this.isRestoringHistory = true;
+    this.pushCurrentState();
+    const next = this.redoStack.pop();
+    this.setContent(next.content);
+    if (next.selection) this.setSelection(next.selection, next.anchor);
+    this.isRestoringHistory = false;
+  }
+
+  handleUndoRedoKey(e) {
+    const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+    const ctrl = isMac ? e.metaKey : e.ctrlKey;
+    if (ctrl && !e.altKey) {
+      if (e.key === "z" || e.key === "Z") {
+        if (e.shiftKey) {
+          this.redo();
+        } else {
+          this.undo();
+        }
+        e.preventDefault();
+      } else if (e.key === "y" || e.key === "Y") {
+        this.redo();
+        e.preventDefault();
+      }
+    }
   }
 
   /**
@@ -122,6 +191,7 @@ class Editor {
     this.lineTypes = new Array(this.lines.length);
     this.updateFormatting();
     this.fireChange();
+    if (!this.isRestoringHistory) this.pushHistory();
   }
 
   /**
@@ -1144,32 +1214,6 @@ class Editor {
     this.updateFormatting();
   }
 
-  // /**
-  //  * Processes a "delete" input action.
-  //  * @param {object} focus The selection
-  //  * @param {boolean} forward If true, performs a forward delete, otherwise performs a backward delete
-  //  */
-  // processDelete(focus, forward) {
-  //   if (!focus) return;
-  //   let anchor = this.getSelection(true);
-  //   // Do we have a non-empty selection?
-  //   if (focus.col != anchor.col || focus.row != anchor.row) {
-  //     // non-empty. direction doesn't matter.
-  //     this.paste('', anchor, focus);
-  //   } else {
-  //     if (forward) {
-  //       if (focus.col < this.lines[focus.row].length) this.paste('', {row: focus.row, col: focus.col + 1}, focus);
-  //       else if (focus.col < this.lines.length) this.paste('', {row: focus.row + 1, col: 0}, focus);
-  //       // Otherwise, we're at the very end and can't delete forward
-  //     } else {
-  //       if (focus.col > 0) this.paste('', {row: focus.row, col: focus.col - 1}, focus);
-  //       else if (focus.row > 0) this.paste('', {row: focus.row - 1, col: this.lines[focus.row - 1].length - 1}, focus);
-  //       // Otherwise, we're at the very beginning and can't delete backwards
-  //     }
-  //   }
-
-  // }
-
   /**
    * Gets the current position of the selection counted by row and column of the editor Markdown content (as opposed to the position in the DOM).
    *
@@ -1326,8 +1370,6 @@ class Editor {
   setSelection(focus, anchor = null) {
     if (!focus) return;
 
-    let range = document.createRange();
-
     let { node: focusNode, offset: focusOffset } = this.computeNodeAndOffset(
       focus.row,
       focus.col,
@@ -1345,19 +1387,20 @@ class Editor {
       anchorOffset = offset;
     }
 
-    if (anchorNode) range.setStart(anchorNode, anchorOffset);
-    else range.setStart(focusNode, focusOffset);
-    range.setEnd(focusNode, focusOffset);
-
     let windowSelection = window.getSelection();
-    windowSelection.removeAllRanges();
-    windowSelection.addRange(range);
+    windowSelection.setBaseAndExtent(
+      focusNode,
+      focusOffset,
+      anchorNode || focusNode,
+      anchorNode ? anchorOffset : focusOffset
+    );
   }
 
   /**
    * Event handler for input events
    */
   handleInputEvent(event) {
+    if (!this.isRestoringHistory) this.pushHistory();
     // For composition input, we are only updating the text after we have received
     // a compositionend event, so we return upon insertCompositionText.
     // Otherwise, the DOM changes break the text input.
@@ -1492,6 +1535,7 @@ class Editor {
    * Event handler for the "paste" event
    */
   handlePaste(event) {
+    if (!this.isRestoringHistory) this.pushHistory();
     event.preventDefault();
 
     // get text representation of clipboard
@@ -1681,6 +1725,7 @@ class Editor {
    * @param {boolean} state
    */
   setCommandState(command, state) {
+    if (!this.isRestoringHistory) this.pushHistory();
     if (commands[command].type == "inline") {
       let anchor = this.getSelection(true);
       let focus = this.getSelection(false);
@@ -1864,6 +1909,7 @@ class Editor {
    * @param {object} anchor The current selection focus. If null, selection will be computed.
    */
   wrapSelection(pre, post, focus = null, anchor = null) {
+    if (!this.isRestoringHistory) this.pushHistory();
     if (!focus) focus = this.getSelection(false);
     if (!anchor) anchor = this.getSelection(true);
     if (!focus || !anchor || focus.row != anchor.row) return;
@@ -1958,6 +2004,14 @@ class Editor {
     if (type.match(/^(?:drop)$/i)) {
       this.listeners.drop.push(listener);
     }
+  }
+
+  // Optionally, expose canUndo/canRedo
+  get canUndo() {
+    return this.undoStack.length > 1;
+  }
+  get canRedo() {
+    return this.redoStack.length > 0;
   }
 }
 
