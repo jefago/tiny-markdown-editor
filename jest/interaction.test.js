@@ -113,3 +113,105 @@ test("Undo and redo via keyboard shortcuts", async () => {
     "Alpha\nBeta"
   );
 });
+
+test("Bold command applies formatting and preserves selection", async () => {
+  await page.evaluate(() => {
+    document.tinyMDE = new TinyMDE.Editor({ element: "tinymde", content: "" });
+    document.getElementById("tinymde").firstChild.focus();
+  });
+  // Type some text
+  await page.keyboard.type("Hello world");
+  // Select 'world'
+  await select(page, 0, 6, 0, 11);
+  // Apply bold command
+  await page.evaluate(() => document.tinyMDE.setCommandState("bold", true));
+  // Check that the content is bolded
+  expect(await page.evaluate(() => document.tinyMDE.getContent())).toEqual(
+    "Hello **world**"
+  );
+  // Check that the selection is still on the bolded text
+  const selection = await page.evaluate(() => {
+    const sel = window.getSelection();
+    return {
+      anchorOffset: sel.anchorOffset,
+      focusOffset: sel.focusOffset,
+      anchorNodeText: sel.anchorNode && sel.anchorNode.textContent,
+      focusNodeText: sel.focusNode && sel.focusNode.textContent,
+    };
+  });
+  // The selection should be on the bolded word
+  expect(selection.anchorNodeText).toContain("world");
+  expect(selection.focusNodeText).toContain("world");
+  expect(selection.focusOffset).toBe(0);
+  expect(selection.anchorOffset).toBe(5);
+});
+
+test("Bold command applies formatting and preserves selection when selecting backwards", async () => {
+  await page.evaluate(() => {
+    document.tinyMDE = new TinyMDE.Editor({ element: "tinymde", content: "" });
+    document.getElementById("tinymde").firstChild.focus();
+  });
+  // Type some text
+  await page.keyboard.type("Hello world");
+  // Select 'world'
+  await select(page, 0, 11, 0, 6);
+  // Apply bold command
+  await page.evaluate(() => document.tinyMDE.setCommandState("bold", true));
+  // Check that the content is bolded
+  expect(await page.evaluate(() => document.tinyMDE.getContent())).toEqual(
+    "Hello **world**"
+  );
+  // Check that the selection is still on the bolded text
+  const selection = await page.evaluate(() => {
+    const sel = window.getSelection();
+    return {
+      anchorOffset: sel.anchorOffset,
+      focusOffset: sel.focusOffset,
+      anchorNodeText: sel.anchorNode && sel.anchorNode.textContent,
+      focusNodeText: sel.focusNode && sel.focusNode.textContent,
+    };
+  });
+  // The selection should be on the bolded word
+  expect(selection.anchorNodeText).toContain("world");
+  expect(selection.focusNodeText).toContain("world");
+  expect(selection.focusOffset).toBe(0);
+  expect(selection.anchorOffset).toBe(5);
+});
+
+test("Can undo bold command and preserve selection", async () => {
+  await page.evaluate(() => {
+    document.tinyMDE = new TinyMDE.Editor({ element: "tinymde", content: "" });
+    document.getElementById("tinymde").firstChild.focus();
+  });
+  // Type some text
+  await page.keyboard.type("Hello world");
+  // Select 'world'
+  await select(page, 0, 6, 0, 11);
+  // Apply bold command
+  await page.evaluate(() => document.tinyMDE.setCommandState("bold", true));
+  // Check that the content is bolded
+  expect(await page.evaluate(() => document.tinyMDE.getContent())).toEqual(
+    "Hello **world**"
+  );
+  // Undo bold command
+  await page.evaluate(() => document.tinyMDE.undo());
+  // Check that the content is not bolded
+  expect(await page.evaluate(() => document.tinyMDE.getContent())).toEqual(
+    "Hello world"
+  );
+  // Check that the selection is still on the bolded text
+  const selection = await page.evaluate(() => {
+    const sel = window.getSelection();
+    return {
+      anchorOffset: sel.anchorOffset,
+      focusOffset: sel.focusOffset,
+      anchorNodeText: sel.anchorNode && sel.anchorNode.textContent,
+      focusNodeText: sel.focusNode && sel.focusNode.textContent,
+    };
+  });
+  // The selection should be on the bolded word
+  expect(selection.anchorNodeText).toContain("Hello world");
+  expect(selection.focusNodeText).toContain("Hello world");
+  expect(selection.focusOffset).toBe(6);
+  expect(selection.anchorOffset).toBe(11);
+});
