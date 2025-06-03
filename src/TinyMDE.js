@@ -1400,11 +1400,11 @@ class Editor {
    * Event handler for input events
    */
   handleInputEvent(event) {
-    if (!this.isRestoringHistory) this.pushHistory();
     // For composition input, we are only updating the text after we have received
     // a compositionend event, so we return upon insertCompositionText.
     // Otherwise, the DOM changes break the text input.
     if (event.inputType == "insertCompositionText") return;
+    if (!this.isRestoringHistory) this.pushHistory();
 
     let focus = this.getSelection();
 
