@@ -10,9 +10,11 @@ import { babel as rollupBabel } from "@rollup/plugin-babel";
 import commonjs from "@rollup/plugin-commonjs";
 import { eslint } from "rollup-plugin-eslint";
 import { nodeResolve } from "@rollup/plugin-node-resolve";
+import typescript from "@rollup/plugin-typescript";
 import terser from "gulp-terser";
 
 import gulpBabel from "gulp-babel";
+import gulpTypescript from "gulp-typescript";
 
 import postcss from "gulp-postcss";
 import autoprefixer from "autoprefixer";
@@ -47,9 +49,19 @@ const rollupConfig = (inputFile, sourcemaps = false) => {
       sourcemap: sourcemaps,
     },
     plugins: [
+      typescript({
+        tsconfig: "./tsconfig.json",
+        declaration: false,
+      }),
       eslint({ throwOnError: true }),
-      rollupBabel({ babelHelpers: "bundled" }),
-      nodeResolve(),
+      rollupBabel({ 
+        babelHelpers: "bundled",
+        extensions: [".js", ".ts"],
+        exclude: "node_modules/**"
+      }),
+      nodeResolve({
+        extensions: [".js", ".ts"]
+      }),
       commonjs(),
     ],
   };
@@ -60,7 +72,7 @@ const clean = () => del(["./dist", "./lib"]);
 const jest = () => jestCLI.run([]);
 
 const jsMax = () =>
-  rollupStream({ ...rollupConfig("./src/index.js", true), cache })
+  rollupStream({ ...rollupConfig("./src/index.ts", true), cache })
     .on("bundle", (bundle) => {
       cache = bundle;
     })
@@ -73,7 +85,7 @@ const jsMax = () =>
     .pipe(size({ showFiles: true }))
     .pipe(gulp.dest("./dist"));
 const jsTiny = () =>
-  rollupStream(rollupConfig("./src/tiny.js"))
+  rollupStream(rollupConfig("./src/tiny.ts"))
     .pipe(source("tiny-mde.tiny.js"))
     .pipe(buffer())
     .pipe(terser())
@@ -82,11 +94,18 @@ const jsTiny = () =>
 
 const js = gulp.series(jsMax, jsTiny);
 
-const transpile = () =>
-  gulp
-    .src("./src/**/*.js")
-    .pipe(gulpBabel({ plugins: ["@babel/plugin-transform-modules-commonjs"] }))
+const transpile = () => {
+  const tsProject = gulpTypescript.createProject('tsconfig.json', {
+    module: 'commonjs',
+    declaration: true,
+    outDir: './lib'
+  });
+  
+  return gulp
+    .src("./src/**/*.ts")
+    .pipe(tsProject())
     .pipe(gulp.dest("./lib"));
+};
 
 const html = () => gulp.src("./src/html/*.html").pipe(gulp.dest("./dist"));
 
@@ -102,7 +121,7 @@ const css = () =>
 
 const watch = () => {
   gulp.watch("./src/**/*.svg", svg);
-  gulp.watch("./src/**/*.js", jsMax);
+  gulp.watch("./src/**/*.ts", jsMax);
   gulp.watch("./src/**/*.css", css);
   gulp.watch("./src/**/*.html", html);
 };
@@ -129,8 +148,8 @@ const svg = () => {
   }
   return Promise.all(promises).then((values) =>
     writefile(
-      path.join(".", "src", "svg", "svg.js"),
-      `const svg = {\n  ${values.join(",\n  ")}\n};\n\nexport default svg;`,
+      path.join(".", "src", "svg", "svg.ts"),
+      `const svg: Record<string, string> = {\n  ${values.join(",\n  ")}\n};\n\nexport default svg;`,
       { encoding: "utf8" }
     )
   );

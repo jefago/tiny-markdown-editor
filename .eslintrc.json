@@ -10,6 +10,7 @@
     },
     "ignorePatterns": ["gulpfile.js", "jest*.config.js", "jest/**/*.js", "node_modules/"],
     "rules": {
-        "no-fallthrough": "off"
+        "no-fallthrough": "off",
+        "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }]
     }
 }
