@@ -1,10 +1,41 @@
 import svg from "./svg/svg";
+import { Editor, Position, SelectionEvent } from "./TinyMDE";
 
 const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(
   typeof navigator !== "undefined" ? navigator.platform : ""
 );
 
-const DefaultCommands = {
+export interface CommandAction {
+  (editor: Editor): void;
+}
+
+export interface CommandEnabled {
+  (editor: Editor, focus?: Position, anchor?: Position): boolean | null;
+}
+
+export interface CommandDefinition {
+  name: string;
+  action: string | CommandAction;
+  innerHTML: string;
+  title: string;
+  hotkey?: string;
+  enabled?: CommandEnabled;
+}
+
+export interface CommandBarProps {
+  element?: string | HTMLElement;
+  editor?: Editor;
+  commands?: (string | CommandDefinition)[];
+}
+
+interface Hotkey {
+  modifiers: string[];
+  command: string;
+  key?: string;
+  code?: string;
+}
+
+const DefaultCommands: Record<string, CommandDefinition> = {
   bold: {
     name: "bold",
     action: "bold",
@@ -67,29 +98,29 @@ const DefaultCommands = {
   },
   insertLink: {
     name: "insertLink",
-    action: (editor) => {
-      if (editor.isInlineFormattingAllowed()) editor.wrapSelection("[", "]()");
+    action: (editor: Editor) => {
+      if ((editor as any).isInlineFormattingAllowed()) editor.wrapSelection("[", "]()");
     },
-    enabled: (editor, focus, anchor) =>
-      editor.isInlineFormattingAllowed(focus, anchor) ? false : null,
+    enabled: (editor: Editor, focus?: Position, anchor?: Position) =>
+      (editor as any).isInlineFormattingAllowed(focus, anchor) ? false : null,
     innerHTML: svg.link,
     title: "Insert link",
     hotkey: "Mod-K",
   },
   insertImage: {
     name: "insertImage",
-    action: (editor) => {
-      if (editor.isInlineFormattingAllowed()) editor.wrapSelection("![", "]()");
+    action: (editor: Editor) => {
+      if ((editor as any).isInlineFormattingAllowed()) editor.wrapSelection("![", "]()");
     },
-    enabled: (editor, focus, anchor) =>
-      editor.isInlineFormattingAllowed(focus, anchor) ? false : null,
+    enabled: (editor: Editor, focus?: Position, anchor?: Position) =>
+      (editor as any).isInlineFormattingAllowed(focus, anchor) ? false : null,
     innerHTML: svg.image,
     title: "Insert image",
     hotkey: "Mod2-Shift-I",
   },
   hr: {
     name: "hr",
-    action: (editor) => editor.paste("\n***\n"),
+    action: (editor: Editor) => editor.paste("\n***\n"),
     enabled: () => false,
     innerHTML: svg.hr,
     title: "Insert horizontal line",
@@ -97,36 +128,47 @@ const DefaultCommands = {
   },
   undo: {
     name: "undo",
-    action: (editor) => editor.undo(),
-    enabled: (editor) => (editor.canUndo ? false : null),
+    action: (editor: Editor) => editor.undo(),
+    enabled: (editor: Editor) => (editor.canUndo ? false : null),
     innerHTML: svg.undo,
     title: "Undo",
   },
   redo: {
     name: "redo",
-    action: (editor) => editor.redo(),
-    enabled: (editor) => (editor.canRedo ? false : null),
+    action: (editor: Editor) => editor.redo(),
+    enabled: (editor: Editor) => (editor.canRedo ? false : null),
     innerHTML: svg.redo,
     title: "Redo",
   },
 };
 
-class CommandBar {
-  constructor(props) {
+export class CommandBar {
+  public e: HTMLDivElement | null = null;
+  public editor: Editor | null = null;
+  public commands: Record<string, CommandDefinition> = {};
+  public buttons: Record<string, HTMLDivElement> = {};
+  public state: Record<string, boolean | null> = {};
+  private hotkeys: Hotkey[] = [];
+
+  constructor(props: CommandBarProps) {
     this.e = null;
     this.editor = null;
-    this.commands = [];
+    this.commands = {};
     this.buttons = {};
     this.state = {};
     this.hotkeys = [];
 
-    let element = props.element;
-    if (element && !element.tagName) {
+    let element: HTMLElement | null = null;
+    if (typeof props.element === 'string') {
       element = document.getElementById(props.element);
+    } else if (props.element) {
+      element = props.element;
     }
+    
     if (!element) {
       element = document.body;
     }
+
     this.createCommandBarElement(
       element,
       props.commands || [
@@ -156,34 +198,30 @@ class CommandBar {
     if (props.editor) this.setEditor(props.editor);
   }
 
-  createCommandBarElement(parentElement, commands) {
+  private createCommandBarElement(parentElement: HTMLElement, commands: (string | CommandDefinition)[]): void {
     this.e = document.createElement("div");
     this.e.className = "TMCommandBar";
 
     for (let command of commands) {
-      if (command == "|") {
+      if (command === "|") {
         let el = document.createElement("div");
         el.className = "TMCommandDivider";
         this.e.appendChild(el);
       } else {
-        let commandName;
-        if (typeof command == "string") {
-          // Reference to default command
-
+        let commandName: string;
+        if (typeof command === "string") {
           if (DefaultCommands[command]) {
             commandName = command;
             this.commands[commandName] = DefaultCommands[commandName];
           } else {
             continue;
           }
-        } else if (typeof command == "object" && command.name) {
+        } else if (typeof command === "object" && command.name) {
           commandName = command.name;
-          this.commands[commandName] = {};
-          if (DefaultCommands[commandName])
-            Object.assign(
-              this.commands[commandName],
-              DefaultCommands[commandName]
-            );
+          this.commands[commandName] = {} as CommandDefinition;
+          if (DefaultCommands[commandName]) {
+            Object.assign(this.commands[commandName], DefaultCommands[commandName]);
+          }
           Object.assign(this.commands[commandName], command);
         } else {
           continue;
@@ -192,10 +230,10 @@ class CommandBar {
         let title = this.commands[commandName].title || commandName;
 
         if (this.commands[commandName].hotkey) {
-          const keys = this.commands[commandName].hotkey.split("-");
-          // construct modifiers
-          let modifiers = [];
-          let modifierexplanation = [];
+          const keys = this.commands[commandName].hotkey!.split("-");
+          let modifiers: string[] = [];
+          let modifierexplanation: string[] = [];
+          
           for (let i = 0; i < keys.length - 1; i++) {
             switch (keys[i]) {
               case "Ctrl":
@@ -218,13 +256,11 @@ class CommandBar {
                 modifiers.push("metaKey");
                 modifierexplanation.push("⊞ Win");
                 break;
-
               case "Shift":
                 modifiers.push("shiftKey");
                 modifierexplanation.push("⇧");
                 break;
-
-              case "Mod": // Mod is a convenience mechanism: Ctrl on Windows, Cmd on Mac
+              case "Mod":
                 if (isMacLike) {
                   modifiers.push("metaKey");
                   modifierexplanation.push("⌘");
@@ -237,15 +273,16 @@ class CommandBar {
                 modifiers.push("altKey");
                 if (isMacLike) modifierexplanation.push("⌥");
                 else modifierexplanation.push("Alt");
-                break; // Mod2 is a convenience mechanism: Alt on Windows, Option on Mac
+                break;
             }
           }
+          
           modifierexplanation.push(keys[keys.length - 1]);
-          let hotkey = {
+          let hotkey: Hotkey = {
             modifiers: modifiers,
             command: commandName,
           };
-          // TODO Right now this is working only for letters and numbers
+          
           if (keys[keys.length - 1].match(/^[0-9]$/)) {
             hotkey.code = `Digit${keys[keys.length - 1]}`;
           } else {
@@ -256,11 +293,9 @@ class CommandBar {
         }
 
         this.buttons[commandName] = document.createElement("div");
-        this.buttons[commandName].className =
-          "TMCommandButton TMCommandButton_Disabled";
+        this.buttons[commandName].className = "TMCommandButton TMCommandButton_Disabled";
         this.buttons[commandName].title = title;
-        this.buttons[commandName].innerHTML =
-          this.commands[commandName].innerHTML;
+        this.buttons[commandName].innerHTML = this.commands[commandName].innerHTML;
 
         this.buttons[commandName].addEventListener("mousedown", (e) =>
           this.handleClick(commandName, e)
@@ -271,63 +306,60 @@ class CommandBar {
     parentElement.appendChild(this.e);
   }
 
-  handleClick(commandName, event) {
+  private handleClick(commandName: string, event: Event): void {
     if (!this.editor) return;
     event.preventDefault();
-    if (typeof this.commands[commandName].action == "string") {
+    if (typeof this.commands[commandName].action === "string") {
       if (this.state[commandName] === false)
-        this.editor.setCommandState(commandName, true);
-      else this.editor.setCommandState(commandName, false);
-    } else if (typeof this.commands[commandName].action == "function") {
-      this.commands[commandName].action(this.editor);
+        (this.editor as any).setCommandState(commandName, true);
+      else (this.editor as any).setCommandState(commandName, false);
+    } else if (typeof this.commands[commandName].action === "function") {
+      (this.commands[commandName].action as CommandAction)(this.editor);
     }
   }
 
-  setEditor(editor) {
+  public setEditor(editor: Editor): void {
     this.editor = editor;
     editor.addEventListener("selection", (e) => this.handleSelection(e));
   }
 
-  handleSelection(event) {
+  private handleSelection(event: SelectionEvent): void {
     if (event.commandState) {
       for (let command in this.commands) {
         if (event.commandState[command] === undefined) {
-          if (this.commands[command].enabled)
-            this.state[command] = this.commands[command].enabled(
-              this.editor,
+          if (this.commands[command].enabled) {
+            this.state[command] = this.commands[command].enabled!(
+              this.editor!,
               event.focus,
               event.anchor
             );
-          else this.state[command] = event.focus ? false : null;
+          } else {
+            this.state[command] = event.focus ? false : null;
+          }
         } else {
           this.state[command] = event.commandState[command];
         }
 
         if (this.state[command] === true) {
-          this.buttons[command].className =
-            "TMCommandButton TMCommandButton_Active";
+          this.buttons[command].className = "TMCommandButton TMCommandButton_Active";
         } else if (this.state[command] === false) {
-          this.buttons[command].className =
-            "TMCommandButton TMCommandButton_Inactive";
+          this.buttons[command].className = "TMCommandButton TMCommandButton_Inactive";
         } else {
-          this.buttons[command].className =
-            "TMCommandButton TMCommandButton_Disabled";
+          this.buttons[command].className = "TMCommandButton TMCommandButton_Disabled";
         }
       }
     }
   }
 
-  handleKeydown(event) {
+  private handleKeydown(event: KeyboardEvent): void {
     outer: for (let hotkey of this.hotkeys) {
       if (
-        (hotkey.key && event.key.toLowerCase() == hotkey.key) ||
-        (hotkey.code && event.code == hotkey.code)
+        (hotkey.key && event.key.toLowerCase() === hotkey.key) ||
+        (hotkey.code && event.code === hotkey.code)
       ) {
-        // Key matches hotkey. Look for any required modifier that wasn't pressed
         for (let modifier of hotkey.modifiers) {
-          if (!event[modifier]) continue outer;
+          if (!(event as any)[modifier]) continue outer;
         }
-        // Everything matches.
         this.handleClick(hotkey.command, event);
         return;
       }
