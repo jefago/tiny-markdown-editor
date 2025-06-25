@@ -679,7 +679,10 @@ export class Editor {
 
     outer: while (string) {
       // Process simple rules (non-delimiter)
-      for (let rule of ["escape", "code", "autolink", "html"]) {
+      for (let rule of Object.keys(this.activeGrammar!)) {
+        if (["linkOpen", "imageOpen", "linkLabel", "default"].includes(rule) || /^(?:\*|_|~)+$/.test(this.activeGrammar![rule].regexp.source)) {
+          continue;
+        }
         let cap = this.activeGrammar![rule].regexp.exec(string);
         if (cap) {
           string = string.substr(cap[0].length);
