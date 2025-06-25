@@ -8,6 +8,7 @@ import {
   commands,
   HTMLBlockRule,
   Command,
+  GrammarRule,
 } from "./grammar";
 
 export interface EditorProps {
@@ -15,6 +16,7 @@ export interface EditorProps {
   editor?: string | HTMLElement;
   content?: string;
   textarea?: string | HTMLTextAreaElement;
+  inlineGrammar?: Record<string, GrammarRule>;
 }
 
 export interface Position {
@@ -57,6 +59,7 @@ export class Editor {
   public linkLabels: string[] = [];
   public lineDirty: boolean[] = [];
   public lastCommandState: Record<string, boolean | null> | null = null;
+  public activeGrammar: Record<string, GrammarRule> | null = null;
 
   public listeners: {
     change: EventHandler<ChangeEvent>[];
@@ -124,6 +127,11 @@ export class Editor {
     this.redoStack = [];
     this.isRestoringHistory = false;
     this.maxHistory = 100;
+
+    this.activeGrammar = { ...inlineGrammar };
+    if (props.inlineGrammar) {
+      this.activeGrammar = { ...this.activeGrammar, ...props.inlineGrammar };
+    }
 
     this.createEditorElement(element, props);
     this.setContent(
@@ -672,18 +680,18 @@ export class Editor {
     outer: while (string) {
       // Process simple rules (non-delimiter)
       for (let rule of ["escape", "code", "autolink", "html"]) {
-        let cap = inlineGrammar[rule].regexp.exec(string);
+        let cap = this.activeGrammar![rule].regexp.exec(string);
         if (cap) {
           string = string.substr(cap[0].length);
           offset += cap[0].length;
-          processed += inlineGrammar[rule].replacement.replace(/\$([1-9])/g, (str, p1) => htmlescape(cap[p1]));
+          processed += this.activeGrammar![rule].replacement.replace(/\$([1-9])/g, (str, p1) => htmlescape(cap[p1]));
           continue outer;
         }
       }
 
       // Check for links / images
-      let potentialLink = string.match(inlineGrammar.linkOpen.regexp);
-      let potentialImage = string.match(inlineGrammar.imageOpen.regexp);
+      let potentialLink = string.match(this.activeGrammar!.linkOpen.regexp);
+      let potentialImage = string.match(this.activeGrammar!.imageOpen.regexp);
       if (potentialImage || potentialLink) {
         let result = this.parseLinkOrImage(string, !!potentialImage);
         if (result) {
@@ -805,11 +813,11 @@ export class Editor {
       }
 
       // Process 'default' rule
-      cap = inlineGrammar.default.regexp.exec(string);
+      cap = this.activeGrammar!.default.regexp.exec(string);
       if (cap) {
         string = string.substr(cap[0].length);
         offset += cap[0].length;
-        processed += inlineGrammar.default.replacement.replace(/\$([1-9])/g, (str, p1) => htmlescape(cap[p1]));
+        processed += this.activeGrammar!.default.replacement.replace(/\$([1-9])/g, (str, p1) => htmlescape(cap[p1]));
         continue outer;
       }
       throw "Infinite loop!";
@@ -1088,7 +1096,7 @@ export class Editor {
 
       // Capture any escapes and code blocks at current position
       for (let rule of ["escape", "code", "autolink", "html"]) {
-        let cap = inlineGrammar[rule].regexp.exec(string);
+        let cap = this.activeGrammar![rule].regexp.exec(string);
         if (cap) {
           currentOffset += cap[0].length;
           continue textOuter;
@@ -1096,14 +1104,14 @@ export class Editor {
       }
 
       // Check for image
-      if (string.match(inlineGrammar.imageOpen.regexp)) {
+      if (string.match(this.activeGrammar!.imageOpen.regexp)) {
         bracketLevel++;
         currentOffset += 2;
         continue textOuter;
       }
 
       // Check for link
-      if (string.match(inlineGrammar.linkOpen.regexp)) {
+      if (string.match(this.activeGrammar!.linkOpen.regexp)) {
         bracketLevel++;
         if (!isImage) {
           if (this.parseLinkOrImage(string, false)) {
@@ -1137,12 +1145,12 @@ export class Editor {
     // REFERENCE LINKS
     if (nextChar === "[") {
       let string = originalString.substr(currentOffset);
-      let cap = inlineGrammar.linkLabel.regexp.exec(string);
+      let cap = this.activeGrammar!.linkLabel.regexp.exec(string);
       if (cap) {
         currentOffset += cap[0].length;
         linkLabel.push(cap[1], cap[2], cap[3]);
-        if (cap[inlineGrammar.linkLabel.labelPlaceholder!]) {
-          linkRef = cap[inlineGrammar.linkLabel.labelPlaceholder!];
+        if (cap[this.activeGrammar!.linkLabel.labelPlaceholder!]) {
+          linkRef = cap[this.activeGrammar!.linkLabel.labelPlaceholder!];
         } else {
           linkRef = linkText.trim();
         }
