@@ -4,6 +4,11 @@ export interface GrammarRule {
   labelPlaceholder?: number;
 }
 
+export interface CustomInlineRule {
+  regexp: RegExp;
+  replacement: string;
+}
+
 export interface HTMLBlockRule {
   start: RegExp;
   end: RegExp | false;
