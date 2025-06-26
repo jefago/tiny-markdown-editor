@@ -8,6 +8,7 @@ import {
   commands,
   HTMLBlockRule,
   Command,
+  CustomInlineRule,
 } from "./grammar";
 
 export interface EditorProps {
@@ -15,6 +16,7 @@ export interface EditorProps {
   editor?: string | HTMLElement;
   content?: string;
   textarea?: string | HTMLTextAreaElement;
+  customInlineRules?: CustomInlineRule[];
 }
 
 export interface Position {
@@ -72,6 +74,7 @@ export class Editor {
   private redoStack: HistoryState[] = [];
   private isRestoringHistory: boolean = false;
   private maxHistory: number = 100;
+  private customInlineRules: CustomInlineRule[] = [];
 
   constructor(props: EditorProps = {}) {
     this.e = null;
@@ -84,6 +87,7 @@ export class Editor {
     this.linkLabels = [];
     this.lineDirty = [];
     this.lastCommandState = null;
+    this.customInlineRules = props.customInlineRules || [];
 
     this.listeners = {
       change: [],
@@ -670,6 +674,17 @@ export class Editor {
     let string = originalString;
 
     outer: while (string) {
+      // Process custom inline rules first
+      for (let customRule of this.customInlineRules) {
+        let cap = customRule.regexp.exec(string);
+        if (cap) {
+          string = string.substr(cap[0].length);
+          offset += cap[0].length;
+          processed += customRule.replacement.replace(/\$([1-9])/g, (str, p1) => htmlescape(cap[p1]));
+          continue outer;
+        }
+      }
+
       // Process simple rules (non-delimiter)
       for (let rule of ["escape", "code", "autolink", "html"]) {
         let cap = inlineGrammar[rule].regexp.exec(string);
