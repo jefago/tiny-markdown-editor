@@ -126,6 +126,7 @@ Please note:
 | `editor`   | The DOM div element which the TinyMDE DOM element will modify (get created from). The `editor` attribute can be given as either an ID or the DOM element itself (i.e., the result of a call to `document.getElementById()`). Useful when you already have references to the element even before TinyMDE creation, or when you want to keep exact ordering of the DOM element among other sibling elements.                                                                                                                          |
 | `content`  | The initial content of the editor, given as a string. May contain newlines.                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `textarea` | The textarea that will be linked to the editor. The textarea can be given as an ID or as the DOM element itself (i.e., the result of a call to `document.getElementById()`). The content of the editor will be reflected in the value of the textarea at any given point in time. If `textarea` is given and `content` isn't, then the editor content will be initialized to the textarea's value. If `textarea` is given and `element` isn't, then the editor element will be created as the next sibling of the textarea element. |
+| `customInlineRules` | An array of custom inline grammar rules that extend the editor with additional formatting syntax. Each rule is an object with `regexp` (RegExp) and `replacement` (string) properties. Custom rules are processed before built-in markdown rules and allow for domain-specific formatting. See [Custom Inline Grammar](#custom-inline-grammar) for details. |
 
 If neither `element` not `textarea` are given, the editor element will be created as the last child element of the `body` element (probably not what you want in most cases, so you probably want to pass at least one of `element` or `textarea`).
 
@@ -254,6 +255,82 @@ Each line of a code fenced blocks (ie. starting and ending with ` ``` ` or `~~~`
 #### CommandBar styling
 
 The main toolbar element has the class `TMCommandBar`. Buttons have the class `TMCommandButton`, with an additional class of `TMCommandButton_Active`, `TMCommandButton_Inactive`, or `TMCommandButton_Disabled`, depending on the state of the respective command. Divider elements have the class `TMCommandDivider`.
+
+## Custom Inline Grammar
+
+TinyMDE supports custom inline grammar rules that allow you to extend the editor with your own inline formatting syntax. This is useful for adding domain-specific formatting or extending the editor with custom markdown-like syntax.
+
+### Basic Usage
+
+```javascript
+const editor = new TinyMDE.Editor({
+  element: 'editor',
+  content: 'Use ::highlighting:: and {{custom code}} syntax!',
+  customInlineRules: [
+    {
+      regexp: /^::([^:]+)::/,
+      replacement: '<span class="highlight">$1</span>'
+    },
+    {
+      regexp: /^\{\{([^}]+)\}\}/,
+      replacement: '<code class="custom-code">$1</code>'
+    }
+  ]
+});
+```
+
+### Custom Rule Format
+
+Each custom rule is an object with two properties:
+
+- **`regexp`**: A RegExp that matches your custom syntax (must start with `^`)
+- **`replacement`**: A string defining the HTML output (use `$1`, `$2`, etc. for captured groups)
+
+### Processing Order
+
+Custom rules are processed **before** built-in markdown rules, giving them priority. Content captured by regex groups is automatically HTML-escaped for security.
+
+### Examples
+
+#### Highlighting Syntax
+```javascript
+// Input: "This is ::important:: text"
+// Output: <span class="highlight">important</span>
+{
+  regexp: /^::([^:]+)::/,
+  replacement: '<span class="highlight">$1</span>'
+}
+```
+
+#### Custom Links
+```javascript
+// Input: "Visit [[GitHub|https://github.com]]"
+// Output: <a href="https://github.com" class="custom-link">GitHub</a>
+{
+  regexp: /^\[\[([^|]+)\|([^\]]+)\]\]/,
+  replacement: '<a href="$2" class="custom-link">$1</a>'
+}
+```
+
+### Styling Custom Rules
+
+Style your custom rules with CSS:
+
+```css
+.highlight {
+  background-color: yellow;
+  font-weight: bold;
+}
+
+.custom-code {
+  background-color: #f5f5f5;
+  font-family: monospace;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+```
+
+For complete documentation and advanced examples, see [CUSTOM_GRAMMAR.md](CUSTOM_GRAMMAR.md).
 
 ## Build TinyMDE
 
