@@ -120,12 +120,13 @@ Please note:
 
 `TinyMDE.Editor` takes as argument a key-value object with the following possible attributes:
 
-| Attribute  | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `element`  | The DOM element under which the TinyMDE DOM element will be created. The `element` attribute can be given as either an ID or the DOM element itself (i.e., the result of a call to `document.getElementById()`).                                                                                                                                                                                                                                                                                                                    |
-| `editor`   | The DOM div element which the TinyMDE DOM element will modify (get created from). The `editor` attribute can be given as either an ID or the DOM element itself (i.e., the result of a call to `document.getElementById()`). Useful when you already have references to the element even before TinyMDE creation, or when you want to keep exact ordering of the DOM element among other sibling elements.                                                                                                                          |
-| `content`  | The initial content of the editor, given as a string. May contain newlines.                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `textarea` | The textarea that will be linked to the editor. The textarea can be given as an ID or as the DOM element itself (i.e., the result of a call to `document.getElementById()`). The content of the editor will be reflected in the value of the textarea at any given point in time. If `textarea` is given and `content` isn't, then the editor content will be initialized to the textarea's value. If `textarea` is given and `element` isn't, then the editor element will be created as the next sibling of the textarea element. |
+| Attribute             | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `element`             | The DOM element under which the TinyMDE DOM element will be created. The `element` attribute can be given as either an ID or the DOM element itself (i.e., the result of a call to `document.getElementById()`).                                                                                                                                                                                                                                                                                                                    |
+| `editor`              | The DOM div element which the TinyMDE DOM element will modify (get created from). The `editor` attribute can be given as either an ID or the DOM element itself (i.e., the result of a call to `document.getElementById()`). Useful when you already have references to the element even before TinyMDE creation, or when you want to keep exact ordering of the DOM element among other sibling elements.                                                                                                                          |
+| `content`             | The initial content of the editor, given as a string. May contain newlines.                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `textarea`            | The textarea that will be linked to the editor. The textarea can be given as an ID or as the DOM element itself (i.e., the result of a call to `document.getElementById()`). The content of the editor will be reflected in the value of the textarea at any given point in time. If `textarea` is given and `content` isn't, then the editor content will be initialized to the textarea's value. If `textarea` is given and `element` isn't, then the editor element will be created as the next sibling of the textarea element. |
+| `customInlineGrammar` | An optional object containing custom inline grammar rules. Each rule should have a `regexp` property (a RegExp object) and a `replacement` property (a string with HTML markup). Custom rules are merged with the default grammar rules and processed in the same order. See [Custom Inline Grammar](#custom-inline-grammar) for more details.                                                                                                                                                                                      |
 
 If neither `element` not `textarea` are given, the editor element will be created as the last child element of the `body` element (probably not what you want in most cases, so you probably want to pass at least one of `element` or `textarea`).
 
@@ -281,3 +282,114 @@ The latter command generates the `dist` and `lib` directories. You will find the
 - `dist/tiny-mde.js`: Debug version of the editor. The JS file is not minified and contains a sourcemap. It is not recommended to use this in production settings, since the file is large.
 - `dist/tiny-mde.min.js`: Minified JS file for most use cases. Simply copy this to your project to use it.
 - `dist/tiny-mde.tiny.js`: Minified and stripped-down JS file. Contains only the editor itself, not the toolbar.
+
+### Custom Inline Grammar
+
+TinyMDE supports custom inline grammar rules that allow you to extend the editor's formatting capabilities beyond the standard Markdown syntax. You can define custom patterns and their HTML replacements to create new formatting options.
+
+#### Defining Custom Grammar Rules
+
+Each custom grammar rule consists of:
+
+- **`regexp`**: A RegExp object that matches the pattern you want to recognize
+- **`replacement`**: A string containing the HTML markup that should replace the matched text
+
+The replacement string can use capture groups from the regexp with `$1`, `$2`, etc.
+
+#### Example Usage
+
+```javascript
+// Define custom inline grammar rules
+const customGrammar = {
+  // Highlight text with ==text==
+  highlight: {
+    regexp: /^==([^=]+)==/,
+    replacement:
+      '<span class="TMMark">==</span><span class="TMHighlight">$1</span><span class="TMMark">==</span>',
+  },
+
+  // Superscript with ^text^
+  superscript: {
+    regexp: /^\^([^^]+)\^/,
+    replacement:
+      '<span class="TMMark">^</span><sup class="TMSuperscript">$1</sup><span class="TMMark">^</span>',
+  },
+
+  // Emoji with :emoji:
+  emoji: {
+    regexp: /^:([a-zA-Z0-9_]+):/,
+    replacement: '<span class="TMEmoji">:$1:</span>',
+  },
+};
+
+// Initialize editor with custom grammar
+const editor = new TinyMDE.Editor({
+  element: "editor",
+  customInlineGrammar: customGrammar,
+});
+```
+
+#### Important Notes
+
+- Custom rules are merged with the default grammar rules when the editor is initialized
+- Rules are processed in the order they appear in the merged grammar object
+- Custom rules should not conflict with existing default rules unless you intend to override them
+- The `TMMark` class is used to style the markup characters (delimiters) consistently with the rest of the editor
+- Make sure your CSS includes styles for any custom classes you use in the replacement HTML
+
+#### Example Custom Grammar Rules
+
+Here are some common examples of custom grammar rules you might want to add:
+
+```javascript
+const customGrammar = {
+  // Highlight text
+  highlight: {
+    regexp: /^==([^=]+)==/,
+    replacement:
+      '<span class="TMMark">==</span><span class="TMHighlight">$1</span><span class="TMMark">==</span>',
+  },
+
+  // Subscript (different from strikethrough)
+  subscript: {
+    regexp: /^~([^~]+)~(?!~)/,
+    replacement:
+      '<span class="TMMark">~</span><sub class="TMSubscript">$1</sub><span class="TMMark">~</span>',
+  },
+
+  // Mentions
+  mention: {
+    regexp: /^@([a-zA-Z0-9_]+)/,
+    replacement: '<span class="TMMention">@$1</span>',
+  },
+
+  // Custom tags
+  customTag: {
+    regexp: /^#([^#]+)#/,
+    replacement:
+      '<span class="TMMark">#</span><span class="TMCustomTag">$1</span><span class="TMMark">#</span>',
+  },
+};
+```
+
+Remember to add corresponding CSS styles for your custom classes:
+
+```css
+.TMHighlight {
+  background: yellow;
+}
+.TMSubscript {
+  vertical-align: sub;
+  font-size: smaller;
+}
+.TMMention {
+  color: #0066cc;
+  text-decoration: underline;
+}
+.TMCustomTag {
+  background: #e8f4fd;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: #0066cc;
+}
+```
