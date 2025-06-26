@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TinyMDE Custom Grammar Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .TinyMDE { border: 1px solid #ccc; padding: 10px; min-height: 200px; }
+        .TMMark { color: #666; }
+        .TMStrong { font-weight: bold; }
+        .TMEm { font-style: italic; }
+        .TMCode { background: #f0f0f0; padding: 2px 4px; border-radius: 3px; }
+        .TMStrikethrough { text-decoration: line-through; }
+        .TMHighlight { background: yellow; }
+        .TMSuperscript { vertical-align: super; font-size: smaller; }
+        .TMSubscript { vertical-align: sub; font-size: smaller; }
+        .TMCustomEmoji { font-size: 1.2em; }
+        .TMCustomTag { background: #e8f4fd; padding: 2px 6px; border-radius: 3px; color: #0066cc; }
+    </style>
+</head>
+<body>
+    <h1>TinyMDE Custom Grammar Test</h1>
+    <p>This demonstrates the new custom inline grammar functionality. Try typing:</p>
+    <ul>
+        <li><code>==highlighted text==</code> for highlighting</li>
+        <li><code>^superscript^</code> for superscript</li>
+        <li><code>~subscript~</code> for subscript</li>
+        <li><code>:smile:</code> for emoji</li>
+        <li><code>#custom#</code> for custom tags</li>
+    </ul>
+    
+    <div id="editor"></div>
+
+    <script type="module">
+        import { Editor } from './dist/tiny-mde.js';
+
+        // Define custom inline grammar rules
+        const customGrammar = {
+            // Highlight text with ==text==
+            highlight: {
+                regexp: /^==([^=]+)==/,
+                replacement: '<span class="TMMark">==</span><span class="TMHighlight">$1</span><span class="TMMark">==</span>'
+            },
+            
+            // Superscript with ^text^
+            superscript: {
+                regexp: /^\^([^^]+)\^/,
+                replacement: '<span class="TMMark">^</span><sup class="TMSuperscript">$1</sup><span class="TMMark">^</span>'
+            },
+            
+            // Subscript with ~text~ (different from strikethrough ~~text~~)
+            subscript: {
+                regexp: /^~([^~]+)~(?!~)/,
+                replacement: '<span class="TMMark">~</span><sub class="TMSubscript">$1</sub><span class="TMMark">~</span>'
+            },
+            
+            // Emoji with :emoji:
+            emoji: {
+                regexp: /^:([a-zA-Z0-9_]+):/,
+                replacement: '<span class="TMCustomEmoji">:$1:</span>'
+            },
+            
+            // Custom tags with #tag#
+            customTag: {
+                regexp: /^#([^#]+)#/,
+                replacement: '<span class="TMMark">#</span><span class="TMCustomTag">$1</span><span class="TMMark">#</span>'
+            }
+        };
+
+        // Initialize editor with custom grammar
+        const editor = new Editor({
+            element: 'editor',
+            content: `# Custom Grammar Demo
+
+This editor has been enhanced with custom inline grammar rules!
+
+Try these examples:
+
+==This text will be highlighted==
+^This will be superscript^
+~This will be subscript~
+:smile: This is an emoji
+#custom# This is a custom tag
+
+You can still use **bold**, *italic*, \`code\`, and ~~strikethrough~~ as usual.
+
+## How it works
+
+The custom grammar rules are processed in addition to the default rules. Each rule consists of:
+- A regex pattern to match
+- A replacement string with HTML markup
+
+The rules are merged with the default grammar when the editor is initialized.`,
+            customInlineGrammar: customGrammar
+        });
+    </script>
+</body>
+</html>

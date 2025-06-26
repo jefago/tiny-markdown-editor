@@ -8,6 +8,7 @@ import {
   commands,
   HTMLBlockRule,
   Command,
+  GrammarRule,
 } from "./grammar";
 
 export interface EditorProps {
@@ -15,6 +16,7 @@ export interface EditorProps {
   editor?: string | HTMLElement;
   content?: string;
   textarea?: string | HTMLTextAreaElement;
+  customInlineGrammar?: Record<string, GrammarRule>;
 }
 
 export interface Position {
@@ -43,20 +45,22 @@ export interface DropEvent {
   dataTransfer: DataTransfer;
 }
 
-type EventType = 'change' | 'selection' | 'drop';
+type EventType = "change" | "selection" | "drop";
 type EventHandler<T> = (event: T) => void;
 
 export class Editor {
   public e: HTMLDivElement | null = null;
   public textarea: HTMLTextAreaElement | null = null;
   public lines: string[] = [];
-  public lineElements: NodeListOf<ChildNode> | HTMLCollection | ChildNode[] = [];
+  public lineElements: NodeListOf<ChildNode> | HTMLCollection | ChildNode[] =
+    [];
   public lineTypes: string[] = [];
   public lineCaptures: RegExpExecArray[] = [];
   public lineReplacements: string[] = [];
   public linkLabels: string[] = [];
   public lineDirty: boolean[] = [];
   public lastCommandState: Record<string, boolean | null> | null = null;
+  private mergedInlineGrammar: Record<string, GrammarRule>;
 
   public listeners: {
     change: EventHandler<ChangeEvent>[];
@@ -92,14 +96,16 @@ export class Editor {
     };
 
     let element: HTMLElement | null = null;
-    if (typeof props.element === 'string') {
+    if (typeof props.element === "string") {
       element = document.getElementById(props.element);
     } else if (props.element) {
       element = props.element;
     }
 
-    if (typeof props.textarea === 'string') {
-      this.textarea = document.getElementById(props.textarea) as HTMLTextAreaElement;
+    if (typeof props.textarea === "string") {
+      this.textarea = document.getElementById(
+        props.textarea
+      ) as HTMLTextAreaElement;
     } else if (props.textarea) {
       this.textarea = props.textarea;
     }
@@ -125,6 +131,15 @@ export class Editor {
     this.isRestoringHistory = false;
     this.maxHistory = 100;
 
+    // Merge default and custom inline grammar rules
+    this.mergedInlineGrammar = { ...inlineGrammar };
+    if (props.customInlineGrammar) {
+      this.mergedInlineGrammar = {
+        ...this.mergedInlineGrammar,
+        ...props.customInlineGrammar,
+      };
+    }
+
     this.createEditorElement(element, props);
     this.setContent(
       typeof props.content === "string"
@@ -133,7 +148,7 @@ export class Editor {
         ? this.textarea.value
         : "# Hello TinyMDE!\nEdit **here**"
     );
-    
+
     this.e!.addEventListener("keydown", (e) => this.handleUndoRedoKey(e));
   }
 
@@ -203,7 +218,7 @@ export class Editor {
 
   private createEditorElement(element: HTMLElement, props: EditorProps): void {
     if (props && props.editor !== undefined) {
-      if (typeof props.editor === 'string') {
+      if (typeof props.editor === "string") {
         this.e = document.getElementById(props.editor) as HTMLDivElement;
       } else {
         this.e = props.editor as HTMLDivElement;
@@ -296,12 +311,14 @@ export class Editor {
           this.lineReplacements[lineNum],
           this.lineCaptures[lineNum]
         );
-        (this.lineElements[lineNum] as HTMLElement).className = this.lineTypes[lineNum];
+        (this.lineElements[lineNum] as HTMLElement).className =
+          this.lineTypes[lineNum];
         (this.lineElements[lineNum] as HTMLElement).removeAttribute("style");
         (this.lineElements[lineNum] as HTMLElement).innerHTML =
           contentHTML === "" ? "<br />" : contentHTML;
       }
-      (this.lineElements[lineNum] as HTMLElement).dataset.lineNum = lineNum.toString();
+      (this.lineElements[lineNum] as HTMLElement).dataset.lineNum =
+        lineNum.toString();
     }
   }
 
@@ -312,12 +329,16 @@ export class Editor {
 
     for (let lineNum = 0; lineNum < this.lines.length; lineNum++) {
       let lineType = "TMPara";
-      let lineCapture: RegExpExecArray = [this.lines[lineNum]] as RegExpExecArray;
+      let lineCapture: RegExpExecArray = [
+        this.lines[lineNum],
+      ] as RegExpExecArray;
       let lineReplacement = "$$0";
 
       // Check ongoing code blocks
       if (codeBlockType === "TMCodeFenceBacktickOpen") {
-        let capture = lineGrammar.TMCodeFenceBacktickClose.regexp.exec(this.lines[lineNum]);
+        let capture = lineGrammar.TMCodeFenceBacktickClose.regexp.exec(
+          this.lines[lineNum]
+        );
         if (capture && capture.groups!["seq"].length >= codeBlockSeqLength) {
           lineType = "TMCodeFenceBacktickClose";
           lineReplacement = lineGrammar.TMCodeFenceBacktickClose.replacement;
@@ -329,7 +350,9 @@ export class Editor {
           lineCapture = [this.lines[lineNum]] as RegExpExecArray;
         }
       } else if (codeBlockType === "TMCodeFenceTildeOpen") {
-        let capture = lineGrammar.TMCodeFenceTildeClose.regexp.exec(this.lines[lineNum]);
+        let capture = lineGrammar.TMCodeFenceTildeClose.regexp.exec(
+          this.lines[lineNum]
+        );
         if (capture && capture.groups!["seq"].length >= codeBlockSeqLength) {
           lineType = "TMCodeFenceTildeClose";
           lineReplacement = lineGrammar.TMCodeFenceTildeClose.replacement;
@@ -398,14 +421,18 @@ export class Editor {
       }
 
       // If we've opened a code block, remember that
-      if (lineType === "TMCodeFenceBacktickOpen" || lineType === "TMCodeFenceTildeOpen") {
+      if (
+        lineType === "TMCodeFenceBacktickOpen" ||
+        lineType === "TMCodeFenceTildeOpen"
+      ) {
         codeBlockType = lineType;
         codeBlockSeqLength = lineCapture.groups!["seq"].length;
       }
 
       // Link reference definition and indented code can't interrupt a paragraph
       if (
-        (lineType === "TMIndentedCode" || lineType === "TMLinkReferenceDefinition") &&
+        (lineType === "TMIndentedCode" ||
+          lineType === "TMLinkReferenceDefinition") &&
         lineNum > 0 &&
         (this.lineTypes[lineNum - 1] === "TMPara" ||
           this.lineTypes[lineNum - 1] === "TMUL" ||
@@ -442,16 +469,22 @@ export class Editor {
           }
         } else {
           let headingLine = lineNum - 1;
-          const headingLineType = lineType === "TMSetextH1Marker" ? "TMSetextH1" : "TMSetextH2";
+          const headingLineType =
+            lineType === "TMSetextH1Marker" ? "TMSetextH1" : "TMSetextH2";
           do {
             if (this.lineTypes[headingLine] !== headingLineType) {
               this.lineTypes[headingLine] = headingLineType;
               this.lineDirty[headingLine] = true;
             }
             this.lineReplacements[headingLine] = "$$0";
-            this.lineCaptures[headingLine] = [this.lines[headingLine]] as RegExpExecArray;
+            this.lineCaptures[headingLine] = [
+              this.lines[headingLine],
+            ] as RegExpExecArray;
             headingLine--;
-          } while (headingLine >= 0 && this.lineTypes[headingLine] === "TMPara");
+          } while (
+            headingLine >= 0 &&
+            this.lineTypes[headingLine] === "TMPara"
+          );
         }
       }
 
@@ -494,7 +527,8 @@ export class Editor {
       (node as HTMLElement).dataset &&
       (node as HTMLElement).dataset.lineNum &&
       (!node.previousSibling ||
-        ((node.previousSibling as HTMLElement).dataset?.lineNum !== (node as HTMLElement).dataset.lineNum))
+        (node.previousSibling as HTMLElement).dataset?.lineNum !==
+          (node as HTMLElement).dataset.lineNum)
     ) {
       row = parseInt((node as HTMLElement).dataset.lineNum!);
     } else {
@@ -535,7 +569,11 @@ export class Editor {
     );
   }
 
-  public paste(text: string, anchor: Position | null = null, focus: Position | null = null): void {
+  public paste(
+    text: string,
+    anchor: Position | null = null,
+    focus: Position | null = null
+  ): void {
     if (!anchor) anchor = this.getSelection(true);
     if (!focus) focus = this.getSelection(false);
     let beginning: Position, end: Position;
@@ -563,7 +601,8 @@ export class Editor {
     let lineEnd = this.lines[end.row].substr(end.col);
     insertedLines[0] = lineBefore.concat(insertedLines[0]);
     let endColPos = insertedLines[insertedLines.length - 1].length;
-    insertedLines[insertedLines.length - 1] = insertedLines[insertedLines.length - 1].concat(lineEnd);
+    insertedLines[insertedLines.length - 1] =
+      insertedLines[insertedLines.length - 1].concat(lineEnd);
     this.spliceLines(beginning.row, 1 + end.row - beginning.row, insertedLines);
     focus.row = beginning.row + insertedLines.length - 1;
     focus.col = endColPos;
@@ -572,7 +611,12 @@ export class Editor {
     this.fireChange();
   }
 
-  public wrapSelection(pre: string, post: string, focus: Position | null = null, anchor: Position | null = null): void {
+  public wrapSelection(
+    pre: string,
+    post: string,
+    focus: Position | null = null,
+    anchor: Position | null = null
+  ): void {
     if (!this.isRestoringHistory) this.pushHistory();
     if (!focus) focus = this.getSelection(false);
     if (!anchor) anchor = this.getSelection(true);
@@ -582,7 +626,10 @@ export class Editor {
     const startCol = focus.col < anchor.col ? focus.col : anchor.col;
     const endCol = focus.col < anchor.col ? anchor.col : focus.col;
     const left = this.lines[focus.row].substr(0, startCol).concat(pre);
-    const mid = endCol === startCol ? "" : this.lines[focus.row].substr(startCol, endCol - startCol);
+    const mid =
+      endCol === startCol
+        ? ""
+        : this.lines[focus.row].substr(startCol, endCol - startCol);
     const right = post.concat(this.lines[focus.row].substr(endCol));
     this.lines[focus.row] = left.concat(mid, right);
     anchor.col = left.length;
@@ -594,9 +641,13 @@ export class Editor {
 
   public addEventListener<T extends EventType>(
     type: T,
-    listener: T extends 'change' ? EventHandler<ChangeEvent> :
-             T extends 'selection' ? EventHandler<SelectionEvent> :
-             T extends 'drop' ? EventHandler<DropEvent> : never
+    listener: T extends "change"
+      ? EventHandler<ChangeEvent>
+      : T extends "selection"
+      ? EventHandler<SelectionEvent>
+      : T extends "drop"
+      ? EventHandler<DropEvent>
+      : never
   ): void {
     if (type.match(/^(?:change|input)$/i)) {
       this.listeners.change.push(listener as EventHandler<ChangeEvent>);
@@ -628,7 +679,11 @@ export class Editor {
 
     let focus = this.getSelection();
 
-    if ((inputEvent.inputType === "insertParagraph" || inputEvent.inputType === "insertLineBreak") && focus) {
+    if (
+      (inputEvent.inputType === "insertParagraph" ||
+        inputEvent.inputType === "insertLineBreak") &&
+      focus
+    ) {
       this.clearDirtyFlag();
       this.processNewParagraph(focus);
     } else {
@@ -665,25 +720,53 @@ export class Editor {
 
   private processInlineStyles(originalString: string): string {
     let processed = "";
-    let stack: Array<{delimiter: string, delimString: string, count: number, output: string}> = [];
+    let stack: Array<{
+      delimiter: string;
+      delimString: string;
+      count: number;
+      output: string;
+    }> = [];
     let offset = 0;
     let string = originalString;
 
     outer: while (string) {
-      // Process simple rules (non-delimiter)
-      for (let rule of ["escape", "code", "autolink", "html"]) {
-        let cap = inlineGrammar[rule].regexp.exec(string);
+      // Process all grammar rules (including custom ones)
+      let ruleProcessed = false;
+      for (let ruleName in this.mergedInlineGrammar) {
+        // Skip special rules that are handled separately
+        if (
+          ruleName === "linkOpen" ||
+          ruleName === "imageOpen" ||
+          ruleName === "linkLabel" ||
+          ruleName === "default"
+        ) {
+          continue;
+        }
+
+        let cap = this.mergedInlineGrammar[ruleName].regexp.exec(string);
         if (cap) {
           string = string.substr(cap[0].length);
           offset += cap[0].length;
-          processed += inlineGrammar[rule].replacement.replace(/\$([1-9])/g, (str, p1) => htmlescape(cap[p1]));
-          continue outer;
+          processed += this.mergedInlineGrammar[ruleName].replacement.replace(
+            /\$([1-9])/g,
+            (str, p1) => htmlescape(cap[p1])
+          );
+          ruleProcessed = true;
+          break;
         }
       }
 
+      if (ruleProcessed) {
+        continue outer;
+      }
+
       // Check for links / images
-      let potentialLink = string.match(inlineGrammar.linkOpen.regexp);
-      let potentialImage = string.match(inlineGrammar.imageOpen.regexp);
+      let potentialLink = string.match(
+        this.mergedInlineGrammar.linkOpen.regexp
+      );
+      let potentialImage = string.match(
+        this.mergedInlineGrammar.imageOpen.regexp
+      );
       if (potentialImage || potentialLink) {
         let result = this.parseLinkOrImage(string, !!potentialImage);
         if (result) {
@@ -704,15 +787,22 @@ export class Editor {
         string = string.substr(cap[0].length);
 
         const preceding = offset > 0 ? originalString.substr(0, offset) : " ";
-        const following = offset + cap[0].length < originalString.length ? string : " ";
+        const following =
+          offset + cap[0].length < originalString.length ? string : " ";
 
         const punctuationFollows = following.match(punctuationLeading);
         const punctuationPrecedes = preceding.match(punctuationTrailing);
         const whitespaceFollows = following.match(/^\s/);
         const whitespacePrecedes = preceding.match(/\s$/);
 
-        let canOpen = !whitespaceFollows && (!punctuationFollows || !!whitespacePrecedes || !!punctuationPrecedes);
-        let canClose = !whitespacePrecedes && (!punctuationPrecedes || !!whitespaceFollows || !!punctuationFollows);
+        let canOpen =
+          !whitespaceFollows &&
+          (!punctuationFollows ||
+            !!whitespacePrecedes ||
+            !!punctuationPrecedes);
+        let canClose =
+          !whitespacePrecedes &&
+          (!punctuationPrecedes || !!whitespaceFollows || !!punctuationFollows);
 
         if (currentDelimiter === "_" && canOpen && canClose) {
           canOpen = !!punctuationPrecedes;
@@ -725,7 +815,10 @@ export class Editor {
             if (stack[stackPointer].delimiter === currentDelimiter) {
               while (stackPointer < stack.length - 1) {
                 const entry = stack.pop()!;
-                processed = `${entry.output}${entry.delimString.substr(0, entry.count)}${processed}`;
+                processed = `${entry.output}${entry.delimString.substr(
+                  0,
+                  entry.count
+                )}${processed}`;
               }
 
               if (delimCount >= 2 && stack[stackPointer].count >= 2) {
@@ -777,7 +870,10 @@ export class Editor {
           if (stack[stackPointer].delimiter === "~") {
             while (stackPointer < stack.length - 1) {
               const entry = stack.pop()!;
-              processed = `${entry.output}${entry.delimString.substr(0, entry.count)}${processed}`;
+              processed = `${entry.output}${entry.delimString.substr(
+                0,
+                entry.count
+              )}${processed}`;
             }
 
             processed = `<span class="TMMark">~~</span><del class="TMStrikethrough">${processed}</del><span class="TMMark">~~</span>`;
@@ -805,11 +901,14 @@ export class Editor {
       }
 
       // Process 'default' rule
-      cap = inlineGrammar.default.regexp.exec(string);
+      cap = this.mergedInlineGrammar.default.regexp.exec(string);
       if (cap) {
         string = string.substr(cap[0].length);
         offset += cap[0].length;
-        processed += inlineGrammar.default.replacement.replace(/\$([1-9])/g, (str, p1) => htmlescape(cap[p1]));
+        processed += this.mergedInlineGrammar.default.replacement.replace(
+          /\$([1-9])/g,
+          (str, p1) => htmlescape(cap[p1])
+        );
         continue outer;
       }
       throw "Infinite loop!";
@@ -817,7 +916,10 @@ export class Editor {
 
     while (stack.length) {
       const entry = stack.pop()!;
-      processed = `${entry.output}${entry.delimString.substr(0, entry.count)}${processed}`;
+      processed = `${entry.output}${entry.delimString.substr(
+        0,
+        entry.count
+      )}${processed}`;
     }
 
     return processed;
@@ -852,7 +954,11 @@ export class Editor {
     return col;
   }
 
-  private computeNodeAndOffset(row: number, col: number, bindRight: boolean = false): {node: Node, offset: number} {
+  private computeNodeAndOffset(
+    row: number,
+    col: number,
+    bindRight: boolean = false
+  ): { node: Node; offset: number } {
     if (row >= this.lineElements.length) {
       row = this.lineElements.length - 1;
       col = this.lines[row].length;
@@ -917,8 +1023,10 @@ export class Editor {
         firstChangedLine <= this.lines.length &&
         firstChangedLine <= this.lineElements.length &&
         this.lineElements[firstChangedLine] &&
-        this.lines[firstChangedLine] === (this.lineElements[firstChangedLine] as HTMLElement).textContent &&
-        this.lineTypes[firstChangedLine] === (this.lineElements[firstChangedLine] as HTMLElement).className
+        this.lines[firstChangedLine] ===
+          (this.lineElements[firstChangedLine] as HTMLElement).textContent &&
+        this.lineTypes[firstChangedLine] ===
+          (this.lineElements[firstChangedLine] as HTMLElement).className
       ) {
         firstChangedLine++;
       }
@@ -928,20 +1036,32 @@ export class Editor {
         -lastChangedLine < this.lines.length &&
         -lastChangedLine < this.lineElements.length &&
         this.lines[this.lines.length + lastChangedLine] ===
-          (this.lineElements[this.lineElements.length + lastChangedLine] as HTMLElement).textContent &&
+          (
+            this.lineElements[
+              this.lineElements.length + lastChangedLine
+            ] as HTMLElement
+          ).textContent &&
         this.lineTypes[this.lines.length + lastChangedLine] ===
-          (this.lineElements[this.lineElements.length + lastChangedLine] as HTMLElement).className
+          (
+            this.lineElements[
+              this.lineElements.length + lastChangedLine
+            ] as HTMLElement
+          ).className
       ) {
         lastChangedLine--;
       }
 
-      let linesToDelete = this.lines.length + lastChangedLine + 1 - firstChangedLine;
+      let linesToDelete =
+        this.lines.length + lastChangedLine + 1 - firstChangedLine;
       if (linesToDelete < -lineDelta) linesToDelete = -lineDelta;
       if (linesToDelete < 0) linesToDelete = 0;
 
       let linesToAdd = [];
       for (let l = 0; l < linesToDelete + lineDelta; l++) {
-        linesToAdd.push((this.lineElements[firstChangedLine + l] as HTMLElement).textContent || "");
+        linesToAdd.push(
+          (this.lineElements[firstChangedLine + l] as HTMLElement)
+            .textContent || ""
+        );
       }
       this.spliceLines(firstChangedLine, linesToDelete, linesToAdd, false);
     } else {
@@ -976,7 +1096,9 @@ export class Editor {
         break;
     }
 
-    let lines = this.lines[sel.row].replace(/\n\n$/, "\n").split(/(?:\r\n|\n|\r)/);
+    let lines = this.lines[sel.row]
+      .replace(/\n\n$/, "\n")
+      .split(/(?:\r\n|\n|\r)/);
     if (lines.length > 1) {
       this.spliceLines(sel.row, 1, lines, true);
       sel.row++;
@@ -984,7 +1106,9 @@ export class Editor {
     }
 
     if (continuableType) {
-      let capture = lineGrammar[continuableType].regexp.exec(this.lines[sel.row - 1]);
+      let capture = lineGrammar[continuableType].regexp.exec(
+        this.lines[sel.row - 1]
+      );
       if (capture) {
         if (capture[2]) {
           if (continuableType === "TMOL") {
@@ -1024,7 +1148,10 @@ export class Editor {
       insertedDirty.push(true);
       if (adjustLineElements) {
         if (this.e!.childNodes[startLine])
-          this.e!.insertBefore(document.createElement("div"), this.e!.childNodes[startLine]);
+          this.e!.insertBefore(
+            document.createElement("div"),
+            this.e!.childNodes[startLine]
+          );
         else this.e!.appendChild(document.createElement("div"));
       }
     }
@@ -1042,12 +1169,17 @@ export class Editor {
       const nextSibling = child.nextSibling;
       parent.removeChild(child);
       newChildren.forEach((newChild) =>
-        nextSibling ? parent.insertBefore(newChild, nextSibling) : parent.appendChild(newChild)
+        nextSibling
+          ? parent.insertBefore(newChild, nextSibling)
+          : parent.appendChild(newChild)
       );
     };
 
     originalChildren.forEach((child) => {
-      if (child.nodeType !== Node.ELEMENT_NODE || (child as HTMLElement).tagName !== "DIV") {
+      if (
+        child.nodeType !== Node.ELEMENT_NODE ||
+        (child as HTMLElement).tagName !== "DIV"
+      ) {
         const divWrapper = document.createElement("div");
         replaceChild(child, divWrapper);
         divWrapper.appendChild(child);
@@ -1058,7 +1190,8 @@ export class Editor {
         if (
           grandChildren.some(
             (grandChild) =>
-              grandChild.nodeType === Node.ELEMENT_NODE && (grandChild as HTMLElement).tagName === "DIV"
+              grandChild.nodeType === Node.ELEMENT_NODE &&
+              (grandChild as HTMLElement).tagName === "DIV"
           )
         ) {
           return replaceChild(child, ...grandChildren);
@@ -1067,7 +1200,10 @@ export class Editor {
     });
   }
 
-  private parseLinkOrImage(originalString: string, isImage: boolean): {output: string, charCount: number} | false {
+  private parseLinkOrImage(
+    originalString: string,
+    isImage: boolean
+  ): { output: string; charCount: number } | false {
     // Skip the opening bracket
     let textOffset = isImage ? 2 : 1;
     let opener = originalString.substr(0, textOffset);
@@ -1088,7 +1224,7 @@ export class Editor {
 
       // Capture any escapes and code blocks at current position
       for (let rule of ["escape", "code", "autolink", "html"]) {
-        let cap = inlineGrammar[rule].regexp.exec(string);
+        let cap = this.mergedInlineGrammar[rule].regexp.exec(string);
         if (cap) {
           currentOffset += cap[0].length;
           continue textOuter;
@@ -1096,14 +1232,14 @@ export class Editor {
       }
 
       // Check for image
-      if (string.match(inlineGrammar.imageOpen.regexp)) {
+      if (string.match(this.mergedInlineGrammar.imageOpen.regexp)) {
         bracketLevel++;
         currentOffset += 2;
         continue textOuter;
       }
 
       // Check for link
-      if (string.match(inlineGrammar.linkOpen.regexp)) {
+      if (string.match(this.mergedInlineGrammar.linkOpen.regexp)) {
         bracketLevel++;
         if (!isImage) {
           if (this.parseLinkOrImage(string, false)) {
@@ -1118,7 +1254,10 @@ export class Editor {
       if (string.match(/^\]/)) {
         bracketLevel--;
         if (bracketLevel === 0) {
-          linkText = originalString.substr(textOffset, currentOffset - textOffset);
+          linkText = originalString.substr(
+            textOffset,
+            currentOffset - textOffset
+          );
           currentOffset++;
           continue textOuter;
         }
@@ -1132,17 +1271,20 @@ export class Editor {
     if (linkText === false) return false;
 
     // Check what type of link this is
-    let nextChar = currentOffset < originalString.length ? originalString.substr(currentOffset, 1) : "";
+    let nextChar =
+      currentOffset < originalString.length
+        ? originalString.substr(currentOffset, 1)
+        : "";
 
     // REFERENCE LINKS
     if (nextChar === "[") {
       let string = originalString.substr(currentOffset);
-      let cap = inlineGrammar.linkLabel.regexp.exec(string);
+      let cap = this.mergedInlineGrammar.linkLabel.regexp.exec(string);
       if (cap) {
         currentOffset += cap[0].length;
         linkLabel.push(cap[1], cap[2], cap[3]);
-        if (cap[inlineGrammar.linkLabel.labelPlaceholder!]) {
-          linkRef = cap[inlineGrammar.linkLabel.labelPlaceholder!];
+        if (cap[this.mergedInlineGrammar.linkLabel.labelPlaceholder!]) {
+          linkRef = cap[this.mergedInlineGrammar.linkLabel.labelPlaceholder!];
         } else {
           linkRef = linkText.trim();
         }
@@ -1157,7 +1299,10 @@ export class Editor {
       currentOffset++;
       let parenthesisLevel = 1;
 
-      inlineOuter: while (currentOffset < originalString.length && parenthesisLevel > 0) {
+      inlineOuter: while (
+        currentOffset < originalString.length &&
+        parenthesisLevel > 0
+      ) {
         let string = originalString.substr(currentOffset);
 
         // Process whitespace
@@ -1200,7 +1345,7 @@ export class Editor {
         }
 
         // Process backslash escapes
-        cap = inlineGrammar.escape.regexp.exec(string);
+        cap = this.mergedInlineGrammar.escape.regexp.exec(string);
         if (cap) {
           switch (linkDetails.length) {
             case 0:
@@ -1236,7 +1381,10 @@ export class Editor {
         }
 
         // Process closing angle bracket
-        if ((linkDetails.length === 1 || linkDetails.length === 2) && string.match(/^>/)) {
+        if (
+          (linkDetails.length === 1 || linkDetails.length === 2) &&
+          string.match(/^>/)
+        ) {
           if (linkDetails.length === 1) linkDetails.push("");
           linkDetails.push(">");
           currentOffset++;
@@ -1245,14 +1393,23 @@ export class Editor {
 
         // Process non-parenthesis delimiter for title
         cap = /^["']/.exec(string);
-        if (cap && (linkDetails.length === 0 || linkDetails.length === 1 || linkDetails.length === 4)) {
+        if (
+          cap &&
+          (linkDetails.length === 0 ||
+            linkDetails.length === 1 ||
+            linkDetails.length === 4)
+        ) {
           while (linkDetails.length < 4) linkDetails.push("");
           linkDetails.push(cap[0]);
           currentOffset++;
           continue inlineOuter;
         }
 
-        if (cap && (linkDetails.length === 5 || linkDetails.length === 6) && linkDetails[4] === cap[0]) {
+        if (
+          cap &&
+          (linkDetails.length === 5 || linkDetails.length === 6) &&
+          linkDetails[4] === cap[0]
+        ) {
           if (linkDetails.length === 5) linkDetails.push("");
           linkDetails.push(cap[0]);
           currentOffset++;
@@ -1357,10 +1514,14 @@ export class Editor {
           break;
         }
       }
-      let labelClass = valid ? "TMLinkLabel TMLinkLabel_Valid" : "TMLinkLabel TMLinkLabel_Invalid";
+      let labelClass = valid
+        ? "TMLinkLabel TMLinkLabel_Valid"
+        : "TMLinkLabel TMLinkLabel_Invalid";
       let output = `<span class="TMMark TMMark_${type}">${opener}</span><span class="${type} ${
         linkLabel.length < 3 || !linkLabel[1] ? labelClass : ""
-      }">${this.processInlineStyles(linkText)}</span><span class="TMMark TMMark_${type}">]</span>`;
+      }">${this.processInlineStyles(
+        linkText
+      )}</span><span class="TMMark TMMark_${type}">]</span>`;
 
       if (linkLabel.length >= 3) {
         output = output.concat(
@@ -1398,7 +1559,10 @@ export class Editor {
     return false;
   }
 
-  private computeCommonAncestor(node1: Node | null, node2: Node | null): Node | null {
+  private computeCommonAncestor(
+    node1: Node | null,
+    node2: Node | null
+  ): Node | null {
     if (!node1 || !node2) return null;
     if (node1 === node2) return node1;
     const ancestry = (node: Node) => {
@@ -1419,7 +1583,11 @@ export class Editor {
     return ancestry1[i - 1];
   }
 
-  private computeEnclosingMarkupNode(focus: Position, anchor: Position | null, className: string): Node | null {
+  private computeEnclosingMarkupNode(
+    focus: Position,
+    anchor: Position | null,
+    className: string
+  ): Node | null {
     let node = null;
     if (!focus) return null;
     if (!anchor) {
@@ -1434,13 +1602,20 @@ export class Editor {
     }
     if (!node) return null;
     while (node !== this.e) {
-      if ((node as HTMLElement).className && (node as HTMLElement).className.includes(className)) return node;
+      if (
+        (node as HTMLElement).className &&
+        (node as HTMLElement).className.includes(className)
+      )
+        return node;
       node = node.parentNode!;
     }
     return null;
   }
 
-  public getCommandState(focus: Position | null = null, anchor: Position | null = null): Record<string, boolean | null> {
+  public getCommandState(
+    focus: Position | null = null,
+    anchor: Position | null = null
+  ): Record<string, boolean | null> {
     let commandState: Record<string, boolean | null> = {};
     if (!focus) focus = this.getSelection(false);
     if (!anchor) anchor = this.getSelection(true);
@@ -1453,7 +1628,10 @@ export class Editor {
     if (!anchor) anchor = focus;
 
     let start: Position, end: Position;
-    if (anchor.row < focus.row || (anchor.row === focus.row && anchor.col < focus.col)) {
+    if (
+      anchor.row < focus.row ||
+      (anchor.row === focus.row && anchor.col < focus.col)
+    ) {
       start = anchor;
       end = focus;
     } else {
@@ -1467,21 +1645,34 @@ export class Editor {
 
     for (let cmd in commands) {
       if (commands[cmd].type === "inline") {
-        if (!focus || focus.row !== anchor!.row || !this.isInlineFormattingAllowed()) {
+        if (
+          !focus ||
+          focus.row !== anchor!.row ||
+          !this.isInlineFormattingAllowed()
+        ) {
           commandState[cmd] = null;
         } else {
           commandState[cmd] =
-            !!this.computeEnclosingMarkupNode(focus, anchor, commands[cmd].className) ||
+            !!this.computeEnclosingMarkupNode(
+              focus,
+              anchor,
+              commands[cmd].className
+            ) ||
             (focus.col === anchor!.col &&
-              !!this.lines[focus.row].substr(0, focus.col).match(commands[cmd].unset.prePattern) &&
-              !!this.lines[focus.row].substr(focus.col).match(commands[cmd].unset.postPattern));
+              !!this.lines[focus.row]
+                .substr(0, focus.col)
+                .match(commands[cmd].unset.prePattern) &&
+              !!this.lines[focus.row]
+                .substr(focus.col)
+                .match(commands[cmd].unset.postPattern));
         }
       }
       if (commands[cmd].type === "line") {
         if (!focus) {
           commandState[cmd] = null;
         } else {
-          let state: boolean | null = this.lineTypes[start.row] === commands[cmd].className;
+          let state: boolean | null =
+            this.lineTypes[start.row] === commands[cmd].className;
           for (let line = start.row; line <= end.row; line++) {
             if ((this.lineTypes[line] === commands[cmd].className) !== state) {
               state = null;
@@ -1504,7 +1695,11 @@ export class Editor {
       if (!anchor) return;
       if (anchor.row !== focus!.row) return;
       if (!this.isInlineFormattingAllowed()) return;
-      let markupNode = this.computeEnclosingMarkupNode(focus!, anchor, commands[command].className);
+      let markupNode = this.computeEnclosingMarkupNode(
+        focus!,
+        anchor,
+        commands[command].className
+      );
       this.clearDirtyFlag();
 
       if (markupNode) {
@@ -1526,8 +1721,12 @@ export class Editor {
         this.fireChange();
       } else if (
         focus!.col === anchor.col &&
-        !!this.lines[focus!.row].substr(0, focus!.col).match(commands[command].unset.prePattern) &&
-        !!this.lines[focus!.row].substr(focus!.col).match(commands[command].unset.postPattern)
+        !!this.lines[focus!.row]
+          .substr(0, focus!.col)
+          .match(commands[command].unset.prePattern) &&
+        !!this.lines[focus!.row]
+          .substr(focus!.col)
+          .match(commands[command].unset.postPattern)
       ) {
         this.lineDirty[focus!.row] = true;
         const left = this.lines[focus!.row]
@@ -1558,7 +1757,12 @@ export class Editor {
         focus!.col = startCol;
         anchor.col = endCol;
 
-        this.wrapSelection(commands[command].set.pre, commands[command].set.post, focus, anchor);
+        this.wrapSelection(
+          commands[command].set.pre,
+          commands[command].set.post,
+          focus,
+          anchor
+        );
         this.fireChange();
       }
     } else if (commands[command].type === "line") {
@@ -1577,7 +1781,10 @@ export class Editor {
         if (state && this.lineTypes[line] !== commands[command].className) {
           this.lines[line] = this.lines[line].replace(
             commands[command].set.pattern,
-            commands[command].set.replacement.replace("$#", (line - start.row + 1).toString())
+            commands[command].set.replacement.replace(
+              "$#",
+              (line - start.row + 1).toString()
+            )
           );
           this.lineDirty[line] = true;
         }
@@ -1608,12 +1815,18 @@ export class Editor {
       sel.focusOffset === sel.focusNode.nodeValue!.length
     ) {
       let node;
-      for (node = sel.focusNode; node && node.nextSibling === null; node = node.parentNode!);
+      for (
+        node = sel.focusNode;
+        node && node.nextSibling === null;
+        node = node.parentNode!
+      );
       if (
         node &&
         node.nextSibling &&
         (node.nextSibling as HTMLElement).className &&
-        (node.nextSibling as HTMLElement).className.includes("TMInlineFormatted")
+        (node.nextSibling as HTMLElement).className.includes(
+          "TMInlineFormatted"
+        )
       )
         return true;
     }
