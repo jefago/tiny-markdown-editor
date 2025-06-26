@@ -35,6 +35,7 @@ global.initTinyMDE = async (content) => {
   };
 };
 
+
 global.classTagRegExp = (content, className, tagName = "span") => {
   let match = content
     .replace(/&/g, "&amp;")
