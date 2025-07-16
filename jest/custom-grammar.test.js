@@ -1,5 +1,5 @@
 const initTinyMDEWithCustomGrammar = async (content, customGrammar) => {
-  const newPage = await browser.newPage();
+  const newPage = await global.context.newPage();
   await newPage.goto(global.PATH, { waitUntil: "load" });
   
   // Escape content for JavaScript string

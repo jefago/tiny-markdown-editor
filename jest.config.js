@@ -1,7 +1,7 @@
 const { PORT } = require('./jest/util/config');
 
 module.exports = {
-  preset: "jest-puppeteer",
+  testEnvironment: 'node',
   globals: {
   },
   setupFiles: [
