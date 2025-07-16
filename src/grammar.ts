@@ -224,6 +224,38 @@ for (let rule of htmlBlockGrammar) {
 }
 
 /**
+ * Creates a merged inline grammar by combining the default inline grammar with custom rules.
+ * Custom rules are processed and their regexp patterns are expanded with replacements.
+ * @param customRules - Object containing custom inline grammar rules
+ * @returns Merged inline grammar object
+ */
+export function createMergedInlineGrammar(customRules: Record<string, GrammarRule> = {}): Record<string, GrammarRule> {
+  const merged = { ...inlineGrammar };
+  
+  // Process custom rules
+  for (const [ruleName, rule] of Object.entries(customRules)) {
+    // Copy the rule to avoid modifying the original
+    const processedRule = { ...rule };
+    
+    // Process replacements in the regexp
+    let regexpSource = rule.regexp.source;
+    const replacementRegexp = new RegExp(Object.keys(replacements).join('|'));
+    
+    // Replace while there is something to replace
+    while (regexpSource.match(replacementRegexp)) {
+      regexpSource = regexpSource.replace(replacementRegexp, (match) => {
+        return replacements[match].source;
+      });
+    }
+    
+    processedRule.regexp = new RegExp(regexpSource, rule.regexp.flags);
+    merged[ruleName] = processedRule;
+  }
+  
+  return merged;
+}
+
+/**
  * Escapes HTML special characters (<, >, and &) in the string.
  * @param {string} string The raw string to be escaped
  * @returns {string} The string, ready to be used in HTML

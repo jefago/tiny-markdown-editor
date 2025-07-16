@@ -126,6 +126,7 @@ Please note:
 | `editor`   | The DOM div element which the TinyMDE DOM element will modify (get created from). The `editor` attribute can be given as either an ID or the DOM element itself (i.e., the result of a call to `document.getElementById()`). Useful when you already have references to the element even before TinyMDE creation, or when you want to keep exact ordering of the DOM element among other sibling elements.                                                                                                                          |
 | `content`  | The initial content of the editor, given as a string. May contain newlines.                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `textarea` | The textarea that will be linked to the editor. The textarea can be given as an ID or as the DOM element itself (i.e., the result of a call to `document.getElementById()`). The content of the editor will be reflected in the value of the textarea at any given point in time. If `textarea` is given and `content` isn't, then the editor content will be initialized to the textarea's value. If `textarea` is given and `element` isn't, then the editor element will be created as the next sibling of the textarea element. |
+| `customInlineGrammar` | An object containing custom inline grammar rules to extend TinyMDE's formatting capabilities. Each rule consists of a regular expression and HTML replacement string. See [Custom Inline Grammar](#custom-inline-grammar) for details. |
 
 If neither `element` not `textarea` are given, the editor element will be created as the last child element of the `body` element (probably not what you want in most cases, so you probably want to pass at least one of `element` or `textarea`).
 
@@ -160,6 +161,93 @@ If an entry of the `commands` array is an object, you can either customize one o
 | `hotkey`           | A keyboard shortcut for the command. The keyboard shortcut needs to be a string containing a key (e.g., 'A' or '1'), preceded by one or more modifier keys (`Ctrl`, `Shift`, `Alt`, `Cmd`, `Win`, `Option`), each separated with `-`. Examples: `Alt-I`, `Ctrl-Shift-3`. There are two convenience modifier keys that are recognized for easy cross-platform development: `Mod` is set to `Cmd` on macOS / iOS / iPadOS and `Ctrl` elsewhere (e.g., `Mod-B` as a shortcut for the `bold` command ends up as either `Ctrl` + `B` or `⌘` + `B`); `Mod2` is set to `Option` on macOS / iOS / iPadOS and `Alt` elsewhere.                                       |
 
 The default array of commands is as follows: `['bold', 'italic', 'strikethrough', '|', 'code', '|', 'h1', 'h2', '|', 'ul', 'ol', '|', 'blockquote', 'hr', '|', 'insertLink', 'insertImage']`.
+
+### Custom Inline Grammar
+
+TinyMDE supports extending its inline formatting capabilities by providing custom grammar rules when initializing the editor. This allows you to add custom formatting syntax alongside the standard Markdown formatting.
+
+#### Basic Usage
+
+```javascript
+const customGrammar = {
+  highlight: {
+    regexp: /^(==)([^=]+)(==)/,
+    replacement: '<span class="TMMark">$1</span><span class="TMHighlight">$2</span><span class="TMMark">$3</span>'
+  },
+  mention: {
+    regexp: /^(@[a-zA-Z0-9_]+)/,
+    replacement: '<span class="TMMention">$1</span>'
+  }
+};
+
+const editor = new TinyMDE.Editor({
+  element: 'editor',
+  customInlineGrammar: customGrammar
+});
+```
+
+#### Grammar Rule Format
+
+Each custom grammar rule is an object with the following properties:
+
+| Property | Description |
+| -------- | ----------- |
+| `regexp` | A regular expression that matches the custom syntax. Must start with `^` to match from the beginning of the string. |
+| `replacement` | An HTML string that defines how the matched text should be formatted. Can use `$1`, `$2`, etc. to reference capture groups from the regexp. |
+
+#### Example Use Cases
+
+**Highlight text with `==text==`:**
+```javascript
+highlight: {
+  regexp: /^(==)([^=]+)(==)/,
+  replacement: '<span class="TMMark">$1</span><span class="TMHighlight">$2</span><span class="TMMark">$3</span>'
+}
+```
+
+**User mentions with `@username`:**
+```javascript
+mention: {
+  regexp: /^(@[a-zA-Z0-9_]+)/,
+  replacement: '<span class="TMMention">$1</span>'
+}
+```
+
+**Emoji shortcodes with `:emoji:`:**
+```javascript
+emoji: {
+  regexp: /^(:)([a-z_]+)(:)/,
+  replacement: '<span class="TMMark">$1</span><span class="TMEmoji">$2</span><span class="TMMark">$3</span>'
+}
+```
+
+#### CSS Styling
+
+Remember to add CSS styles for your custom classes:
+
+```css
+.TMHighlight {
+  background-color: yellow;
+  font-weight: bold;
+}
+
+.TMMention {
+  color: #0066cc;
+  text-decoration: underline;
+}
+
+.TMEmoji {
+  font-size: 1.2em;
+}
+```
+
+#### Important Notes
+
+- Custom grammar rules work alongside standard Markdown formatting
+- Regular expressions should use `^` to match from the start of the remaining text
+- Use `TMMark` class for markup characters that should be styled as formatting marks
+- Custom rules are processed after built-in rules like escape, code, autolink, and html
+- The grammar system supports pattern replacements (see grammar.ts for available patterns)
 
 ### Editor methods
 
