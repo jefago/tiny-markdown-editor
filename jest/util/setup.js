@@ -7,6 +7,7 @@ let context;
 
 // Set up global page for jest-puppeteer compatibility
 beforeAll(async () => {
+  // Server is already started by global setup
   browser = await chromium.launch();
   context = await browser.newContext();
   global.page = await context.newPage();
@@ -14,12 +15,6 @@ beforeAll(async () => {
   // Make browser available globally for custom grammar tests
   global.browser = browser;
   global.context = context;
-  
-  // Start the test server
-  require('./server');
-  
-  // Give the server time to start
-  await new Promise(resolve => setTimeout(resolve, 1000));
 });
 
 afterAll(async () => {
@@ -30,4 +25,5 @@ afterAll(async () => {
     global.browser = null;
     global.context = null;
   }
+  // Server will be stopped by global teardown
 });

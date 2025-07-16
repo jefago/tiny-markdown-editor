@@ -1,10 +1,6 @@
-const { chromium } = require('playwright');
 const { PORT } = require("./config");
 
 global.PATH = `http://localhost:${PORT}/blank.html`;
-
-let browser;
-let context;
 
 global.initTinyMDE = async (content) => {
   const newPage = await global.context.newPage();
@@ -38,13 +34,6 @@ global.initTinyMDE = async (content) => {
   };
 };
 
-global.closeBrowser = async () => {
-  if (browser) {
-    await browser.close();
-    browser = null;
-    context = null;
-  }
-};
 
 global.classTagRegExp = (content, className, tagName = "span") => {
   let match = content

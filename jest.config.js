@@ -1,7 +1,7 @@
-const { PORT } = require('./jest/util/config');
-
 module.exports = {
   testEnvironment: 'node',
+  globalSetup: './jest/util/jest-global-setup.js',
+  globalTeardown: './jest/util/jest-global-teardown.js',
   globals: {
   },
   setupFiles: [
