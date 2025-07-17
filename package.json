@@ -15,7 +15,11 @@
     "editor"
   ],
   "scripts": {
-    "test": "npx gulp test",
+    "test": "npx gulp && npx jest --config jest.config.multi-browser.js",
+    "test:chromium": "npx gulp && npx jest --config jest.config.multi-browser.js --selectProjects chromium",
+    "test:firefox": "npx gulp && npx jest --config jest.config.multi-browser.js --selectProjects firefox",
+    "test:webkit": "npx gulp && npx jest --config jest.config.multi-browser.js --selectProjects webkit",
+    "test:single": "npx gulp test",
     "build": "npx gulp",
     "dev": "npx gulp dev",
     "typecheck": "npx tsc --noEmit",
