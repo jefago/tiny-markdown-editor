@@ -1,6 +1,6 @@
 
 test('sets up correctly when passed an ID', async () => {
-  const newPage = await browser.newPage();
+  const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load'});
 
   await newPage.evaluate(() => {
@@ -11,7 +11,7 @@ test('sets up correctly when passed an ID', async () => {
 });
 
 test('sets up correctly when passed an element', async () => {
-  const newPage = await browser.newPage();
+  const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load'});
 
   await newPage.evaluate(() => {
@@ -22,7 +22,7 @@ test('sets up correctly when passed an element', async () => {
 });
 
 test('sets up correctly when passed a textarea ID as element', async () => {
-  const newPage = await browser.newPage();
+  const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load'});
   await newPage.$eval('#tinymde', el => el.innerHTML = '<textarea id="txt"></textarea>');
   await newPage.evaluate(() => {
@@ -35,7 +35,7 @@ test('sets up correctly when passed a textarea ID as element', async () => {
 });
 
 test('sets up correctly when passed an element AND a textarea', async () => {
-  const newPage = await browser.newPage();
+  const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load'});
   await newPage.$eval('#tinymde', el => el.innerHTML = '<textarea id="txt"></textarea>');
 
@@ -50,7 +50,7 @@ test('sets up correctly when passed an element AND a textarea', async () => {
 
 
 test('Content can be passed to constructor', async () => {
-  const newPage = await browser.newPage();
+  const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load'});
 
   const content = '# XXXA\nXXXB *XXXC*';
@@ -65,7 +65,7 @@ test('Content can be passed to constructor', async () => {
 });
 
 test('Content can be passed from textarea', async () => {
-  const newPage = await browser.newPage();
+  const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load'});
 
   const content = '# XXXA';
@@ -83,19 +83,20 @@ test('Content can be passed from textarea', async () => {
 });
 
 test('Content passed in constructor has precedence over textarea content', async () => {
-  const newPage = await browser.newPage();
+  const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load'});
 
   const textareaContent = '# XXXA';
   const constructorContent = '# XXXB';
 
-  const tinymdeContent = await newPage.evaluate((textareaContent, constructorContent) => {
+  const tinymdeContent = await newPage.evaluate((args) => {
+    const { textareaContent, constructorContent } = args;
     const textarea = document.createElement('textarea');
     textarea.value = textareaContent;
     document.body.appendChild(textarea);
     const tinyMDE = new TinyMDE.Editor({element: 'tinymde', textarea: textarea, content: constructorContent});
     return tinyMDE.getContent();
-  }, textareaContent, constructorContent)
+  }, { textareaContent, constructorContent })
 
   expect(tinymdeContent).toEqual(constructorContent);
   newPage.close();
@@ -103,7 +104,7 @@ test('Content passed in constructor has precedence over textarea content', async
 
 
 test('Content can be set using setContent()', async () => {
-  const newPage = await browser.newPage();
+  const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load'});
 
   const content = '# XXXA\nXXXB *XXXC*';
@@ -120,7 +121,7 @@ test('Content can be set using setContent()', async () => {
 });
 
 test('Linked textarea updated on setContent()', async () => {
-  const newPage = await browser.newPage();
+  const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load'});
 
   const content = '# XXXA\nXXXB *XXXC*';
@@ -144,7 +145,7 @@ test('Linked textarea updated on setContent()', async () => {
 })
 
 test('Change event listeners called on setContent()', async () => {
-  const newPage = await browser.newPage();
+  const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load'});
 
   const content = '# XXXA\nXXXB *XXXC*';
@@ -164,7 +165,7 @@ test('Change event listeners called on setContent()', async () => {
 });
 
 test('Placeholder is not shown for Empty content', async () => {
-  const newPage = await browser.newPage();
+  const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load' });
 
   const content = '';

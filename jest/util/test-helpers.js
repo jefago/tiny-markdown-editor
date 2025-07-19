@@ -3,8 +3,7 @@ const { PORT } = require("./config");
 global.PATH = `http://localhost:${PORT}/blank.html`;
 
 global.initTinyMDE = async (content) => {
-  // document.body.innerHTML = '<div id="container"></div>';
-  const newPage = await browser.newPage();
+  const newPage = await global.context.newPage();
   await newPage.goto(global.PATH, { waitUntil: "load" });
   content = content
     .replace(/(['"\\])/g, "\\$1")
@@ -35,6 +34,7 @@ global.initTinyMDE = async (content) => {
   };
 };
 
+
 global.classTagRegExp = (content, className, tagName = "span") => {
   let match = content
     .replace(/&/g, "&amp;")
@@ -63,9 +63,11 @@ global.select = async (
 ) => {
   // TODO Continue here
 
-  await thePage.$eval(
-    ".TinyMDE",
-    (el, fromLine, fromColumn, toLine, toColumn) => {
+  await thePage.evaluate(
+    (args) => {
+      const { fromLine, fromColumn, toLine, toColumn } = args;
+      const el = document.querySelector(".TinyMDE");
+      
       const computeNodeAndOffset = (el, row, col) => {
         if (row < 0 || row >= el.childNodes.length || col < 0) return null;
 
@@ -116,9 +118,6 @@ global.select = async (
         to.offset
       );
     },
-    fromLine,
-    fromColumn,
-    toLine,
-    toColumn
+    { fromLine, fromColumn, toLine, toColumn }
   );
 };
