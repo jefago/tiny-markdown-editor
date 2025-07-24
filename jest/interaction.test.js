@@ -215,3 +215,20 @@ test("Can undo bold command and preserve selection", async () => {
   expect(selection.focusOffset).toBe(6);
   expect(selection.anchorOffset).toBe(11);
 });
+
+test("Deleting a blank line ends up with the selection in the right place", async () => {
+  await page.evaluate(() => {
+    document.tinyMDE = new TinyMDE.Editor({
+      element: "tinymde",
+      content: "Line 1\n\nLine 2\n\nLine 3",
+    });
+    document.getElementById("tinymde").firstChild.focus();
+    document.tinyMDE.setSelection({row: 1, col: 0})
+  });
+  // Type some text
+  await page.keyboard.press("Delete");
+  await page.keyboard.up("Delete");
+  expect(await page.evaluate(() => document.tinyMDE.getSelection())).toEqual(
+    { row: 1, col: 0 }
+  );
+});
