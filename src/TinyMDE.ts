@@ -497,19 +497,28 @@ export class Editor {
     }
 
     let row = 0;
-    if (
-      (node as HTMLElement).dataset &&
-      (node as HTMLElement).dataset.lineNum &&
-      (!node.previousSibling ||
-        ((node.previousSibling as HTMLElement).dataset?.lineNum !== (node as HTMLElement).dataset.lineNum))
-    ) {
-      row = parseInt((node as HTMLElement).dataset.lineNum!);
-    } else {
-      while (node.previousSibling) {
-        row++;
-        node = node.previousSibling;
+    // If the node doesn't have a previous sibling, it must be the first line
+    if (node.previousSibling) {
+      const currentLineNumData = (node as HTMLElement).dataset?.lineNum;
+      const previousLineNumData = (node.previousSibling as HTMLElement).dataset?.lineNum;
+
+      if (currentLineNumData && previousLineNumData) {
+        const currentLineNum = parseInt(currentLineNumData);
+        const previousLineNum = parseInt(previousLineNumData);
+        if (currentLineNum === previousLineNum + 1) {
+          row = currentLineNum;
+        } else {
+          // If the current line is NOT the previous line + 1, then either 
+          // the current line got split in two or merged with the previous line
+          // Either way, we need to recalculate the row number
+          while (node.previousSibling) {
+            row++;
+            node = node.previousSibling;
+          }
+        }
       }
     }
+    
     return { row: row, col: col };
   }
 
