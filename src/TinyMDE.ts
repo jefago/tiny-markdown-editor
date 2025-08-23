@@ -62,6 +62,7 @@ export class Editor {
   public lastCommandState: Record<string, boolean | null> | null = null;
   private customInlineGrammar: Record<string, GrammarRule> = {};
   private mergedInlineGrammar: Record<string, GrammarRule> = inlineGrammar;
+  private hasFocus: boolean = true;
 
   public listeners: {
     change: EventHandler<ChangeEvent>[];
@@ -89,6 +90,7 @@ export class Editor {
     this.linkLabels = [];
     this.lineDirty = [];
     this.lastCommandState = null;
+    this.hasFocus = true;
     this.customInlineGrammar = props.customInlineGrammar || {};
     this.mergedInlineGrammar = createMergedInlineGrammar(this.customInlineGrammar);
 
@@ -238,9 +240,12 @@ export class Editor {
 
     this.e.addEventListener("input", (e) => this.handleInputEvent(e));
     this.e.addEventListener("compositionend", (e) => this.handleInputEvent(e));
-    document.addEventListener("selectionchange", (e) =>
-      this.handleSelectionChangeEvent(e)
+    document.addEventListener("selectionchange", (e) => {
+      if (this.hasFocus) { this.handleSelectionChangeEvent(e); }
+      }
     );
+    this.e.addEventListener("blur", () => this.hasFocus = false );
+    this.e.addEventListener("focus", () => this.hasFocus = true );
     this.e.addEventListener("paste", (e) => this.handlePaste(e));
     this.e.addEventListener("drop", (e) => this.handleDrop(e));
     this.lineElements = this.e.childNodes;
