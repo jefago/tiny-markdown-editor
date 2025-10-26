@@ -162,7 +162,7 @@ const execPromise = (command) => {
 };
 
 const bumpVersion = () => {
-  return execPromise("npm version patch");
+  return execPromise("npm version patch --no-git-tag-version");
 };
 
 const gitCheckBranch = async () => {
