@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*' # e.g. v1.2.3
+
+permissions:
+  id-token: write     # <-- required for npm OIDC
+  contents: write     # <-- to create GitHub Release
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: release   # <-- match the npm Trusted Publisher config if you used one
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      # ensure recent npm that supports OIDC + provenance reliably
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build --if-present
+
+      - name: Test
+        run: npm test --if-present
+
+      # OIDC auth happens transparently; no NODE_AUTH_TOKEN needed
+      # --provenance adds supply-chain attestation shown on npm
+      - name: Publish to npm (with provenance)
+        run: npm publish --provenance
+
+      # Create a GitHub Release from the tag
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true

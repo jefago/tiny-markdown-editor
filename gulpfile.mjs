@@ -13,7 +13,6 @@ import { nodeResolve } from "@rollup/plugin-node-resolve";
 import typescript from "@rollup/plugin-typescript";
 import terser from "gulp-terser";
 
-import gulpBabel from "gulp-babel";
 import gulpTypescript from "gulp-typescript";
 
 import postcss from "gulp-postcss";
@@ -29,11 +28,7 @@ import path from "path";
 
 import util from "util";
 import child_process from "node:child_process";
-import readline from "node:readline/promises";
 import "dotenv/config";
-import process from "process";
-
-import { Octokit } from "@octokit/rest";
 
 const readfile = util.promisify(fs.readFile);
 const writefile = util.promisify(fs.writeFile);
@@ -69,8 +64,6 @@ const rollupConfig = (inputFile, sourcemaps = false) => {
 
 const clean = () => del(["./dist", "./lib"]);
 
-const jest = () => jestCLI.run([]);
-
 const jsMax = () =>
   rollupStream({ ...rollupConfig("./src/index.ts", true), cache })
     .on("bundle", (bundle) => {
@@ -94,11 +87,11 @@ const jsTiny = () =>
 
 const js = gulp.series(jsMax, jsTiny);
 
-const transpile = () => {
+const typecheck = () => {
   const tsProject = gulpTypescript.createProject('tsconfig.json', {
     module: 'commonjs',
     declaration: true,
-    outDir: './lib'
+    outDir: './lib',
   });
   
   return gulp
@@ -172,16 +165,6 @@ const bumpVersion = () => {
   return execPromise("npm version patch");
 };
 
-const npmRelease = async () => {
-  const otp = await readline
-    .createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    })
-    .question("Please enter a one-time password for NPM");
-  return execPromise(`npm publish --otp=${otp}`);
-};
-
 const gitCheckBranch = async () => {
   return new Promise((resolve, reject) => {
     child_process.exec("git branch --show-current", (err, stdout) => {
@@ -198,82 +181,64 @@ const gitCheckBranch = async () => {
   });
 };
 
-const gitPush = () => {
-  return execPromise("git push");
-};
-
-const ghRepo = {
-  owner: "jefago",
-  repo: "tiny-markdown-editor",
-};
-
-const ghGenerateReleaseNotes = async () => {
-  const octokit = new Octokit({ auth: process.env.GITHUB_ACCESS_TOKEN });
-  try {
-    // Step 1: Get the latest release
-    const latestRelease = await octokit.rest.repos.getLatestRelease(ghRepo);
-
-    const latestTag = latestRelease.data.tag_name;
-
-    console.log(`Previous tag: ${latestTag}`);
-
-    // Step 2: Get commits since the latest release tag
-    const commits = await octokit.rest.repos.listCommits({
-      ...ghRepo,
-      since: latestRelease.data.published_at, // Get commits since the latest release
-    });
-
-    // Step 3: Generate release notes
-    const releaseNotes = commits.data
-      .map((commit) => `- ${commit.commit.message}`)
-      .join("\n");
-
-    console.log("Generated Release Notes:\n", releaseNotes);
-    return releaseNotes;
-  } catch (error) {
-    console.error("Error generating release notes:", error);
-    return "";
-  }
-};
-
-const ghRelease = async () => {
+const gitCheckIfTagExists = async () => {
   const { version } = JSON.parse(await readfile("package.json"));
+  const tagName = `v${version}`;
 
-  const octokit = new Octokit({ auth: process.env.GITHUB_ACCESS_TOKEN });
-  const releaseNotes = await ghGenerateReleaseNotes(octokit);
-  return octokit.repos.createRelease({
-    ...ghRepo,
-    tag_name: `v${version}`, // The name of the tag
-    name: `v${version}`,
-    body: releaseNotes,
-    draft: false,
-    prerelease: false,
+  return new Promise((resolve, reject) => {
+    child_process.exec(`git tag -l "${tagName}"`, (err, stdout) => {
+      if (err) reject(err);
+      const existingTag = stdout.trim();
+      if (existingTag) {
+        reject(
+          `Tag ${tagName} already exists. Please bump the version before releasing.`
+        );
+      } else {
+        resolve();
+      }
+    });
   });
 };
 
-const build = gulp.series(clean, svg, js, css, html);
+const gitCheckIfBranchDirty = async () => {
+  return new Promise((resolve, reject) => {
+    child_process.exec("git status --porcelain", (err, stdout) => {
+      if (err) reject(err);
+      const uncommittedChanges = stdout.trim();
+      if (uncommittedChanges) {
+        reject(
+          `There are uncommitted changes in the working directory. Please commit or stash them before releasing.`
+        );
+      } else {
+        resolve();
+      }
+    });
+  });
+};
+
+const gitPushTag = async () => {
+  const { version } = JSON.parse(await readfile("package.json"));
+  const tagName = `v${version}`;
+
+  await execPromise(`git tag ${tagName}`);
+  return execPromise(`git push origin ${tagName}`);
+};
+
+
+const build = gulp.series(clean, typecheck, svg, js, css, html);
 
 const dev = gulp.series(clean, svg, jsMax, css, html, watch);
 
-const test = gulp.series(build, jest);
-
-const prepublish = gulp.series(build, jest, transpile);
 
 const release = gulp.series(
   gitCheckBranch,
-  prepublish,
-  npmRelease,
-  gitPush,
-  ghRelease
+  gitCheckIfTagExists,
+  gitCheckIfBranchDirty,
+  gitPushTag,
 );
 
 const releasePatch = gulp.series(gitCheckBranch, bumpVersion, release);
 
-export { dev, test, svg, prepublish, releasePatch, release, ghRelease };
+export { dev, releasePatch, release, };
 
 export default build;
-// exports.default = build;
-// exports.dev = dev;
-// exports.test = test;
-// exports.svg = svg;
-// exports.prepublish = prepublish;
