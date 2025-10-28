@@ -239,6 +239,7 @@ export class Editor {
     }
 
     this.e.addEventListener("input", (e) => this.handleInputEvent(e));
+    this.e.addEventListener("beforeinput", (e) => this.handleBeforeInputEvent(e));
     this.e.addEventListener("compositionend", (e) => this.handleInputEvent(e));
     document.addEventListener("selectionchange", (e) => {
       if (this.hasFocus) { this.handleSelectionChangeEvent(e); }
@@ -642,6 +643,85 @@ export class Editor {
     }
   }
 
+  /**
+   * beforeinput handler, exclusively to handle insertParagraph and
+   * insertLineBreak events. These used to be handled in the input event,
+   * but that caused issues with Firefox where the input event would be
+   * sometimes not be fired for these input types.
+   * @param event The input event
+   * @returns nothing
+   */
+  private handleBeforeInputEvent(event: Event): void {
+    const beforeInputEvent = event as InputEvent;
+    if (
+      beforeInputEvent.inputType !== "insertParagraph" &&
+      beforeInputEvent.inputType !== "insertLineBreak"
+    ) return;
+    if (!this.isRestoringHistory) this.pushHistory();
+    event.preventDefault();
+    this.clearDirtyFlag();
+
+    const focus = this.getSelection();
+    const anchor = this.getSelection(true);
+
+    if (!focus || !anchor) return;
+    
+    // If focus and anchor are in different lines, simply remove everything 
+    // after the beginning of the selection and before the end of the selection
+    // and remove any lines in between
+    if (focus.row !== anchor.row) {
+      const beginning = focus.row < anchor.row ? focus : anchor;
+      const end = focus.row < anchor.row ? anchor : focus;
+      this.lines[beginning.row] = this.lines[beginning.row].substring(0, beginning.col);
+      this.lines[end.row] = this.lines[end.row].substring(end.col);
+      this.spliceLines(beginning.row + 1, end.row - beginning.row - 1);
+      focus.row = beginning.row + 1;
+      focus.col = 0;
+    } else {
+      let continuableType: string | false = false;
+      switch (this.lineTypes[focus.row]) {
+        case "TMUL":
+          continuableType = "TMUL";
+          break;
+        case "TMOL":
+          continuableType = "TMOL";
+          break;
+        case "TMIndentedCode":
+          continuableType = "TMIndentedCode";
+          break;
+      }
+ 
+      const lineBeforeBreak = this.lines[focus.row].substring(0, focus.col <= anchor.col ? focus.col : anchor.col);
+      const lineAfterBreak = this.lines[focus.row].substring(focus.col <= anchor.col ? anchor.col : focus.col);
+      this.spliceLines(focus.row, 1, [lineBeforeBreak, lineAfterBreak]);
+
+      focus.row += 1;
+      focus.col = 0;
+
+      if (continuableType) {
+        let capture = lineGrammar[continuableType].regexp.exec(this.lines[focus.row - 1]);
+        if (capture) {
+          if (capture[2]) {
+            if (continuableType === "TMOL") {
+              capture[1] = capture[1].replace(/\d{1,9}/, (result) => {
+                return (parseInt(result) + 1).toString();
+              });
+            }
+            this.lines[focus.row] = `${capture[1]}${this.lines[focus.row]}`;
+            this.lineDirty[focus.row] = true;
+            focus.col = capture[1].length;
+          } else {
+            this.lines[focus.row - 1] = "";
+            this.lineDirty[focus.row - 1] = true;
+          }
+        }
+      }
+    }
+    this.updateFormatting();
+    this.setSelection(focus);
+    this.fireChange();
+  }
+
   private handleInputEvent(event: Event): void {
     const inputEvent = event as InputEvent;
     if (inputEvent.inputType === "insertCompositionText") return;
@@ -650,8 +730,8 @@ export class Editor {
     let focus = this.getSelection();
 
     if ((inputEvent.inputType === "insertParagraph" || inputEvent.inputType === "insertLineBreak") && focus) {
-      this.clearDirtyFlag();
-      this.processNewParagraph(focus);
+      // This should never happen since these are handled by the beforeinput handler
+      return;
     } else {
       if (!this.e!.firstChild) {
         this.e!.innerHTML = '<div class="TMBlankLine"><br></div>';
@@ -991,53 +1071,6 @@ export class Editor {
         }
       }
     }
-  }
-
-  private processNewParagraph(sel: Position): void {
-    if (!sel) return;
-
-    this.updateLineContents();
-
-    let continuableType: string | false = false;
-    let checkLine = sel.col > 0 ? sel.row : sel.row - 1;
-    switch (this.lineTypes[checkLine]) {
-      case "TMUL":
-        continuableType = "TMUL";
-        break;
-      case "TMOL":
-        continuableType = "TMOL";
-        break;
-      case "TMIndentedCode":
-        continuableType = "TMIndentedCode";
-        break;
-    }
-
-    let lines = this.lines[sel.row].replace(/\n\n$/, "\n").split(/(?:\r\n|\n|\r)/);
-    if (lines.length > 1) {
-      this.spliceLines(sel.row, 1, lines, true);
-      sel.row++;
-      sel.col = 0;
-    }
-
-    if (continuableType) {
-      let capture = lineGrammar[continuableType].regexp.exec(this.lines[sel.row - 1]);
-      if (capture) {
-        if (capture[2]) {
-          if (continuableType === "TMOL") {
-            capture[1] = capture[1].replace(/\d{1,9}/, (result) => {
-              return (parseInt(result) + 1).toString();
-            });
-          }
-          this.lines[sel.row] = `${capture[1]}${this.lines[sel.row]}`;
-          this.lineDirty[sel.row] = true;
-          sel.col = capture[1].length;
-        } else {
-          this.lines[sel.row - 1] = "";
-          this.lineDirty[sel.row - 1] = true;
-        }
-      }
-    }
-    this.updateFormatting();
   }
 
   private spliceLines(
