@@ -161,8 +161,9 @@ const execPromise = (command) => {
   });
 };
 
-const bumpVersion = () => {
-  return execPromise("npm version patch --no-git-tag-version");
+const bumpVersion = async () => {
+  await execPromise("npm version patch --no-git-tag-version");
+  await execPromise(`git commit -am 'Bump version for release'`);
 };
 
 const gitCheckBranch = async () => {
