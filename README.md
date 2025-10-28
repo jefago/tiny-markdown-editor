@@ -360,10 +360,10 @@ npm install
 
 # You may need to run npm install --force
 
-npm run prepublishOnly
+npm run build
 ```
 
-The latter command generates the `dist` and `lib` directories. You will find the following files there:
+The latter command generates the `dist` directory. You will find the following files there:
 
 - `dist/tiny-mde.css` and `dist/tiny-mde.min.css`: CSS files to style the editor. These can be edited at will to make the editor look like you want to. `dist/tiny-mde.min.css` has the same content as `dist/tiny-mde.css`, it's just minified. You will only need to use one of the files on your page. If you want to edit the CSS file, it's easier to edit `dist/tiny-mde.css` and then minify the edited version.
 - `dist/tiny-mde.js`: Debug version of the editor. The JS file is not minified and contains a sourcemap. It is not recommended to use this in production settings, since the file is large.
