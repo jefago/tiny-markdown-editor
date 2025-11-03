@@ -5,7 +5,7 @@
   "main": "lib/index.js",
   "files": [
     "dist/*",
-    "lib/*",
+    "lib/**/*.js",
     "lib/**/*.d.ts"
   ],
   "types": "lib/index.d.ts",
@@ -16,6 +16,7 @@
   ],
   "scripts": {
     "test": "npx gulp && npx jest",
+    "typecheck": "npx tsc --noEmit",
     "test:chromium": "npx gulp && npx jest --selectProjects chromium",
     "test:firefox": "npx gulp && npx jest --selectProjects firefox",
     "test:webkit": "npx gulp && npx jest --selectProjects webkit",

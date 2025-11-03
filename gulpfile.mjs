@@ -87,7 +87,7 @@ const jsTiny = () =>
 
 const js = gulp.series(jsMax, jsTiny);
 
-const typecheck = () => {
+const transpile = () => {
   const tsProject = gulpTypescript.createProject('tsconfig.json', {
     module: 'commonjs',
     declaration: true,
@@ -226,7 +226,7 @@ const gitPushTag = async () => {
 };
 
 
-const build = gulp.series(clean, typecheck, svg, js, css, html);
+const build = gulp.series(clean, transpile, svg, js, css, html);
 
 const dev = gulp.series(clean, svg, jsMax, css, html, watch);
 
