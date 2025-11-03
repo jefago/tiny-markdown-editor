@@ -222,6 +222,7 @@ const gitPushTag = async () => {
   const tagName = `v${version}`;
 
   await execPromise(`git tag ${tagName}`);
+  await execPromise(`git push`);
   return execPromise(`git push origin ${tagName}`);
 };
 
