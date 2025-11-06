@@ -719,6 +719,15 @@ export class Editor {
     }
     this.updateFormatting();
     this.setSelection(focus);
+
+    // Scroll the element containing the selection into view
+    if (focus && focus.row < this.lineElements.length) {
+      (this.lineElements[focus.row] as HTMLElement).scrollIntoView({
+        block: 'nearest',
+        inline: 'nearest'
+      });
+    }
+
     this.fireChange();
   }
 
