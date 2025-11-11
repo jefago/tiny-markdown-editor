@@ -283,10 +283,13 @@ export class CommandBar {
             command: commandName,
           };
           
-          if (keys[keys.length - 1].match(/^[0-9]$/)) {
-            hotkey.code = `Digit${keys[keys.length - 1]}`;
+          const lastKey = keys[keys.length - 1];
+          if (lastKey.match(/^[0-9]$/)) {
+            hotkey.code = `Digit${lastKey}`;
+          } else if (lastKey.match(/^[a-zA-Z]$/)) {
+            hotkey.code = `Key${lastKey.toUpperCase()}`;
           } else {
-            hotkey.key = keys[keys.length - 1].toLowerCase();
+            hotkey.key = lastKey.toLowerCase();
           }
           this.hotkeys.push(hotkey);
           title = title.concat(` (${modifierexplanation.join("+")})`);
