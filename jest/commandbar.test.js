@@ -76,9 +76,81 @@ test('Minimal custom command works', async () => {
 test('Custom command title defaults to name', async () => {
   await page.evaluate(() => {
     document.tinyMDE = new TinyMDE.Editor({element: 'tinymde', content: 'This\nis\na\ntest'});
-    document.commandBar = new TinyMDE.CommandBar({element: 'tinymde_commandbar', editor: document.tinyMDE, commands: [{name: 'X', innerHTML: 'X', action: editor => editor.setContent('XXXA')}]}); 
+    document.commandBar = new TinyMDE.CommandBar({element: 'tinymde_commandbar', editor: document.tinyMDE, commands: [{name: 'X', innerHTML: 'X', action: editor => editor.setContent('XXXA')}]});
     document.getElementById('tinymde').firstChild.focus();
   });
   expect(await page.$eval('#tinymde_commandbar', (el) => el.firstChild.firstChild.title)).toEqual('X');
 
+});
+
+test('Clicking toolbar button restores selection after losing focus', async () => {
+  await page.evaluate(() => {
+    document.tinyMDE = new TinyMDE.Editor({element: 'tinymde', content: 'This is a test'});
+    document.commandBar = new TinyMDE.CommandBar({element: 'tinymde_commandbar', editor: document.tinyMDE, commands: ['bold']});
+  });
+
+  // Focus the editor and select "is"
+  await select(page, 0, 5, 0, 7);
+
+  // Click outside to lose focus (click on body at a safe location)
+  await page.evaluate(() => {
+    document.body.focus();
+  });
+
+  // Click the bold button
+  await page.click('.TMCommandButton');
+
+  // The selection should have been restored and bold applied to "is"
+  expect(await page.evaluate(() => document.tinyMDE.getContent())).toEqual('This **is** a test');
+});
+
+test('Clicking toolbar button with focus uses current selection, not old selection', async () => {
+  await page.evaluate(() => {
+    document.tinyMDE = new TinyMDE.Editor({element: 'tinymde', content: 'This is a test'});
+    document.commandBar = new TinyMDE.CommandBar({element: 'tinymde_commandbar', editor: document.tinyMDE, commands: ['bold']});
+  });
+
+  // Focus the editor and select "is"
+  await select(page, 0, 5, 0, 7);
+
+  // Click outside to lose focus (this saves the selection)
+  await page.evaluate(() => {
+    document.body.focus();
+  });
+
+  // Focus again and select "test" instead
+  await select(page, 0, 10, 0, 14);
+
+  // Click the bold button - should apply to "test", not "is"
+  await page.click('.TMCommandButton');
+
+  // The selection should NOT have been restored - bold should apply to "test"
+  expect(await page.evaluate(() => document.tinyMDE.getContent())).toEqual('This is a **test**');
+});
+
+test('Clicking h1 button after losing focus applies to line with cursor', async () => {
+  await page.evaluate(() => {
+    document.tinyMDE = new TinyMDE.Editor({element: 'tinymde', content: ''});
+    document.commandBar = new TinyMDE.CommandBar({element: 'tinymde_commandbar', editor: document.tinyMDE, commands: ['h1']});
+    newEl = document.createElement('div');
+    newEl.style.height = '2000px';
+    newEl.id = 'spacer';
+    document.body.appendChild(newEl); // Make page taller to allow clicking outside editor
+  });
+
+  // Focus the editor and type "Line 1\nLine 2"
+  await page.click('.TinyMDE');
+  await page.keyboard.type('Line 1');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('Line 2');
+
+  
+  // Click outside to lose focus
+  await page.click('#spacer');
+
+  // Click the h1 button
+  await page.click('.TMCommandButton');
+
+  // Should apply h1 to Line 2 (where cursor was)
+  expect(await page.evaluate(() => document.tinyMDE.getContent())).toEqual('Line 1\n# Line 2');
 });
