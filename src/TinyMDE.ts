@@ -247,14 +247,7 @@ export class Editor {
       if (this.hasFocus) { this.handleSelectionChangeEvent(e); }
       }
     );
-    this.e.addEventListener("blur", () => {
-      this.hasFocus = false;
-      // Save the current selection when losing focus
-      this.lastSelection = {
-        focus: this.getSelection(false),
-        anchor: this.getSelection(true)
-      };
-    });
+    this.e.addEventListener("blur", () => this.hasFocus = false );
     this.e.addEventListener("focus", () => this.hasFocus = true );
     this.e.addEventListener("paste", (e) => this.handlePaste(e));
     this.e.addEventListener("drop", (e) => this.handleDrop(e));
@@ -1742,9 +1735,16 @@ export class Editor {
   }
 
   private fireSelection(): void {
+    let focus = this.getSelection(false);
+    let anchor = this.getSelection(true);
+
+    // Save the current selection for restoration later
+    this.lastSelection = {
+      focus: focus,
+      anchor: anchor
+    };
+
     if (this.listeners.selection && this.listeners.selection.length) {
-      let focus = this.getSelection(false);
-      let anchor = this.getSelection(true);
       let commandState = this.getCommandState(focus, anchor);
       if (this.lastCommandState) {
         Object.assign(this.lastCommandState, commandState);

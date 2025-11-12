@@ -315,7 +315,7 @@ export class CommandBar {
 
     // Focus the editor if it's not already focused
     if (this.editor.e) {
-      const editorHadFocus = document.activeElement === this.editor.e;
+      const editorHadFocus = this.editor.e.contains(document.activeElement);
       this.editor.e.focus();
       // Only restore the last selection if the editor was not focused before
       if (!editorHadFocus) {
