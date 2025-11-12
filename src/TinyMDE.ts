@@ -63,6 +63,7 @@ export class Editor {
   private customInlineGrammar: Record<string, GrammarRule> = {};
   private mergedInlineGrammar: Record<string, GrammarRule> = inlineGrammar;
   private hasFocus: boolean = true;
+  private lastSelection: { focus: Position | null; anchor: Position | null } | null = null;
 
   public listeners: {
     change: EventHandler<ChangeEvent>[];
@@ -91,6 +92,7 @@ export class Editor {
     this.lineDirty = [];
     this.lastCommandState = null;
     this.hasFocus = true;
+    this.lastSelection = null;
     this.customInlineGrammar = props.customInlineGrammar || {};
     this.mergedInlineGrammar = createMergedInlineGrammar(this.customInlineGrammar);
 
@@ -245,7 +247,14 @@ export class Editor {
       if (this.hasFocus) { this.handleSelectionChangeEvent(e); }
       }
     );
-    this.e.addEventListener("blur", () => this.hasFocus = false );
+    this.e.addEventListener("blur", () => {
+      this.hasFocus = false;
+      // Save the current selection when losing focus
+      this.lastSelection = {
+        focus: this.getSelection(false),
+        anchor: this.getSelection(true)
+      };
+    });
     this.e.addEventListener("focus", () => this.hasFocus = true );
     this.e.addEventListener("paste", (e) => this.handlePaste(e));
     this.e.addEventListener("drop", (e) => this.handleDrop(e));
@@ -555,6 +564,14 @@ export class Editor {
       anchorNode || focusNode,
       anchorNode ? anchorOffset! : focusOffset
     );
+  }
+
+  public restoreLastSelection(): boolean {
+    if (this.lastSelection && this.lastSelection.focus) {
+      this.setSelection(this.lastSelection.focus, this.lastSelection.anchor);
+      return true;
+    }
+    return false;
   }
 
   public paste(text: string, anchor: Position | null = null, focus: Position | null = null): void {
@@ -1676,7 +1693,7 @@ export class Editor {
     }
   }
 
-  private isInlineFormattingAllowed(): boolean {
+  public isInlineFormattingAllowed(): boolean {
     const sel = window.getSelection();
     if (!sel || !sel.focusNode || !sel.anchorNode) return false;
 
