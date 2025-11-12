@@ -99,10 +99,10 @@ const DefaultCommands: Record<string, CommandDefinition> = {
   insertLink: {
     name: "insertLink",
     action: (editor: Editor) => {
-      if ((editor as any).isInlineFormattingAllowed()) editor.wrapSelection("[", "]()");
+      if (editor.isInlineFormattingAllowed()) editor.wrapSelection("[", "]()");
     },
-    enabled: (editor: Editor, focus?: Position, anchor?: Position) =>
-      (editor as any).isInlineFormattingAllowed(focus, anchor) ? false : null,
+    enabled: (editor: Editor) =>
+      editor.isInlineFormattingAllowed() ? false : null,
     innerHTML: svg.link,
     title: "Insert link",
     hotkey: "Mod-K",
@@ -110,10 +110,10 @@ const DefaultCommands: Record<string, CommandDefinition> = {
   insertImage: {
     name: "insertImage",
     action: (editor: Editor) => {
-      if ((editor as any).isInlineFormattingAllowed()) editor.wrapSelection("![", "]()");
+      if (editor.isInlineFormattingAllowed()) editor.wrapSelection("![", "]()");
     },
-    enabled: (editor: Editor, focus?: Position, anchor?: Position) =>
-      (editor as any).isInlineFormattingAllowed(focus, anchor) ? false : null,
+    enabled: (editor: Editor) =>
+      editor.isInlineFormattingAllowed() ? false : null,
     innerHTML: svg.image,
     title: "Insert image",
     hotkey: "Mod2-Shift-I",
@@ -312,6 +312,17 @@ export class CommandBar {
   private handleClick(commandName: string, event: Event): void {
     if (!this.editor) return;
     event.preventDefault();
+
+    // Focus the editor if it's not already focused
+    if (this.editor.e) {
+      const editorHadFocus = this.editor.e.contains(document.activeElement);
+      this.editor.e.focus();
+      // Only restore the last selection if the editor was not focused before
+      if (!editorHadFocus) {
+        this.editor.restoreLastSelection();
+      }
+    }
+
     if (typeof this.commands[commandName].action === "string") {
       if (this.state[commandName] === false)
         (this.editor as any).setCommandState(commandName, true);
