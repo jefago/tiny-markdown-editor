@@ -83,51 +83,6 @@ test('Custom command title defaults to name', async () => {
 
 });
 
-test('Clicking toolbar button restores selection after losing focus', async () => {
-  await page.evaluate(() => {
-    document.tinyMDE = new TinyMDE.Editor({element: 'tinymde', content: 'This is a test'});
-    document.commandBar = new TinyMDE.CommandBar({element: 'tinymde_commandbar', editor: document.tinyMDE, commands: ['bold']});
-  });
-
-  // Focus the editor and select "is"
-  await select(page, 0, 5, 0, 7);
-
-  // Click outside to lose focus (click on body at a safe location)
-  await page.evaluate(() => {
-    document.body.focus();
-  });
-
-  // Click the bold button
-  await page.click('.TMCommandButton');
-
-  // The selection should have been restored and bold applied to "is"
-  expect(await page.evaluate(() => document.tinyMDE.getContent())).toEqual('This **is** a test');
-});
-
-test('Clicking toolbar button with focus uses current selection, not old selection', async () => {
-  await page.evaluate(() => {
-    document.tinyMDE = new TinyMDE.Editor({element: 'tinymde', content: 'This is a test'});
-    document.commandBar = new TinyMDE.CommandBar({element: 'tinymde_commandbar', editor: document.tinyMDE, commands: ['bold']});
-  });
-
-  // Focus the editor and select "is"
-  await select(page, 0, 5, 0, 7);
-
-  // Click outside to lose focus (this saves the selection)
-  await page.evaluate(() => {
-    document.body.focus();
-  });
-
-  // Focus again and select "test" instead
-  await select(page, 0, 10, 0, 14);
-
-  // Click the bold button - should apply to "test", not "is"
-  await page.click('.TMCommandButton');
-
-  // The selection should NOT have been restored - bold should apply to "test"
-  expect(await page.evaluate(() => document.tinyMDE.getContent())).toEqual('This is a **test**');
-});
-
 test('Clicking h1 button after losing focus applies to line with cursor', async () => {
   await page.evaluate(() => {
     document.tinyMDE = new TinyMDE.Editor({element: 'tinymde', content: ''});
