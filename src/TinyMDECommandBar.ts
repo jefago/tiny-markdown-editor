@@ -312,6 +312,12 @@ export class CommandBar {
   private handleClick(commandName: string, event: Event): void {
     if (!this.editor) return;
     event.preventDefault();
+
+    // Focus the editor if it's not already focused
+    if (this.editor.e) {
+      this.editor.e.focus();
+    }
+
     if (typeof this.commands[commandName].action === "string") {
       if (this.state[commandName] === false)
         (this.editor as any).setCommandState(commandName, true);
