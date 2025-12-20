@@ -99,7 +99,7 @@ test('Clicking h1 button after losing focus applies to line with cursor', async 
   await page.keyboard.press('Enter');
   await page.keyboard.type('Line 2');
 
-  
+
   // Click outside to lose focus
   await page.click('#spacer');
 
@@ -108,4 +108,62 @@ test('Clicking h1 button after losing focus applies to line with cursor', async 
 
   // Should apply h1 to Line 2 (where cursor was)
   expect(await page.evaluate(() => document.tinyMDE.getContent())).toEqual('Line 1\n# Line 2');
+});
+
+test('Keyboard shortcuts only apply to focused editor with multiple editors', async () => {
+  await page.evaluate(() => {
+    // Create first editor and command bar
+    const editor1Container = document.createElement('div');
+    editor1Container.id = 'editor1';
+    document.body.appendChild(editor1Container);
+
+    const commandBar1Container = document.createElement('div');
+    commandBar1Container.id = 'commandbar1';
+    document.body.appendChild(commandBar1Container);
+
+    document.editor1 = new TinyMDE.Editor({element: 'editor1', content: 'Editor 1 content'});
+    document.commandBar1 = new TinyMDE.CommandBar({element: 'commandbar1', editor: document.editor1, commands: [{name: 'bold', hotkey: 'Ctrl-B'}]});
+
+    // Create second editor and command bar
+    const editor2Container = document.createElement('div');
+    editor2Container.id = 'editor2';
+    document.body.appendChild(editor2Container);
+
+    const commandBar2Container = document.createElement('div');
+    commandBar2Container.id = 'commandbar2';
+    document.body.appendChild(commandBar2Container);
+
+    document.editor2 = new TinyMDE.Editor({element: 'editor2', content: 'Editor 2 content'});
+    document.commandBar2 = new TinyMDE.CommandBar({element: 'commandbar2', editor: document.editor2, commands: [{name: 'bold', hotkey: 'Ctrl-B'}]});
+  });
+
+  // Focus first editor and select text
+  await page.click('#editor1 .TinyMDE');
+  await page.evaluate(() => {
+    document.editor1.setSelection({row: 0, col: 0}, {row: 0, col: 6}); // Select "Editor"
+  });
+
+  // Apply bold with keyboard shortcut
+  await page.keyboard.down('ControlLeft');
+  await page.keyboard.press('KeyB');
+  await page.keyboard.up('ControlLeft');
+
+  // Verify first editor was updated, second was not
+  expect(await page.evaluate(() => document.editor1.getContent())).toEqual('**Editor** 1 content');
+  expect(await page.evaluate(() => document.editor2.getContent())).toEqual('Editor 2 content');
+
+  // Now focus second editor and select text
+  await page.click('#editor2 .TinyMDE');
+  await page.evaluate(() => {
+    document.editor2.setSelection({row: 0, col: 0}, {row: 0, col: 6}); // Select "Editor"
+  });
+
+  // Apply bold with keyboard shortcut
+  await page.keyboard.down('ControlLeft');
+  await page.keyboard.press('KeyB');
+  await page.keyboard.up('ControlLeft');
+
+  // Verify second editor was updated, first remains unchanged
+  expect(await page.evaluate(() => document.editor1.getContent())).toEqual('**Editor** 1 content');
+  expect(await page.evaluate(() => document.editor2.getContent())).toEqual('**Editor** 2 content');
 });
