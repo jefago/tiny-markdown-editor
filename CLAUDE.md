@@ -15,17 +15,16 @@ TinyMDE is a lightweight, embeddable Markdown editor with two main components:
 
 ### Core Components
 
-1. **Editor (`src/TinyMDE.js`)** - The main Markdown editor class
+1. **Editor (`src/TinyMDE.ts`)** - The main Markdown editor class
    - Handles content parsing, rendering, and user interaction
    - Manages undo/redo stack and event listeners
-   - Provides methods: `getContent()`, `setContent()`, `getSelection()`, `setSelection()`, `paste()`, `wrapSelection()`
 
-2. **CommandBar (`src/TinyMDECommandBar.js`)** - Optional toolbar component
+2. **CommandBar (`src/TinyMDECommandBar.ts`)** - Optional toolbar component
    - Provides UI buttons for formatting commands (bold, italic, etc.)
    - Handles keyboard shortcuts and command execution
    - Customizable command set with default commands
 
-3. **Grammar (`src/grammar.js`)** - Markdown parsing rules
+3. **Grammar (`src/grammar.ts`)** - Markdown parsing rules
    - Contains regex patterns for inline and block-level Markdown elements
    - Defines line grammar, inline grammar, and HTML block patterns
    - Handles punctuation detection for proper Markdown rendering
@@ -43,8 +42,8 @@ TinyMDE is a lightweight, embeddable Markdown editor with two main components:
 
 ### Entry Points
 
-- `src/index.js` - Full build (Editor + CommandBar)
-- `src/tiny.js` - Minimal build (Editor only)
+- `src/index.ts` - Full build (Editor + CommandBar)
+- `src/tiny.ts` - Minimal build (Editor only)
 
 ### Testing
 
@@ -52,6 +51,8 @@ TinyMDE is a lightweight, embeddable Markdown editor with two main components:
 - Tests located in `jest/` directory
 - Tests cover block parsing, inline formatting, command bar functionality, and user interactions
 - Configuration in `jest.config.js`
+- Run all tests with `npm run test`
+- Run an individual test with `npm run test ${file}`, eg. `npm run test jest/commandbar.test.js`
 
 ### Key Features
 

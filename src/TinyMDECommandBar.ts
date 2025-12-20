@@ -366,6 +366,10 @@ export class CommandBar {
   }
 
   private handleKeydown(event: KeyboardEvent): void {
+    // Only handle keyboard shortcuts if this editor is currently focused
+    if (!this.editor || !this.editor.e) return;
+    if (!this.editor.e.contains(document.activeElement)) return;
+
     outer: for (let hotkey of this.hotkeys) {
       if (
         (hotkey.key && event.key.toLowerCase() === hotkey.key) ||
