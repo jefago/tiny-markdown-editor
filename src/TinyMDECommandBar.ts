@@ -15,9 +15,9 @@ export interface CommandEnabled {
 
 export interface CommandDefinition {
   name: string;
-  action: string | CommandAction;
-  innerHTML: string;
-  title: string;
+  action?: string | CommandAction;
+  innerHTML?: string;
+  title?: string;
   hotkey?: string;
   enabled?: CommandEnabled;
 }
@@ -298,7 +298,7 @@ export class CommandBar {
         this.buttons[commandName] = document.createElement("div");
         this.buttons[commandName].className = "TMCommandButton TMCommandButton_Disabled";
         this.buttons[commandName].title = title;
-        this.buttons[commandName].innerHTML = this.commands[commandName].innerHTML;
+        this.buttons[commandName].innerHTML = this.commands[commandName].innerHTML || "?";
 
         this.buttons[commandName].addEventListener("mousedown", (e) =>
           this.handleClick(commandName, e)
