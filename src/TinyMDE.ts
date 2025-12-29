@@ -1473,11 +1473,11 @@ export class Editor {
         )}</span><span class="TMMark TMMark_${type}">](${
           linkDetails[0]
         }</span><span class="${type}Destination">${
-          linkDetails[1]
+          htmlescape(linkDetails[1])
         }</span><span class="TMMark TMMark_${type}">${linkDetails[2]}${
           linkDetails[3]
         }${linkDetails[4]}</span><span class="${type}Title">${
-          linkDetails[5]
+          htmlescape(linkDetails[5])
         }</span><span class="TMMark TMMark_${type}">${linkDetails[6]})</span>`,
         charCount: currentOffset,
       };
