@@ -232,3 +232,55 @@ test("Deleting a blank line ends up with the selection in the right place", asyn
     { row: 1, col: 0 }
   );
 });
+
+test("Image URL with HTML entity-like text doesn't convert to entity (bug #135)", async () => {
+  await page.evaluate(() => {
+    document.tinyMDE = new TinyMDE.Editor({
+      element: "tinymde",
+      content: "![Image](http://example.com/?a=1&cent=1)",
+    });
+    document.getElementById("tinymde").firstChild.focus();
+  });
+  // Check that the HTML rendering doesn't convert "&cent" to "¢"
+  const html = await page.evaluate(() => {
+    return document.querySelector("#tinymde > :first-child > :first-child").innerHTML;
+  });
+  expect(html).toContain("&amp;cent");
+  expect(html).not.toContain("¢");
+});
+
+test("Link URL with HTML entity-like text doesn't convert to entity", async () => {
+  await page.evaluate(() => {
+    document.tinyMDE = new TinyMDE.Editor({
+      element: "tinymde",
+      content: "[Link](http://example.com/?a=1&copy=1)",
+    });
+    document.getElementById("tinymde").firstChild.focus();
+  });
+  // Check that the HTML rendering doesn't convert "&copy" to "©"
+  const html = await page.evaluate(() => {
+    return document.querySelector("#tinymde > :first-child > :first-child").innerHTML;
+  });
+  expect(html).toContain("&amp;copy");
+  expect(html).not.toContain("©");
+});
+
+test("Pasting image with URL containing HTML entity-like text preserves URL (bug #135)", async () => {
+  await page.evaluate(() => {
+    document.tinyMDE = new TinyMDE.Editor({
+      element: "tinymde",
+      content: "Initial content",
+    });
+  });
+  // Paste an image with URL containing "&center=1" query parameter
+  await page.evaluate(() => {
+    document.tinyMDE.paste("\n![Screenshot](http://example.com/image.png?align=top&center=1)");
+  });
+
+  // Check the HTML rendering doesn't convert "&center" to the cent symbol "¢"
+  const html = await page.evaluate(() => {
+    return document.querySelector("#tinymde > :first-child > :nth-child(2)").innerHTML;
+  });
+  expect(html).toContain("&amp;center=1");
+  expect(html).not.toContain("¢er=1"); // Should not convert &cent to ¢
+});
