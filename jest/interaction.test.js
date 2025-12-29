@@ -232,3 +232,35 @@ test("Deleting a blank line ends up with the selection in the right place", asyn
     { row: 1, col: 0 }
   );
 });
+
+test("Image URL with HTML entity-like text doesn't convert to entity (bug #135)", async () => {
+  await page.evaluate(() => {
+    document.tinyMDE = new TinyMDE.Editor({
+      element: "tinymde",
+      content: "![Image](http://example.com/?a=1&cent=1)",
+    });
+    document.getElementById("tinymde").firstChild.focus();
+  });
+  // Check that the HTML rendering doesn't convert "&cent" to "¢"
+  const html = await page.evaluate(() => {
+    return document.querySelector("#tinymde > :first-child > :first-child").innerHTML;
+  });
+  expect(html).toContain("&amp;cent");
+  expect(html).not.toContain("¢");
+});
+
+test("Link URL with HTML entity-like text doesn't convert to entity", async () => {
+  await page.evaluate(() => {
+    document.tinyMDE = new TinyMDE.Editor({
+      element: "tinymde",
+      content: "[Link](http://example.com/?a=1&copy=1)",
+    });
+    document.getElementById("tinymde").firstChild.focus();
+  });
+  // Check that the HTML rendering doesn't convert "&copy" to "©"
+  const html = await page.evaluate(() => {
+    return document.querySelector("#tinymde > :first-child > :first-child").innerHTML;
+  });
+  expect(html).toContain("&amp;copy");
+  expect(html).not.toContain("©");
+});
