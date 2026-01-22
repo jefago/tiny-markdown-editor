@@ -783,7 +783,7 @@ export class Editor {
     this.fireDrop(event.dataTransfer!);
   }
 
-  private processInlineStyles(originalString: string): string {
+  public processInlineStyles(originalString: string): string {
     let processed = "";
     let stack: Array<{delimiter: string, delimString: string, count: number, output: string}> = [];
     let offset = 0;
@@ -1155,7 +1155,7 @@ export class Editor {
     });
   }
 
-  private parseLinkOrImage(originalString: string, isImage: boolean): {output: string, charCount: number} | false {
+  public parseLinkOrImage(originalString: string, isImage: boolean): {output: string, charCount: number} | false {
     // Skip the opening bracket
     let textOffset = isImage ? 2 : 1;
     let opener = originalString.substr(0, textOffset);
