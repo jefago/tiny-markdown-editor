@@ -18,6 +18,7 @@ export interface EditorProps {
   content?: string;
   textarea?: string | HTMLTextAreaElement;
   customInlineGrammar?: Record<string, GrammarRule>;
+  placeholder?: string;
 }
 
 export interface Position {
@@ -64,6 +65,7 @@ export class Editor {
   private mergedInlineGrammar: Record<string, GrammarRule> = inlineGrammar;
   private hasFocus: boolean = true;
   private lastSelection: { focus: Position | null; anchor: Position | null } | null = null;
+  private placeholder: string | undefined;
 
   public listeners: {
     change: EventHandler<ChangeEvent>[];
@@ -130,6 +132,10 @@ export class Editor {
     if (this.textarea) {
       this.textarea.style.display = "none";
     }
+
+    this.placeholder = props.placeholder !== undefined
+      ? props.placeholder
+      : this.textarea?.placeholder || undefined;
 
     this.undoStack = [];
     this.redoStack = [];
@@ -228,6 +234,10 @@ export class Editor {
     this.e.style.whiteSpace = "pre-wrap";
     (this.e.style as any).webkitUserModify = "read-write-plaintext-only";
 
+    if (this.placeholder) {
+      this.e.setAttribute("data-placeholder", this.placeholder);
+    }
+
     if (props.editor === undefined) {
       if (
         this.textarea &&
@@ -267,12 +277,22 @@ export class Editor {
     }
     this.lineTypes = new Array(this.lines.length);
     this.updateFormatting();
+    this.updatePlaceholder();
     this.fireChange();
     if (!this.isRestoringHistory) this.pushHistory();
   }
 
   public getContent(): string {
     return this.lines.join("\n");
+  }
+
+  private updatePlaceholder(): void {
+    if (!this.placeholder || !this.e) return;
+    if (this.getContent() === "") {
+      this.e.classList.add("TinyMDE_empty");
+    } else {
+      this.e.classList.remove("TinyMDE_empty");
+    }
   }
 
   private updateFormatting(): void {
@@ -642,6 +662,7 @@ export class Editor {
   }
 
   private fireChange(): void {
+    this.updatePlaceholder();
     if (!this.textarea && !this.listeners.change.length) return;
     const content = this.getContent();
     if (this.textarea) this.textarea.value = content;
