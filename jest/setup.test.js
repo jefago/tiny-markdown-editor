@@ -181,3 +181,128 @@ test('Placeholder is not shown for Empty content', async () => {
   expect(tinymdeContent).toEqual(content);
   newPage.close();
 });
+
+test('Placeholder from props is set on editor element', async () => {
+  const newPage = await global.context.newPage();
+  await newPage.goto(PATH, { waitUntil: 'load' });
+
+  const result = await newPage.evaluate(() => {
+    const tinyMDE = new TinyMDE.Editor({
+      element: 'tinymde',
+      content: '',
+      placeholder: 'Type here...',
+    });
+    const editorEl = document.querySelector('.TinyMDE');
+    return {
+      dataPlaceholder: editorEl.getAttribute('data-placeholder'),
+      hasEmptyClass: editorEl.classList.contains('TinyMDE_empty'),
+    };
+  });
+
+  expect(result.dataPlaceholder).toEqual('Type here...');
+  expect(result.hasEmptyClass).toBe(true);
+  newPage.close();
+});
+
+test('Placeholder from textarea is picked up', async () => {
+  const newPage = await global.context.newPage();
+  await newPage.goto(PATH, { waitUntil: 'load' });
+
+  const result = await newPage.evaluate(() => {
+    const textarea = document.createElement('textarea');
+    textarea.placeholder = 'Write something...';
+    document.body.appendChild(textarea);
+    const tinyMDE = new TinyMDE.Editor({ element: 'tinymde', textarea: textarea });
+    const editorEl = document.querySelector('.TinyMDE');
+    return {
+      dataPlaceholder: editorEl.getAttribute('data-placeholder'),
+      hasEmptyClass: editorEl.classList.contains('TinyMDE_empty'),
+    };
+  });
+
+  expect(result.dataPlaceholder).toEqual('Write something...');
+  expect(result.hasEmptyClass).toBe(true);
+  newPage.close();
+});
+
+test('Placeholder prop takes precedence over textarea placeholder', async () => {
+  const newPage = await global.context.newPage();
+  await newPage.goto(PATH, { waitUntil: 'load' });
+
+  const result = await newPage.evaluate(() => {
+    const textarea = document.createElement('textarea');
+    textarea.placeholder = 'From textarea';
+    document.body.appendChild(textarea);
+    const tinyMDE = new TinyMDE.Editor({
+      element: 'tinymde',
+      textarea: textarea,
+      placeholder: 'From props',
+    });
+    const editorEl = document.querySelector('.TinyMDE');
+    return editorEl.getAttribute('data-placeholder');
+  });
+
+  expect(result).toEqual('From props');
+  newPage.close();
+});
+
+test('Placeholder hidden when content exists', async () => {
+  const newPage = await global.context.newPage();
+  await newPage.goto(PATH, { waitUntil: 'load' });
+
+  const hasEmptyClass = await newPage.evaluate(() => {
+    const tinyMDE = new TinyMDE.Editor({
+      element: 'tinymde',
+      content: '# Hello',
+      placeholder: 'Type here...',
+    });
+    const editorEl = document.querySelector('.TinyMDE');
+    return editorEl.classList.contains('TinyMDE_empty');
+  });
+
+  expect(hasEmptyClass).toBe(false);
+  newPage.close();
+});
+
+test('Placeholder reappears when content is cleared', async () => {
+  const newPage = await global.context.newPage();
+  await newPage.goto(PATH, { waitUntil: 'load' });
+
+  const result = await newPage.evaluate(() => {
+    const tinyMDE = new TinyMDE.Editor({
+      element: 'tinymde',
+      content: '# Hello',
+      placeholder: 'Type here...',
+    });
+    const editorEl = document.querySelector('.TinyMDE');
+    const beforeClear = editorEl.classList.contains('TinyMDE_empty');
+    tinyMDE.setContent('');
+    const afterClear = editorEl.classList.contains('TinyMDE_empty');
+    return { beforeClear, afterClear };
+  });
+
+  expect(result.beforeClear).toBe(false);
+  expect(result.afterClear).toBe(true);
+  newPage.close();
+});
+
+test('No placeholder attribute when placeholder not specified', async () => {
+  const newPage = await global.context.newPage();
+  await newPage.goto(PATH, { waitUntil: 'load' });
+
+  const result = await newPage.evaluate(() => {
+    const tinyMDE = new TinyMDE.Editor({
+      element: 'tinymde',
+      content: '',
+    });
+    const editorEl = document.querySelector('.TinyMDE');
+    return {
+      dataPlaceholder: editorEl.getAttribute('data-placeholder'),
+      hasEmptyClass: editorEl.classList.contains('TinyMDE_empty'),
+    };
+  });
+
+  expect(result.dataPlaceholder).toBeNull();
+  expect(result.hasEmptyClass).toBe(false);
+  newPage.close();
+});

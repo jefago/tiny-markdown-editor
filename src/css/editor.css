@@ -8,6 +8,18 @@
   height: 100%;
 }
 
+.TinyMDE.TinyMDE_empty {
+  position: relative;
+}
+
+.TinyMDE.TinyMDE_empty::before {
+  content: attr(data-placeholder);
+  color: #a0a0a0;
+  font-style: italic;
+  pointer-events: none;
+  position: absolute;
+}
+
 .TMBlankLine {
   height:24px;
 }
