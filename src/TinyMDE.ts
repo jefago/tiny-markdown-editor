@@ -1543,7 +1543,7 @@ export class Editor {
     }
     if (!node) return null;
     while (node !== this.e) {
-      if ((node as HTMLElement).className && (node as HTMLElement).className.includes(className)) return node;
+      if ((node as HTMLElement).classList && (node as HTMLElement).classList.contains(className)) return node;
       node = node.parentNode!;
     }
     return null;
@@ -1721,8 +1721,8 @@ export class Editor {
       if (
         node &&
         node.nextSibling &&
-        (node.nextSibling as HTMLElement).className &&
-        (node.nextSibling as HTMLElement).className.includes("TMInlineFormatted")
+        (node.nextSibling as HTMLElement).classList &&
+        (node.nextSibling as HTMLElement).classList.contains("TMInlineFormatted")
       )
         return true;
     }
@@ -1732,10 +1732,9 @@ export class Editor {
 
     while (ancestor && ancestor !== this.e) {
       if (
-        (ancestor as HTMLElement).className &&
-        typeof (ancestor as HTMLElement).className.includes === "function" &&
-        ((ancestor as HTMLElement).className.includes("TMInlineFormatted") ||
-          (ancestor as HTMLElement).className.includes("TMBlankLine"))
+        (ancestor as HTMLElement).classList &&
+        ((ancestor as HTMLElement).classList.contains("TMInlineFormatted") ||
+          (ancestor as HTMLElement).classList.contains("TMBlankLine"))
       )
         return true;
       ancestor = ancestor.parentNode!;
