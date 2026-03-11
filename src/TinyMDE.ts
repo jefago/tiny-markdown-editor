@@ -675,15 +675,67 @@ export class Editor {
   }
 
   /**
-   * beforeinput handler, exclusively to handle insertParagraph and
-   * insertLineBreak events. These used to be handled in the input event,
-   * but that caused issues with Firefox where the input event would be
-   * sometimes not be fired for these input types.
+   * beforeinput handler, exclusively to handle insertParagraph,
+   * insertLineBreak, deleteContentBackward, and deleteContentForward events.
+   * These used to be handled in the input event, but that caused issues with
+   * Firefox where the input event would be sometimes not be fired for these
+   * input types. deleteContentBackward/Forward are also handled here to fix a
+   * Firefox-specific bug (#151) where backspacing on an empty line would not
+   * remove it, because Firefox only removes the <br> inside the empty <div>
+   * rather than merging the divs, and fixNodeHierarchy() would then re-add the
+   * <br>, resulting in a no-op.
    * @param event The input event
    * @returns nothing
    */
   private handleBeforeInputEvent(event: Event): void {
     const beforeInputEvent = event as InputEvent;
+
+    // Handle cross-line delete operations (backspace at col 0, delete at end of line)
+    if (
+      beforeInputEvent.inputType === "deleteContentBackward" ||
+      beforeInputEvent.inputType === "deleteContentForward"
+    ) {
+      const focus = this.getSelection();
+      const anchor = this.getSelection(true);
+      if (!focus || !anchor) return;
+
+      const isBackspace = beforeInputEvent.inputType === "deleteContentBackward";
+
+      // Only intercept collapsed selections at line boundaries
+      if (focus.row === anchor.row && focus.col === anchor.col) {
+        if (isBackspace && focus.col === 0 && focus.row > 0) {
+          // Backspace at start of line: merge current line into end of previous
+          event.preventDefault();
+          if (!this.isRestoringHistory) this.pushHistory();
+          this.clearDirtyFlag();
+          const prevLineLen = this.lines[focus.row - 1].length;
+          this.lines[focus.row - 1] = this.lines[focus.row - 1] + this.lines[focus.row];
+          this.lineDirty[focus.row - 1] = true;
+          this.spliceLines(focus.row, 1);
+          this.updateFormatting();
+          this.setSelection({ row: focus.row - 1, col: prevLineLen });
+          this.fireChange();
+          return;
+        }
+        if (!isBackspace && focus.col === this.lines[focus.row].length && focus.row < this.lines.length - 1) {
+          // Delete at end of line: merge next line into current
+          event.preventDefault();
+          if (!this.isRestoringHistory) this.pushHistory();
+          this.clearDirtyFlag();
+          const currentLineLen = this.lines[focus.row].length;
+          this.lines[focus.row] = this.lines[focus.row] + this.lines[focus.row + 1];
+          this.lineDirty[focus.row] = true;
+          this.spliceLines(focus.row + 1, 1);
+          this.updateFormatting();
+          this.setSelection({ row: focus.row, col: currentLineLen });
+          this.fireChange();
+          return;
+        }
+      }
+      // For within-line deletes or non-collapsed selections, let the browser handle it
+      return;
+    }
+
     if (
       beforeInputEvent.inputType !== "insertParagraph" &&
       beforeInputEvent.inputType !== "insertLineBreak"

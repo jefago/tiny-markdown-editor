@@ -233,6 +233,36 @@ test("Deleting a blank line ends up with the selection in the right place", asyn
   );
 });
 
+test("Backspace on empty line deletes it (Firefox bug #151)", async () => {
+  await page.evaluate(() => {
+    document.tinyMDE = new TinyMDE.Editor({
+      element: "tinymde",
+      content: "Line 1\nLine 2\n",
+    });
+    document.getElementById("tinymde").firstChild.focus();
+    document.tinyMDE.setSelection({ row: 2, col: 0 });
+  });
+  await page.keyboard.press("Backspace");
+  expect(await page.evaluate(() => document.tinyMDE.getContent())).toEqual(
+    "Line 1\nLine 2"
+  );
+});
+
+test("Backspace on empty line in middle of content deletes it (Firefox bug #151)", async () => {
+  await page.evaluate(() => {
+    document.tinyMDE = new TinyMDE.Editor({
+      element: "tinymde",
+      content: "Line 1\n\nLine 3",
+    });
+    document.getElementById("tinymde").firstChild.focus();
+    document.tinyMDE.setSelection({ row: 1, col: 0 });
+  });
+  await page.keyboard.press("Backspace");
+  expect(await page.evaluate(() => document.tinyMDE.getContent())).toEqual(
+    "Line 1\nLine 3"
+  );
+});
+
 test("Image URL with HTML entity-like text doesn't convert to entity (bug #135)", async () => {
   await page.evaluate(() => {
     document.tinyMDE = new TinyMDE.Editor({
