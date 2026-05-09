@@ -23,10 +23,6 @@ jobs:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
-      # ensure recent npm that supports OIDC + provenance reliably
-      - name: Update npm
-        run: npm install -g npm@latest
-
       - name: Install
         run: npm ci
 
