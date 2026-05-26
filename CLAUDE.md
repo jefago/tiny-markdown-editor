@@ -63,3 +63,11 @@ TinyMDE is a lightweight, embeddable Markdown editor with two main components:
 - Drag & drop support for images
 - Undo/redo functionality
 - Event system for `change`, `selection`, and `drop` events
+
+## Dependency Supply-Chain Protection
+
+This repo enforces a **minimum release age** for dependencies via `.npmrc` to mitigate supply-chain attacks. Compromised package versions are usually detected and unpublished within days of being published, so installing only older releases avoids the window of greatest risk.
+
+- `min-release-age=7` — npm refuses to install any package version published less than 7 days ago (requires npm 11.10+).
+
+**Do not remove, lower, or override this setting** to pull in a newer dependency. It is a deliberate security control. If a recent version is genuinely required, raise it with the repo owner rather than circumventing the check.
