@@ -93,3 +93,57 @@ test("a single-line paragraph still renders emphasis as before", async () => {
   expect(await editor.lineHTML(0)).toMatch(/<em[^>]*>one<\/em>/);
   editor.destroy();
 });
+
+// Blockquotes -------------------------------------------------------------------------------
+
+test("emphasis spans consecutive blockquote lines", async () => {
+  const editor = await initTinyMDE("> foo **bar\n> baz** qux");
+  expect(await editor.lineHTML(0)).toMatch(/<strong[^>]*>bar<\/strong>/);
+  expect(await editor.lineHTML(1)).toMatch(/<strong[^>]*>baz<\/strong>/);
+  // The `>` markers are preserved on each line.
+  expect(await editor.lineText(0)).toEqual("> foo **bar");
+  expect(await editor.lineText(1)).toEqual("> baz** qux");
+  editor.destroy();
+});
+
+test("emphasis does not span a blank line inside a blockquote", async () => {
+  const editor = await initTinyMDE("> foo **bar\n>\n> baz** qux");
+  // The empty `>` line separates two paragraphs within the quote, so neither ** is matched.
+  expect(await editor.lineHTML(0)).not.toMatch(/<strong/);
+  expect(await editor.lineHTML(2)).not.toMatch(/<strong/);
+  editor.destroy();
+});
+
+test("emphasis spans a blockquote line and its lazy paragraph continuation", async () => {
+  const editor = await initTinyMDE("> foo **bar\nbaz** qux");
+  expect(await editor.lineHTML(0)).toMatch(/<strong[^>]*>bar<\/strong>/);
+  expect(await editor.lineHTML(1)).toMatch(/<strong[^>]*>baz<\/strong>/);
+  editor.destroy();
+});
+
+// Lists -------------------------------------------------------------------------------------
+
+test("emphasis spans a list item and its wrapped continuation line", async () => {
+  const editor = await initTinyMDE("- foo **bar\ncontinues** here");
+  expect(await editor.lineHTML(0)).toMatch(/<strong[^>]*>bar<\/strong>/);
+  expect(await editor.lineHTML(1)).toMatch(/<strong[^>]*>continues<\/strong>/);
+  // The bullet marker is preserved on the first line only.
+  expect(await editor.lineText(0)).toEqual("- foo **bar");
+  expect(await editor.lineText(1)).toEqual("continues** here");
+  editor.destroy();
+});
+
+test("emphasis spans an ordered list item and its continuation line", async () => {
+  const editor = await initTinyMDE("1. foo **bar\ncontinues** here");
+  expect(await editor.lineHTML(0)).toMatch(/<strong[^>]*>bar<\/strong>/);
+  expect(await editor.lineHTML(1)).toMatch(/<strong[^>]*>continues<\/strong>/);
+  editor.destroy();
+});
+
+test("emphasis does NOT span across two separate list items", async () => {
+  const editor = await initTinyMDE("- foo **bar\n- baz** qux");
+  // Each `- ` starts a new item, so the two ** delimiters belong to different items: no match.
+  expect(await editor.lineHTML(0)).not.toMatch(/<strong/);
+  expect(await editor.lineHTML(1)).not.toMatch(/<strong/);
+  editor.destroy();
+});

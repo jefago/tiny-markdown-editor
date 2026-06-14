@@ -327,23 +327,55 @@ export class Editor {
   private applyLineTypes(): void {
     let lineNum = 0;
     while (lineNum < this.lines.length) {
-      // Consecutive paragraph lines form a single CommonMark paragraph and are parsed together
-      // so that inline styles (bold, italic, ...) can span the soft line breaks between them.
-      if (this.lineTypes[lineNum] === "TMPara") {
-        let groupEnd = lineNum;
+      // A "block" whose text flows across several source lines (a paragraph, a multi-line
+      // blockquote, or a list item with wrapped/lazy-continuation lines) is rendered as one
+      // inline-parsing unit so that inline styles (bold, italic, ...) can span the soft line
+      // breaks between its lines.
+      if (this.isInlineGroupLeader(lineNum)) {
+        const leaderType = this.lineTypes[lineNum];
+        let end = lineNum;
         while (
-          groupEnd + 1 < this.lines.length &&
-          this.lineTypes[groupEnd + 1] === "TMPara"
+          end + 1 < this.lines.length &&
+          this.isInlineContinuation(end + 1, leaderType)
         ) {
-          groupEnd++;
+          end++;
         }
-        this.applyParagraphGroup(lineNum, groupEnd);
-        lineNum = groupEnd + 1;
+        this.applyInlineGroup(lineNum, end);
+        lineNum = end + 1;
       } else {
         this.applyLine(lineNum);
         lineNum++;
       }
     }
+  }
+
+  /** A line that can begin a multi-line inline group (a paragraph-bearing block). */
+  private isInlineGroupLeader(lineNum: number): boolean {
+    const t = this.lineTypes[lineNum];
+    if (t === "TMPara" || t === "TMUL" || t === "TMOL") return true;
+    // A blockquote line whose content is blank is a paragraph break inside the quote, so it
+    // doesn't start (or join) a group.
+    if (t === "TMBlockquote") return !this.isBlankBlockquoteContent(lineNum);
+    return false;
+  }
+
+  /** Whether `lineNum` continues the inline group whose leader has type `leaderType`. */
+  private isInlineContinuation(lineNum: number, leaderType: string): boolean {
+    const t = this.lineTypes[lineNum];
+    // A plain paragraph line is a lazy continuation of the preceding block (paragraph, list item,
+    // or blockquote). Consecutive list markers (TMUL/TMOL), by contrast, each start a new item
+    // and therefore do NOT continue the group.
+    if (t === "TMPara") return true;
+    if (t === "TMBlockquote" && leaderType === "TMBlockquote")
+      return !this.isBlankBlockquoteContent(lineNum);
+    return false;
+  }
+
+  /** True when a blockquote line carries no (non-whitespace) content, e.g. `>` or `> `. */
+  private isBlankBlockquoteContent(lineNum: number): boolean {
+    const cap = this.lineCaptures[lineNum];
+    const content = cap && cap[2] !== undefined ? cap[2] : "";
+    return /^\s*$/.test(content);
   }
 
   private applyLine(lineNum: number): void {
@@ -356,25 +388,36 @@ export class Editor {
       el.className = this.lineTypes[lineNum];
       el.removeAttribute("style");
       el.innerHTML = contentHTML === "" ? "<br />" : contentHTML;
-      // This line is no longer rendered as part of a multi-line paragraph group.
+      // This line is no longer rendered as part of a multi-line inline group.
       delete el.dataset.mlSig;
     }
     el.dataset.lineNum = lineNum.toString();
   }
 
   /**
-   * Renders a run of consecutive paragraph lines [start..end]. The lines are joined with newlines
-   * and inline-parsed as a single unit so that emphasis/strong/strikethrough can span the soft
-   * line breaks, then the resulting HTML is split back into one fragment per source line so each
-   * line keeps its own (well-formed) block element. A single-line paragraph (start === end) is
-   * rendered exactly as before.
+   * Renders a group of lines [start..end] that together form one inline-parsing unit. The inline
+   * content of each line (the `$$N` portion of its replacement — the whole line for a paragraph,
+   * the text after the marker for a list item or blockquote) is joined with newlines and parsed as
+   * a single unit, so inline styles can span the soft line breaks. The resulting HTML is split back
+   * into one fragment per line; any element still open at a line break is closed and re-opened so
+   * each line keeps its own well-formed block element. Per-line markers (list bullets, blockquote
+   * `>`) are preserved exactly. A single-line group (start === end) renders identically to before.
    */
-  private applyParagraphGroup(start: number, end: number): void {
-    const joined = this.lines.slice(start, end + 1).join("\n");
-    // Signature of the exact content this group was rendered from. Stored on each line element so
-    // we can detect when a group needs re-rendering even if the individual line wasn't marked
-    // dirty (e.g. an edit to a sibling line, or the group's boundaries shifting on a split/merge).
-    const sig = `${end - start}:${joined.length}:${this.hashString(joined)}`;
+  private applyInlineGroup(start: number, end: number): void {
+    // Signature of every input that affects this group's rendering (line types, replacements and
+    // captures — hence the marker prefixes and the inline content). Stored per line element so a
+    // group is re-rendered whenever its content, a sibling line, or its boundaries change (e.g. on
+    // a split/merge) even if the individual line wasn't separately marked dirty.
+    const contents: string[] = [];
+    let sigSource = `${end - start}`;
+    for (let i = start; i <= end; i++) {
+      const idx = this.inlineContentIndex(this.lineReplacements[i]);
+      contents.push(this.lineCaptures[i][idx] !== undefined ? this.lineCaptures[i][idx] : "");
+      sigSource += `\x1f${this.lineTypes[i]}\x1f${this.lineReplacements[i]}\x1f${JSON.stringify(
+        this.lineCaptures[i]
+      )}`;
+    }
+    const sig = `${this.hashString(sigSource)}`;
 
     let needsRender = false;
     for (let i = start; i <= end; i++) {
@@ -389,16 +432,19 @@ export class Editor {
 
     if (needsRender) {
       const fragments = this.splitInlineHTMLByLine(
-        this.processInlineStyles(joined)
+        this.processInlineStyles(contents.join("\n"))
       );
       for (let i = start; i <= end; i++) {
         const el = this.lineElements[i] as HTMLElement;
         const frag = fragments[i - start] || "";
+        const contentHTML = this.replaceWithInline(
+          this.lineReplacements[i],
+          this.lineCaptures[i],
+          frag
+        );
         el.className = this.lineTypes[i];
         el.removeAttribute("style");
-        el.innerHTML = `<span class="TMInlineFormatted">${
-          frag === "" ? "<br />" : frag
-        }</span>`;
+        el.innerHTML = contentHTML === "" ? "<br />" : contentHTML;
         el.dataset.mlSig = sig;
       }
     }
@@ -406,6 +452,28 @@ export class Editor {
     for (let i = start; i <= end; i++) {
       (this.lineElements[i] as HTMLElement).dataset.lineNum = i.toString();
     }
+  }
+
+  /** Index of the inline-content placeholder (`$$N`) in a line replacement, or 0 if none. */
+  private inlineContentIndex(replacement: string): number {
+    const m = /\$\$([0-9])/.exec(replacement);
+    return m ? parseInt(m[1]) : 0;
+  }
+
+  /**
+   * Like replace(), but uses a pre-computed inline fragment for the `$$N` (inline content)
+   * placeholder instead of inline-parsing the capture itself. Used for multi-line groups where the
+   * inline content was parsed jointly across all lines.
+   */
+  private replaceWithInline(
+    replacement: string,
+    capture: RegExpExecArray,
+    inlineFragment: string
+  ): string {
+    return replacement.replace(/(\${1,2})([0-9])/g, (str, p1, p2) => {
+      if (p1 === "$") return htmlescape(capture[parseInt(p2)]);
+      else return `<span class="TMInlineFormatted">${inlineFragment}</span>`;
+    });
   }
 
   /**
