@@ -325,19 +325,148 @@ export class Editor {
   }
 
   private applyLineTypes(): void {
-    for (let lineNum = 0; lineNum < this.lines.length; lineNum++) {
-      if (this.lineDirty[lineNum]) {
-        let contentHTML = this.replace(
-          this.lineReplacements[lineNum],
-          this.lineCaptures[lineNum]
-        );
-        (this.lineElements[lineNum] as HTMLElement).className = this.lineTypes[lineNum];
-        (this.lineElements[lineNum] as HTMLElement).removeAttribute("style");
-        (this.lineElements[lineNum] as HTMLElement).innerHTML =
-          contentHTML === "" ? "<br />" : contentHTML;
+    let lineNum = 0;
+    while (lineNum < this.lines.length) {
+      // Consecutive paragraph lines form a single CommonMark paragraph and are parsed together
+      // so that inline styles (bold, italic, ...) can span the soft line breaks between them.
+      if (this.lineTypes[lineNum] === "TMPara") {
+        let groupEnd = lineNum;
+        while (
+          groupEnd + 1 < this.lines.length &&
+          this.lineTypes[groupEnd + 1] === "TMPara"
+        ) {
+          groupEnd++;
+        }
+        this.applyParagraphGroup(lineNum, groupEnd);
+        lineNum = groupEnd + 1;
+      } else {
+        this.applyLine(lineNum);
+        lineNum++;
       }
-      (this.lineElements[lineNum] as HTMLElement).dataset.lineNum = lineNum.toString();
     }
+  }
+
+  private applyLine(lineNum: number): void {
+    const el = this.lineElements[lineNum] as HTMLElement;
+    if (this.lineDirty[lineNum]) {
+      let contentHTML = this.replace(
+        this.lineReplacements[lineNum],
+        this.lineCaptures[lineNum]
+      );
+      el.className = this.lineTypes[lineNum];
+      el.removeAttribute("style");
+      el.innerHTML = contentHTML === "" ? "<br />" : contentHTML;
+      // This line is no longer rendered as part of a multi-line paragraph group.
+      delete el.dataset.mlSig;
+    }
+    el.dataset.lineNum = lineNum.toString();
+  }
+
+  /**
+   * Renders a run of consecutive paragraph lines [start..end]. The lines are joined with newlines
+   * and inline-parsed as a single unit so that emphasis/strong/strikethrough can span the soft
+   * line breaks, then the resulting HTML is split back into one fragment per source line so each
+   * line keeps its own (well-formed) block element. A single-line paragraph (start === end) is
+   * rendered exactly as before.
+   */
+  private applyParagraphGroup(start: number, end: number): void {
+    const joined = this.lines.slice(start, end + 1).join("\n");
+    // Signature of the exact content this group was rendered from. Stored on each line element so
+    // we can detect when a group needs re-rendering even if the individual line wasn't marked
+    // dirty (e.g. an edit to a sibling line, or the group's boundaries shifting on a split/merge).
+    const sig = `${end - start}:${joined.length}:${this.hashString(joined)}`;
+
+    let needsRender = false;
+    for (let i = start; i <= end; i++) {
+      if (
+        this.lineDirty[i] ||
+        (this.lineElements[i] as HTMLElement).dataset.mlSig !== sig
+      ) {
+        needsRender = true;
+        break;
+      }
+    }
+
+    if (needsRender) {
+      const fragments = this.splitInlineHTMLByLine(
+        this.processInlineStyles(joined)
+      );
+      for (let i = start; i <= end; i++) {
+        const el = this.lineElements[i] as HTMLElement;
+        const frag = fragments[i - start] || "";
+        el.className = this.lineTypes[i];
+        el.removeAttribute("style");
+        el.innerHTML = `<span class="TMInlineFormatted">${
+          frag === "" ? "<br />" : frag
+        }</span>`;
+        el.dataset.mlSig = sig;
+      }
+    }
+
+    for (let i = start; i <= end; i++) {
+      (this.lineElements[i] as HTMLElement).dataset.lineNum = i.toString();
+    }
+  }
+
+  /**
+   * Splits inline HTML produced for a joined multi-line paragraph back into one fragment per
+   * source line (fragments are separated by the `\n` markers emitted by processInlineStyles).
+   * Inline elements that are still open at a line break are closed at the end of the fragment and
+   * re-opened at the start of the next one, so that every fragment is independently well-formed
+   * while the formatting visually continues across the lines.
+   */
+  private splitInlineHTMLByLine(html: string): string[] {
+    const fragments: string[] = [];
+    const openTags: string[] = []; // full opening-tag strings of currently open elements
+    let current = "";
+    let i = 0;
+    while (i < html.length) {
+      const ch = html[i];
+      if (ch === "\n") {
+        // Close currently open tags (in reverse) to finish this line's fragment ...
+        for (let t = openTags.length - 1; t >= 0; t--) {
+          current += `</${this.inlineTagName(openTags[t])}>`;
+        }
+        fragments.push(current);
+        // ... and re-open them (in order) at the start of the next line's fragment.
+        current = openTags.join("");
+        i++;
+      } else if (ch === "<") {
+        const close = html.indexOf(">", i);
+        if (close < 0) {
+          // Defensive: malformed output, emit the remainder verbatim.
+          current += html.substr(i);
+          break;
+        }
+        const tag = html.substring(i, close + 1);
+        current += tag;
+        if (tag[1] === "/") {
+          openTags.pop();
+        } else if (tag[tag.length - 2] !== "/") {
+          // Opening tag that isn't self-closing.
+          openTags.push(tag);
+        }
+        i = close + 1;
+      } else {
+        current += ch;
+        i++;
+      }
+    }
+    fragments.push(current);
+    return fragments;
+  }
+
+  private inlineTagName(openTag: string): string {
+    const m = /^<\s*([a-zA-Z][a-zA-Z0-9]*)/.exec(openTag);
+    return m ? m[1] : "span";
+  }
+
+  private hashString(s: string): number {
+    let h = 5381;
+    for (let i = 0; i < s.length; i++) {
+      h = (((h << 5) + h) ^ s.charCodeAt(i)) >>> 0;
+    }
+    return h;
   }
 
   private updateLineTypes(): void {
@@ -863,6 +992,18 @@ export class Editor {
     let string = originalString;
 
     outer: while (string) {
+      // Soft line break: when a paragraph that spans several source lines is parsed as one
+      // joined string, the lines are separated by \n. Preserve it as a newline marker in the
+      // output; splitInlineHTMLByLine() later splits the result back into per-line fragments.
+      // No inline rule starts on a newline (NotTriggerChar and `.` both exclude it), so handling
+      // it here keeps the tokenizer from stalling.
+      if (string.charCodeAt(0) === 10) {
+        processed += "\n";
+        string = string.substr(1);
+        offset += 1;
+        continue outer;
+      }
+
       // Process simple rules (non-delimiter)
       for (let rule of ["escape", "code", "autolink", "html"]) {
         if (this.mergedInlineGrammar[rule]) {
