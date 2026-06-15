@@ -1098,6 +1098,20 @@ export class Editor {
         }
       }
 
+      // Check for GFM extended (non-delimited) autolinks: bare URLs (www.…, http(s)://…, ftp://…),
+      // email addresses, and mailto:/xmpp: links. These are only recognized at the start of the
+      // string or immediately after whitespace or one of the delimiters `*`, `_`, `~`, `(`.
+      const precedingChar = offset > 0 ? originalString[offset - 1] : "";
+      if (precedingChar === "" || /[\s*_~(]/.test(precedingChar)) {
+        let autolink = this.parseAutolinkExtension(string);
+        if (autolink) {
+          processed = `${processed}${autolink.output}`;
+          string = string.substr(autolink.charCount);
+          offset += autolink.charCount;
+          continue outer;
+        }
+      }
+
       // Check for links / images
       let potentialLink = string.match(this.mergedInlineGrammar.linkOpen.regexp);
       let potentialImage = string.match(this.mergedInlineGrammar.imageOpen.regexp);
@@ -1435,6 +1449,117 @@ export class Editor {
         }
       }
     });
+  }
+
+  /**
+   * Attempts to parse a GFM extended (non-delimited) autolink at the start of `string`: a bare URL
+   * (`www.…`, `http://…`, `https://…`, `ftp://…`), an email address, or a `mailto:`/`xmpp:` link.
+   * The caller is responsible for the preceding-character boundary check. On success, returns the
+   * rendered HTML (the matched text wrapped in a `TMAutolink` span, exactly like the content of an
+   * angle-bracketed autolink) and the number of source characters consumed; otherwise `false`.
+   */
+  public parseAutolinkExtension(string: string): {output: string, charCount: number} | false {
+    const match = this.matchExtendedAutolink(string);
+    if (!match) return false;
+    return {
+      output: `<span class="TMAutolink">${htmlescape(match)}</span>`,
+      charCount: match.length,
+    };
+  }
+
+  /** Returns the longest extended-autolink substring at the start of `string`, or `false`. */
+  private matchExtendedAutolink(string: string): string | false {
+    // --- Bare URL / www autolink -----------------------------------------------------------------
+    // www. is treated as part of the domain; an explicit scheme is stripped before the domain.
+    const schemeCap = /^(?:https?|ftp):\/\//i.exec(string);
+    const isWww = /^www\./i.test(string);
+    if (schemeCap || isWww) {
+      const prefixLen = schemeCap ? schemeCap[0].length : 0;
+      const afterPrefix = string.substr(prefixLen);
+      // A valid domain is dot-separated segments of alphanumerics, `_` and `-`, with at least one
+      // dot and no underscore in the last two segments.
+      const domainCap = /^[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)+/.exec(afterPrefix);
+      if (domainCap && this.isValidAutolinkDomain(domainCap[0])) {
+        // After the domain, any run of non-space, non-`<` characters forms the path/query/fragment.
+        const pathCap = /^[^\s<]*/.exec(afterPrefix.substr(domainCap[0].length));
+        const link = string.substr(0, prefixLen + domainCap[0].length + (pathCap ? pathCap[0].length : 0));
+        const trimmed = this.trimAutolinkTrailing(link);
+        // Guard against trailing punctuation trimming having eaten into the domain.
+        if (trimmed.length >= prefixLen + domainCap[0].length) return trimmed;
+      }
+    }
+
+    // --- mailto: / xmpp: autolink ----------------------------------------------------------------
+    const protoCap = /^(?:mailto|xmpp):/i.exec(string);
+    if (protoCap) {
+      const emailCap = this.matchAutolinkEmail(string.substr(protoCap[0].length));
+      if (emailCap) {
+        // xmpp addresses may carry a `/resource` suffix.
+        let extra = "";
+        if (/^xmpp:/i.test(string)) {
+          const resCap = /^\/[a-zA-Z0-9@.\-_]+/.exec(
+            string.substr(protoCap[0].length + emailCap.length)
+          );
+          if (resCap) extra = resCap[0];
+        }
+        return protoCap[0] + emailCap + extra;
+      }
+    }
+
+    // --- Bare email autolink ---------------------------------------------------------------------
+    const email = this.matchAutolinkEmail(string);
+    if (email) return email;
+
+    return false;
+  }
+
+  /** GFM domain validity: at least one dot and no underscore in the last two segments. */
+  private isValidAutolinkDomain(domain: string): boolean {
+    const segments = domain.split(".");
+    if (segments.length < 2) return false;
+    return !segments.slice(-2).some((seg) => seg.indexOf("_") >= 0);
+  }
+
+  /** Matches a bare email address at the start of `string` per the GFM extension, or `false`. */
+  private matchAutolinkEmail(string: string): string | false {
+    // Local part: alphanumerics plus `.`, `-`, `_`, `+`. Domain: dot-separated labels of
+    // alphanumerics, `-` and `_`, with at least one dot and no `-`/`_` as the final character.
+    const cap = /^[a-zA-Z0-9.\-_+]+@[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)+/.exec(string);
+    if (!cap) return false;
+    let email = cap[0];
+    while (email.length && /[-_]$/.test(email)) email = email.substr(0, email.length - 1);
+    // Must still end in a complete TLD (i.e. retain a dot after the trimming).
+    if (!/\.[a-zA-Z0-9]+$/.test(email)) return false;
+    return email;
+  }
+
+  /**
+   * Strips trailing characters that GFM excludes from an autolink: the punctuation `?!.,:*_~`, and
+   * any unbalanced trailing `)` (more closing than opening parentheses in the link).
+   */
+  private trimAutolinkTrailing(link: string): string {
+    let end = link.length;
+    let changed = true;
+    while (changed && end > 0) {
+      changed = false;
+      const c = link[end - 1];
+      if ("?!.,:*_~".indexOf(c) >= 0) {
+        end--;
+        changed = true;
+      } else if (c === ")") {
+        let open = 0;
+        let close = 0;
+        for (let i = 0; i < end; i++) {
+          if (link[i] === "(") open++;
+          else if (link[i] === ")") close++;
+        }
+        if (close > open) {
+          end--;
+          changed = true;
+        }
+      }
+    }
+    return link.substr(0, end);
   }
 
   public parseLinkOrImage(originalString: string, isImage: boolean): {output: string, charCount: number} | false {
