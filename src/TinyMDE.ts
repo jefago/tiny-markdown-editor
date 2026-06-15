@@ -1749,18 +1749,21 @@ export class Editor {
         linkDetails.push("");
       }
 
+      // Every literal mark fragment is HTML-escaped: linkDetails[0]/[2] hold the angle brackets of
+      // an `<...>` destination, so leaving them raw would inject a stray `<`/`>` into the output —
+      // which splitInlineHTMLByLine then mistakes for an HTML tag.
       return {
         output: `<span class="TMMark TMMark_${type}">${opener}</span><span class="${type}">${this.processInlineStyles(
           linkText
         )}</span><span class="TMMark TMMark_${type}">](${
-          linkDetails[0]
+          htmlescape(linkDetails[0])
         }</span><span class="${type}Destination">${
           htmlescape(linkDetails[1])
-        }</span><span class="TMMark TMMark_${type}">${linkDetails[2]}${
-          linkDetails[3]
-        }${linkDetails[4]}</span><span class="${type}Title">${
+        }</span><span class="TMMark TMMark_${type}">${htmlescape(linkDetails[2])}${
+          htmlescape(linkDetails[3])
+        }${htmlescape(linkDetails[4])}</span><span class="${type}Title">${
           htmlescape(linkDetails[5])
-        }</span><span class="TMMark TMMark_${type}">${linkDetails[6]})</span>`,
+        }</span><span class="TMMark TMMark_${type}">${htmlescape(linkDetails[6])})</span>`,
         charCount: currentOffset,
       };
     }
