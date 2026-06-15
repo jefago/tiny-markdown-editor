@@ -14,8 +14,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
-          # Match the release workflow (Node 24) so PR tests reproduce the release environment,
-          # including the Playwright browser-install hang we're chasing.
+          # Match the release workflow.
           node-version: '24'
 
       - name: Install
@@ -29,12 +28,9 @@ jobs:
 
       # Call the local Playwright binary directly rather than via `npx`, matching release.yml and
       # avoiding any npm/registry resolution (see the note there re: `.npmrc` min-release-age).
-      # DEBUG=pw:install surfaces each download/extract step; the timeout fails fast instead of
-      # hanging for hours if the browser provisioning stalls (as it does in the release job).
+      # The timeout fails fast instead of hanging for hours if browser provisioning ever stalls.
       - name: Install playwright browsers
         timeout-minutes: 8
-        env:
-          DEBUG: pw:install
         run: ./node_modules/.bin/playwright install --with-deps
 
       - name: Build
