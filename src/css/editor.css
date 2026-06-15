@@ -99,42 +99,46 @@
 /* Task list checkbox: only the inner character (space/x/X) of `[ ]` / `[x]` is rendered as a drawn
    checkbox. The character stays in the DOM as real, navigable text (its glyph is just hidden), so
    the line's text content still equals its source. The surrounding `[` `]` keep the .TMMark style. */
+
+.TMMark_TMTask {
+  color: #e0e0e0;
+}
+
 .TMCheckbox {
   position: relative;
   color: transparent;
   caret-color: #000000;
   cursor: pointer;
+  font-family: monospace;
 }
 
 .TMCheckbox::before {
   content: "";
   position: absolute;
   left: 50%;
-  top: 0.15em;
-  transform: translateX(-50%);
+  top: 50%;
+  transform: translateX(-50%) translateY(-50%);
   width: 0.85em;
   height: 0.85em;
-  border: 1.5px solid #808080;
-  border-radius: 3px;
+  border: 1px solid #c0c0c0;
   box-sizing: border-box;
+  border-radius: 2px;
   pointer-events: none;
 }
 
 .TMCheckbox_checked::before {
   border-color: #2aa775;
-  background: #2aa775;
 }
 
 .TMCheckbox_checked::after {
-  content: "";
+  content: "✓";
+  color: #2aa775;
   position: absolute;
+  top: 50%;
   left: 50%;
-  top: 0.2em;
-  width: 0.2em;
-  height: 0.45em;
-  border: solid #ffffff;
-  border-width: 0 2px 2px 0;
-  transform: translateX(-60%) rotate(45deg);
+  transform: translateX(-50%) translateY(-50%);
+  text-align: center;
+  vertical-align: top;
   box-sizing: border-box;
   pointer-events: none;
 }
