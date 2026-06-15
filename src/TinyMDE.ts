@@ -3,6 +3,7 @@ import {
   lineGrammar,
   punctuationLeading,
   punctuationTrailing,
+  editorRegExp,
   htmlescape,
   htmlBlockGrammar,
   commands,
@@ -201,7 +202,7 @@ export class Editor {
   }
 
   private handleUndoRedoKey(e: KeyboardEvent): void {
-    const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+    const isMac = editorRegExp.macPlatform.test(navigator.platform);
     const ctrl = isMac ? e.metaKey : e.ctrlKey;
     if (ctrl && !e.altKey) {
       if (e.key === "z" || e.key === "Z") {
@@ -261,6 +262,7 @@ export class Editor {
     this.e.addEventListener("focus", () => this.hasFocus = true );
     this.e.addEventListener("paste", (e) => this.handlePaste(e));
     this.e.addEventListener("drop", (e) => this.handleDrop(e));
+    this.e.addEventListener("click", (e) => this.handleClick(e));
     this.lineElements = this.e.childNodes;
   }
 
@@ -268,7 +270,7 @@ export class Editor {
     while (this.e!.firstChild) {
       this.e!.removeChild(this.e!.firstChild);
     }
-    this.lines = content.split(/(?:\r\n|\r|\n)/);
+    this.lines = content.split(editorRegExp.lineSplit);
     this.lineDirty = [];
     for (let lineNum = 0; lineNum < this.lines.length; lineNum++) {
       let le = document.createElement("div");
@@ -315,7 +317,7 @@ export class Editor {
   }
 
   private replace(replacement: string, capture: RegExpExecArray): string {
-    return replacement.replace(/(\${1,2})([0-9])/g, (str, p1, p2) => {
+    return replacement.replace(editorRegExp.replacementPlaceholder, (str, p1, p2) => {
       if (p1 === "$") return htmlescape(capture[parseInt(p2)]);
       else
         return `<span class="TMInlineFormatted">${this.processInlineStyles(
@@ -375,7 +377,7 @@ export class Editor {
   private isBlankBlockquoteContent(lineNum: number): boolean {
     const cap = this.lineCaptures[lineNum];
     const content = cap && cap[2] !== undefined ? cap[2] : "";
-    return /^\s*$/.test(content);
+    return editorRegExp.blankContent.test(content);
   }
 
   private applyLine(lineNum: number): void {
@@ -456,7 +458,7 @@ export class Editor {
 
   /** Index of the inline-content placeholder (`$$N`) in a line replacement, or 0 if none. */
   private inlineContentIndex(replacement: string): number {
-    const m = /\$\$([0-9])/.exec(replacement);
+    const m = editorRegExp.inlineContentPlaceholder.exec(replacement);
     return m ? parseInt(m[1]) : 0;
   }
 
@@ -470,7 +472,7 @@ export class Editor {
     capture: RegExpExecArray,
     inlineFragment: string
   ): string {
-    return replacement.replace(/(\${1,2})([0-9])/g, (str, p1, p2) => {
+    return replacement.replace(editorRegExp.replacementPlaceholder, (str, p1, p2) => {
       if (p1 === "$") return htmlescape(capture[parseInt(p2)]);
       else return `<span class="TMInlineFormatted">${inlineFragment}</span>`;
     });
@@ -525,7 +527,7 @@ export class Editor {
   }
 
   private inlineTagName(openTag: string): string {
-    const m = /^<\s*([a-zA-Z][a-zA-Z0-9]*)/.exec(openTag);
+    const m = editorRegExp.inlineTagName.exec(openTag);
     return m ? m[1] : "span";
   }
 
@@ -687,6 +689,41 @@ export class Editor {
         }
       }
 
+      // GFM task list item: a list item whose content begins with a checkbox marker `[ ]`, `[x]`
+      // or `[X]` followed by whitespace (or the end of the line). The brackets and separator stay
+      // as ordinary TMMark text; only the inner character is rendered as a checkbox (via CSS), so
+      // the line's text content still equals its source and the cursor navigates it normally.
+      if (lineType === "TMUL" || lineType === "TMOL") {
+        const content = lineCapture[2] !== undefined ? lineCapture[2] : "";
+        const task = editorRegExp.taskListItem.exec(content);
+        if (task) {
+          const checked = task[2] !== " "; // [x] / [X] are checked, [ ] is not
+          const bulletClass = lineType === "TMUL" ? "TMMark_TMUL" : "TMMark_TMOL";
+          const boxClass = checked
+            ? "TMCheckbox TMCheckbox_checked"
+            : "TMCheckbox TMCheckbox_unchecked";
+          // Synthetic capture: [full, bullet, "[", inner, "]", separator, inline content]. The
+          // inline content stays the last `$$N` group so inlineContentIndex()/applyInlineGroup()
+          // (and thus multi-line continuation) behave exactly as for a plain list item.
+          lineCapture = [
+            lineCapture[0],
+            lineCapture[1],
+            task[1],
+            task[2],
+            task[3],
+            task[4],
+            task[5],
+          ] as unknown as RegExpExecArray;
+          lineReplacement =
+            `<span class="TMMark ${bulletClass}">$1</span>` +
+            `<span class="TMMark TMMark_TMTask">$2</span>` +
+            `<span class="${boxClass}">$3</span>` +
+            `<span class="TMMark TMMark_TMTask">$4</span>` +
+            `<span class="TMMark TMMark_TMTask">$5</span>` +
+            `$$6`;
+        }
+      }
+
       if (this.lineTypes[lineNum] !== lineType) {
         this.lineTypes[lineNum] = lineType;
         this.lineDirty[lineNum] = true;
@@ -807,7 +844,7 @@ export class Editor {
       beginning = focus;
       end = anchor;
     }
-    let insertedLines = text.split(/(?:\r\n|\r|\n)/);
+    let insertedLines = text.split(editorRegExp.lineSplit);
     let lineBefore = this.lines[beginning.row].substr(0, beginning.col);
     let lineEnd = this.lines[end.row].substr(end.col);
     insertedLines[0] = lineBefore.concat(insertedLines[0]);
@@ -847,13 +884,13 @@ export class Editor {
              T extends 'selection' ? EventHandler<SelectionEvent> :
              T extends 'drop' ? EventHandler<DropEvent> : never
   ): void {
-    if (type.match(/^(?:change|input)$/i)) {
+    if (type.match(editorRegExp.changeEvent)) {
       this.listeners.change.push(listener as EventHandler<ChangeEvent>);
     }
-    if (type.match(/^(?:selection|selectionchange)$/i)) {
+    if (type.match(editorRegExp.selectionEvent)) {
       this.listeners.selection.push(listener as EventHandler<SelectionEvent>);
     }
-    if (type.match(/^(?:drop)$/i)) {
+    if (type.match(editorRegExp.dropEvent)) {
       this.listeners.drop.push(listener as EventHandler<DropEvent>);
     }
   }
@@ -983,7 +1020,7 @@ export class Editor {
         if (capture) {
           if (capture[2]) {
             if (continuableType === "TMOL") {
-              capture[1] = capture[1].replace(/\d{1,9}/, (result) => {
+              capture[1] = capture[1].replace(editorRegExp.orderedListNumber, (result) => {
                 return (parseInt(result) + 1).toString();
               });
             }
@@ -1053,6 +1090,41 @@ export class Editor {
     this.fireDrop(event.dataTransfer!);
   }
 
+  /**
+   * Toggles a task list checkbox when its rendered box is clicked. Only the single inner character
+   * of the marker (`[ ]` -> `[x]` and back) is changed; the edit is length-preserving, recorded in
+   * the undo history, and fires a `change` event, mirroring setCommandState's line-edit flow.
+   */
+  private handleClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement | null;
+    const box = target && target.closest ? (target.closest(".TMCheckbox") as HTMLElement | null) : null;
+    if (!box) return; // Not a checkbox click — let the default caret placement happen.
+
+    // Walk up to the line element (a direct child of the editor) to find its source row.
+    let lineEl: HTMLElement | null = box;
+    while (lineEl && lineEl.parentNode !== this.e) {
+      lineEl = lineEl.parentNode as HTMLElement | null;
+    }
+    if (!lineEl || lineEl.dataset.lineNum === undefined) return;
+    const row = parseInt(lineEl.dataset.lineNum, 10);
+    if (isNaN(row) || row < 0 || row >= this.lines.length) return;
+
+    const col = this.computeColumn(box, 0);
+    if (col === null) return;
+    const ch = this.lines[row].charAt(col);
+    if (ch !== " " && ch !== "x" && ch !== "X") return; // Defensive: not actually a checkbox char.
+
+    event.preventDefault();
+
+    if (!this.isRestoringHistory) this.pushHistory();
+    this.clearDirtyFlag();
+    const replacement = ch === " " ? "x" : " ";
+    this.lines[row] = this.lines[row].substr(0, col) + replacement + this.lines[row].substr(col + 1);
+    this.lineDirty[row] = true;
+    this.updateFormatting();
+    this.fireChange();
+  }
+
   public processInlineStyles(originalString: string): string {
     let processed = "";
     let stack: Array<{delimiter: string, delimString: string, count: number, output: string}> = [];
@@ -1079,7 +1151,7 @@ export class Editor {
           if (cap) {
             string = string.substr(cap[0].length);
             offset += cap[0].length;
-            processed += this.mergedInlineGrammar[rule].replacement.replace(/\$([1-9])/g, (str, p1) => htmlescape(cap[p1]));
+            processed += this.mergedInlineGrammar[rule].replacement.replace(editorRegExp.inlineReplacementPlaceholder, (str, p1) => htmlescape(cap[p1]));
             continue outer;
           }
         }
@@ -1092,7 +1164,7 @@ export class Editor {
           if (cap) {
             string = string.substr(cap[0].length);
             offset += cap[0].length;
-            processed += this.mergedInlineGrammar[rule].replacement.replace(/\$([1-9])/g, (str, p1) => htmlescape(cap[p1]));
+            processed += this.mergedInlineGrammar[rule].replacement.replace(editorRegExp.inlineReplacementPlaceholder, (str, p1) => htmlescape(cap[p1]));
             continue outer;
           }
         }
@@ -1102,7 +1174,7 @@ export class Editor {
       // email addresses, and mailto:/xmpp: links. These are only recognized at the start of the
       // string or immediately after whitespace or one of the delimiters `*`, `_`, `~`, `(`.
       const precedingChar = offset > 0 ? originalString[offset - 1] : "";
-      if (precedingChar === "" || /[\s*_~(]/.test(precedingChar)) {
+      if (precedingChar === "" || editorRegExp.autolinkPrecedingChar.test(precedingChar)) {
         let autolink = this.parseAutolinkExtension(string);
         if (autolink) {
           processed = `${processed}${autolink.output}`;
@@ -1126,7 +1198,7 @@ export class Editor {
       }
 
       // Check for em / strong delimiters
-      let cap = /(^\*+)|(^_+)/.exec(string);
+      let cap = editorRegExp.emphasisDelimiter.exec(string);
       if (cap) {
         let delimCount = cap[0].length;
         const delimString = cap[0];
@@ -1139,8 +1211,8 @@ export class Editor {
 
         const punctuationFollows = following.match(punctuationLeading);
         const punctuationPrecedes = preceding.match(punctuationTrailing);
-        const whitespaceFollows = following.match(/^\s/);
-        const whitespacePrecedes = preceding.match(/\s$/);
+        const whitespaceFollows = following.match(editorRegExp.leadingWhitespace);
+        const whitespacePrecedes = preceding.match(editorRegExp.trailingWhitespace);
 
         let canOpen = !whitespaceFollows && (!punctuationFollows || !!whitespacePrecedes || !!punctuationPrecedes);
         let canClose = !whitespacePrecedes && (!punctuationPrecedes || !!whitespaceFollows || !!punctuationFollows);
@@ -1200,7 +1272,7 @@ export class Editor {
       }
 
       // Check for strikethrough delimiter
-      cap = /^~~/.exec(string);
+      cap = editorRegExp.strikethroughDelimiter.exec(string);
       if (cap) {
         let consumed = false;
         let stackPointer = stack.length - 1;
@@ -1240,7 +1312,7 @@ export class Editor {
       if (cap) {
         string = string.substr(cap[0].length);
         offset += cap[0].length;
-        processed += this.mergedInlineGrammar.default.replacement.replace(/\$([1-9])/g, (str, p1) => htmlescape(cap[p1]));
+        processed += this.mergedInlineGrammar.default.replacement.replace(editorRegExp.inlineReplacementPlaceholder, (str, p1) => htmlescape(cap[p1]));
         continue outer;
       }
       throw "Infinite loop!";
@@ -1471,17 +1543,17 @@ export class Editor {
   private matchExtendedAutolink(string: string): string | false {
     // --- Bare URL / www autolink -----------------------------------------------------------------
     // www. is treated as part of the domain; an explicit scheme is stripped before the domain.
-    const schemeCap = /^(?:https?|ftp):\/\//i.exec(string);
-    const isWww = /^www\./i.test(string);
+    const schemeCap = editorRegExp.autolinkScheme.exec(string);
+    const isWww = editorRegExp.autolinkWww.test(string);
     if (schemeCap || isWww) {
       const prefixLen = schemeCap ? schemeCap[0].length : 0;
       const afterPrefix = string.substr(prefixLen);
       // A valid domain is dot-separated segments of alphanumerics, `_` and `-`, with at least one
       // dot and no underscore in the last two segments.
-      const domainCap = /^[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)+/.exec(afterPrefix);
+      const domainCap = editorRegExp.autolinkDomain.exec(afterPrefix);
       if (domainCap && this.isValidAutolinkDomain(domainCap[0])) {
         // After the domain, any run of non-space, non-`<` characters forms the path/query/fragment.
-        const pathCap = /^[^\s<]*/.exec(afterPrefix.substr(domainCap[0].length));
+        const pathCap = editorRegExp.autolinkPath.exec(afterPrefix.substr(domainCap[0].length));
         const link = string.substr(0, prefixLen + domainCap[0].length + (pathCap ? pathCap[0].length : 0));
         const trimmed = this.trimAutolinkTrailing(link);
         // Guard against trailing punctuation trimming having eaten into the domain.
@@ -1490,14 +1562,14 @@ export class Editor {
     }
 
     // --- mailto: / xmpp: autolink ----------------------------------------------------------------
-    const protoCap = /^(?:mailto|xmpp):/i.exec(string);
+    const protoCap = editorRegExp.autolinkProtocol.exec(string);
     if (protoCap) {
       const emailCap = this.matchAutolinkEmail(string.substr(protoCap[0].length));
       if (emailCap) {
         // xmpp addresses may carry a `/resource` suffix.
         let extra = "";
-        if (/^xmpp:/i.test(string)) {
-          const resCap = /^\/[a-zA-Z0-9@.\-_]+/.exec(
+        if (editorRegExp.autolinkXmpp.test(string)) {
+          const resCap = editorRegExp.autolinkXmppResource.exec(
             string.substr(protoCap[0].length + emailCap.length)
           );
           if (resCap) extra = resCap[0];
@@ -1524,12 +1596,12 @@ export class Editor {
   private matchAutolinkEmail(string: string): string | false {
     // Local part: alphanumerics plus `.`, `-`, `_`, `+`. Domain: dot-separated labels of
     // alphanumerics, `-` and `_`, with at least one dot and no `-`/`_` as the final character.
-    const cap = /^[a-zA-Z0-9.\-_+]+@[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)+/.exec(string);
+    const cap = editorRegExp.autolinkEmail.exec(string);
     if (!cap) return false;
     let email = cap[0];
-    while (email.length && /[-_]$/.test(email)) email = email.substr(0, email.length - 1);
+    while (email.length && editorRegExp.emailTrailingChar.test(email)) email = email.substr(0, email.length - 1);
     // Must still end in a complete TLD (i.e. retain a dot after the trimming).
-    if (!/\.[a-zA-Z0-9]+$/.test(email)) return false;
+    if (!editorRegExp.emailTld.test(email)) return false;
     return email;
   }
 
@@ -1610,7 +1682,7 @@ export class Editor {
       }
 
       // Check for closing bracket
-      if (string.match(/^\]/)) {
+      if (string.match(editorRegExp.linkClosingBracket)) {
         bracketLevel--;
         if (bracketLevel === 0) {
           linkText = originalString.substr(textOffset, currentOffset - textOffset);
@@ -1656,7 +1728,7 @@ export class Editor {
         let string = originalString.substr(currentOffset);
 
         // Process whitespace
-        let cap = /^\s+/.exec(string);
+        let cap = editorRegExp.leadingWhitespaceRun.exec(string);
         if (cap) {
           switch (linkDetails.length) {
             case 0:
@@ -1666,7 +1738,7 @@ export class Editor {
               linkDetails.push(cap[0]);
               break;
             case 2:
-              if (linkDetails[0].match(/</)) {
+              if (linkDetails[0].match(editorRegExp.containsOpenAngle)) {
                 linkDetails[1] = linkDetails[1].concat(cap[0]);
               } else {
                 if (parenthesisLevel !== 1) return false;
@@ -1723,7 +1795,7 @@ export class Editor {
         }
 
         // Process opening angle bracket
-        if (linkDetails.length < 2 && string.match(/^</)) {
+        if (linkDetails.length < 2 && string.match(editorRegExp.openingAngle)) {
           if (linkDetails.length === 0) linkDetails.push("");
           linkDetails[0] = linkDetails[0].concat("<");
           currentOffset++;
@@ -1731,7 +1803,7 @@ export class Editor {
         }
 
         // Process closing angle bracket
-        if ((linkDetails.length === 1 || linkDetails.length === 2) && string.match(/^>/)) {
+        if ((linkDetails.length === 1 || linkDetails.length === 2) && string.match(editorRegExp.closingAngle)) {
           if (linkDetails.length === 1) linkDetails.push("");
           linkDetails.push(">");
           currentOffset++;
@@ -1739,7 +1811,7 @@ export class Editor {
         }
 
         // Process non-parenthesis delimiter for title
-        cap = /^["']/.exec(string);
+        cap = editorRegExp.titleQuote.exec(string);
         if (cap && (linkDetails.length === 0 || linkDetails.length === 1 || linkDetails.length === 4)) {
           while (linkDetails.length < 4) linkDetails.push("");
           linkDetails.push(cap[0]);
@@ -1755,7 +1827,7 @@ export class Editor {
         }
 
         // Process opening parenthesis
-        if (string.match(/^\(/)) {
+        if (string.match(editorRegExp.openingParen)) {
           switch (linkDetails.length) {
             case 0:
               linkDetails.push("");
@@ -1763,7 +1835,7 @@ export class Editor {
               linkDetails.push("");
             case 2:
               linkDetails[1] = linkDetails[1].concat("(");
-              if (!linkDetails[0].match(/<$/)) parenthesisLevel++;
+              if (!linkDetails[0].match(editorRegExp.endsWithOpenAngle)) parenthesisLevel++;
               break;
             case 3:
               linkDetails.push("");
@@ -1784,10 +1856,10 @@ export class Editor {
         }
 
         // Process closing parenthesis
-        if (string.match(/^\)/)) {
+        if (string.match(editorRegExp.closingParen)) {
           if (linkDetails.length <= 2) {
             while (linkDetails.length < 2) linkDetails.push("");
-            if (!linkDetails[0].match(/<$/)) parenthesisLevel--;
+            if (!linkDetails[0].match(editorRegExp.endsWithOpenAngle)) parenthesisLevel--;
             if (parenthesisLevel > 0) {
               linkDetails[1] = linkDetails[1].concat(")");
             }
@@ -1812,7 +1884,7 @@ export class Editor {
         }
 
         // Any old character
-        cap = /^./.exec(string);
+        cap = editorRegExp.anyChar.exec(string);
         if (cap) {
           switch (linkDetails.length) {
             case 0:
@@ -2047,7 +2119,7 @@ export class Editor {
 
         let match = this.lines[focus!.row]
           .substr(startCol, endCol - startCol)
-          .match(/^(?<leading>\s*).*\S(?<trailing>\s*)$/);
+          .match(editorRegExp.surroundingWhitespace);
         if (match) {
           startCol += match.groups!.leading.length;
           endCol -= match.groups!.trailing.length;

@@ -35,6 +35,11 @@ global.initTinyMDE = async (content) => {
       newPage.$eval(`#tinymde > :first-child`, (el) => el.childNodes.length),
 
     content: async () => newPage.evaluate(() => tinyMDE.getContent()),
+    clickCheckbox: async (lineNum) =>
+      newPage.click(
+        `#tinymde > :first-child > :nth-child(${lineNum + 1}) .TMCheckbox`
+      ),
+    undo: async () => newPage.evaluate(() => tinyMDE.undo()),
     destroy: async () => newPage.close(),
   };
 };
