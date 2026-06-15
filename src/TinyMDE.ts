@@ -261,6 +261,7 @@ export class Editor {
     this.e.addEventListener("focus", () => this.hasFocus = true );
     this.e.addEventListener("paste", (e) => this.handlePaste(e));
     this.e.addEventListener("drop", (e) => this.handleDrop(e));
+    this.e.addEventListener("click", (e) => this.handleClick(e));
     this.lineElements = this.e.childNodes;
   }
 
@@ -687,6 +688,41 @@ export class Editor {
         }
       }
 
+      // GFM task list item: a list item whose content begins with a checkbox marker `[ ]`, `[x]`
+      // or `[X]` followed by whitespace (or the end of the line). The brackets and separator stay
+      // as ordinary TMMark text; only the inner character is rendered as a checkbox (via CSS), so
+      // the line's text content still equals its source and the cursor navigates it normally.
+      if (lineType === "TMUL" || lineType === "TMOL") {
+        const content = lineCapture[2] !== undefined ? lineCapture[2] : "";
+        const task = /^(\[)([ xX])(\])(\s|$)([\s\S]*)$/.exec(content);
+        if (task) {
+          const checked = task[2] !== " "; // [x] / [X] are checked, [ ] is not
+          const bulletClass = lineType === "TMUL" ? "TMMark_TMUL" : "TMMark_TMOL";
+          const boxClass = checked
+            ? "TMCheckbox TMCheckbox_checked"
+            : "TMCheckbox TMCheckbox_unchecked";
+          // Synthetic capture: [full, bullet, "[", inner, "]", separator, inline content]. The
+          // inline content stays the last `$$N` group so inlineContentIndex()/applyInlineGroup()
+          // (and thus multi-line continuation) behave exactly as for a plain list item.
+          lineCapture = [
+            lineCapture[0],
+            lineCapture[1],
+            task[1],
+            task[2],
+            task[3],
+            task[4],
+            task[5],
+          ] as unknown as RegExpExecArray;
+          lineReplacement =
+            `<span class="TMMark ${bulletClass}">$1</span>` +
+            `<span class="TMMark TMMark_TMTask">$2</span>` +
+            `<span class="${boxClass}">$3</span>` +
+            `<span class="TMMark TMMark_TMTask">$4</span>` +
+            `<span class="TMMark TMMark_TMTask">$5</span>` +
+            `$$6`;
+        }
+      }
+
       if (this.lineTypes[lineNum] !== lineType) {
         this.lineTypes[lineNum] = lineType;
         this.lineDirty[lineNum] = true;
@@ -1051,6 +1087,41 @@ export class Editor {
   private handleDrop(event: DragEvent): void {
     event.preventDefault();
     this.fireDrop(event.dataTransfer!);
+  }
+
+  /**
+   * Toggles a task list checkbox when its rendered box is clicked. Only the single inner character
+   * of the marker (`[ ]` -> `[x]` and back) is changed; the edit is length-preserving, recorded in
+   * the undo history, and fires a `change` event, mirroring setCommandState's line-edit flow.
+   */
+  private handleClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement | null;
+    const box = target && target.closest ? (target.closest(".TMCheckbox") as HTMLElement | null) : null;
+    if (!box) return; // Not a checkbox click — let the default caret placement happen.
+
+    // Walk up to the line element (a direct child of the editor) to find its source row.
+    let lineEl: HTMLElement | null = box;
+    while (lineEl && lineEl.parentNode !== this.e) {
+      lineEl = lineEl.parentNode as HTMLElement | null;
+    }
+    if (!lineEl || lineEl.dataset.lineNum === undefined) return;
+    const row = parseInt(lineEl.dataset.lineNum, 10);
+    if (isNaN(row) || row < 0 || row >= this.lines.length) return;
+
+    const col = this.computeColumn(box, 0);
+    if (col === null) return;
+    const ch = this.lines[row].charAt(col);
+    if (ch !== " " && ch !== "x" && ch !== "X") return; // Defensive: not actually a checkbox char.
+
+    event.preventDefault();
+
+    if (!this.isRestoringHistory) this.pushHistory();
+    this.clearDirtyFlag();
+    const replacement = ch === " " ? "x" : " ";
+    this.lines[row] = this.lines[row].substr(0, col) + replacement + this.lines[row].substr(col + 1);
+    this.lineDirty[row] = true;
+    this.updateFormatting();
+    this.fireChange();
   }
 
   public processInlineStyles(originalString: string): string {
