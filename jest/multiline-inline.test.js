@@ -147,3 +147,20 @@ test("emphasis does NOT span across two separate list items", async () => {
   expect(await editor.lineHTML(1)).not.toMatch(/<strong/);
   editor.destroy();
 });
+
+// Regression: angle-bracketed link destination in a multi-line group ------------------------
+
+// A link with an angle-bracketed destination (`[text](<dest>)`) emits literal `<`/`>` mark
+// characters. When such a line is part of a multi-line inline group, splitInlineHTMLByLine used to
+// mistake the raw `<` for an open HTML tag and leak a spurious `<` onto the following line (and add
+// another on every keystroke).
+test("an angle-bracketed link destination does not leak a '<' onto the next line", async () => {
+  const editor = await initTinyMDE("Some [inline](<link>)\nText");
+  // The link line keeps its exact source text.
+  expect(await editor.lineText(0)).toEqual("Some [inline](<link>)");
+  // The following line must be exactly "Text", not "<Text".
+  expect(await editor.lineText(1)).toEqual("Text");
+  // And the round-tripped content is unchanged.
+  expect(await editor.content()).toEqual("Some [inline](<link>)\nText");
+  editor.destroy();
+});
