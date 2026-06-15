@@ -314,3 +314,61 @@ test("Pasting image with URL containing HTML entity-like text preserves URL (bug
   expect(html).toContain("&amp;center=1");
   expect(html).not.toContain("¢er=1"); // Should not convert &cent to ¢
 });
+
+test("Splitting a multi-line emphasis paragraph re-renders the now-standalone line (bug #166)", async () => {
+  await page.evaluate(() => {
+    document.tinyMDE = new TinyMDE.Editor({
+      element: "tinymde",
+      content: "**dolore\nmagna**",
+    });
+    document.getElementById("tinymde").firstChild.focus();
+  });
+  // Initially the strong emphasis spans both lines.
+  expect(
+    await page.$eval("#tinymde > :first-child > :nth-child(1)", (el) => el.innerHTML)
+  ).toMatch(/<strong[^>]*>dolore<\/strong>/);
+
+  // Insert a blank line between the two lines, breaking them into two paragraphs.
+  await select(page, 0, 8); // end of "**dolore"
+  await page.keyboard.press("Enter");
+  expect(await page.evaluate(() => document.tinyMDE.getContent())).toEqual(
+    "**dolore\n\nmagna**"
+  );
+
+  // The first line is now a standalone paragraph; the unmatched ** must no longer be bold,
+  // even though that line's own text never changed.
+  expect(
+    await page.$eval("#tinymde > :first-child > :nth-child(1)", (el) => el.innerHTML)
+  ).not.toMatch(/<strong/);
+});
+
+test("Merging two paragraphs activates emphasis spanning the join (bug #166)", async () => {
+  await page.evaluate(() => {
+    document.tinyMDE = new TinyMDE.Editor({
+      element: "tinymde",
+      content: "**dolore\n\nmagna**",
+    });
+    document.getElementById("tinymde").firstChild.focus();
+  });
+  // Initially neither delimiter is matched.
+  expect(
+    await page.$eval("#tinymde > :first-child > :nth-child(1)", (el) => el.innerHTML)
+  ).not.toMatch(/<strong/);
+
+  // Delete the blank line, merging the two lines into a single paragraph. Backspacing from the
+  // start of the third line removes the newline before it, pulling "magna**" onto the (empty)
+  // second line.
+  await select(page, 2, 0); // start of "magna**"
+  await page.keyboard.press("Backspace");
+  expect(await page.evaluate(() => document.tinyMDE.getContent())).toEqual(
+    "**dolore\nmagna**"
+  );
+
+  // Now the strong emphasis spans the join and both lines must show it.
+  expect(
+    await page.$eval("#tinymde > :first-child > :nth-child(1)", (el) => el.innerHTML)
+  ).toMatch(/<strong[^>]*>dolore<\/strong>/);
+  expect(
+    await page.$eval("#tinymde > :first-child > :nth-child(2)", (el) => el.innerHTML)
+  ).toMatch(/<strong[^>]*>magna<\/strong>/);
+});

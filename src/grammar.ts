@@ -39,8 +39,11 @@ export interface LineCommand {
 export type Command = InlineCommand | LineCommand;
 
 const replacements: Record<string, RegExp> = {
-  ASCIIPunctuation: /[!"#$%&'()*+,\-./:;<=>?@[\]^_`{|}~\\]/,  
-  NotTriggerChar: /[^`_*[\]()<>!~]/,
+  ASCIIPunctuation: /[!"#$%&'()*+,\-./:;<=>?@[\]^_`{|}~\\]/,
+  // Newlines are excluded so that, when a paragraph spanning multiple source lines is parsed as
+  // one joined string, a soft line break (\n) terminates the current text run and can be handled
+  // explicitly as a line break rather than being swallowed into a default token.
+  NotTriggerChar: /[^`_*[\]()<>!~\n]/,
   Scheme: /[A-Za-z][A-Za-z0-9+.-]{1,31}/,
   Email: /[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*/, // From CommonMark spec
   HTMLOpenTag: /<HTMLTagName(?:HTMLAttribute)*\s*\/?>/,

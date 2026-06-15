@@ -159,11 +159,13 @@ test('Strikethrough does not need to be left or right flanking: ~~ A ~~', async 
 });
 
 test('Emphasis and strikethrough bind left to right: *A ~~B* C~~', async () =>  {
-  const editor = await initTinyMDE('*XXXA ~~XXXB* XXXC~~\n~~XXXA *XXXB~~ XXXC*');
+  // The two cases are kept in separate paragraphs (blank line between) so each is parsed on its
+  // own; adjacent lines would now form a single paragraph and parse together (see issue #166).
+  const editor = await initTinyMDE('*XXXA ~~XXXB* XXXC~~\n\n~~XXXA *XXXB~~ XXXC*');
   expect(await editor.lineHTML(0)).toMatch(/<em.*>/);
   expect(await editor.lineHTML(0)).not.toMatch(/<del.*>/);
-  expect(await editor.lineHTML(1)).not.toMatch(/<em.*>/);
-  expect(await editor.lineHTML(1)).toMatch(/<del.*>/);
+  expect(await editor.lineHTML(2)).not.toMatch(/<em.*>/);
+  expect(await editor.lineHTML(2)).toMatch(/<del.*>/);
   editor.destroy();
 });
 

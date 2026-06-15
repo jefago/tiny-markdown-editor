@@ -26,6 +26,11 @@ global.initTinyMDE = async (content) => {
         `#tinymde > :first-child > :nth-child(${lineNum + 1})`,
         (el) => el.innerHTML
       ),
+    lineText: async (lineNum) =>
+      newPage.$eval(
+        `#tinymde > :first-child > :nth-child(${lineNum + 1})`,
+        (el) => el.textContent
+      ),
     numLines: async () =>
       newPage.$eval(`#tinymde > :first-child`, (el) => el.childNodes.length),
 
