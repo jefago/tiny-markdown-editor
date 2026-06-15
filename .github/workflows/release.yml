@@ -26,8 +26,19 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+
+      # Call the Playwright binary installed by `npm ci` directly rather than via `npx`. Under
+      # npm 11 (Node 24) the repo's `.npmrc` `min-release-age` makes `npx`/`npm exec` perform a
+      # registry resolution that can stall on a confirmation prompt in non-interactive CI; invoking
+      # the local binary avoids npm/registry involvement entirely (the browser binaries come from
+      # Playwright's own CDN, so the supply-chain control offers nothing here anyway).
       - name: Install playwright browsers
-        run: npx playwright install --with-deps
+        run: ./node_modules/.bin/playwright install --with-deps
 
       - name: Build
         run: npm run build --if-present
