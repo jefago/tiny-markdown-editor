@@ -14,7 +14,8 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
-          node-version: '22'
+          # Match the release workflow.
+          node-version: '24'
 
       - name: Install
         run: npm ci
@@ -27,7 +28,9 @@ jobs:
 
       # Call the local Playwright binary directly rather than via `npx`, matching release.yml and
       # avoiding any npm/registry resolution (see the note there re: `.npmrc` min-release-age).
+      # The timeout fails fast instead of hanging for hours if browser provisioning ever stalls.
       - name: Install playwright browsers
+        timeout-minutes: 8
         run: ./node_modules/.bin/playwright install --with-deps
 
       - name: Build

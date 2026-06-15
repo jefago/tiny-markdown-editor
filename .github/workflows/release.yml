@@ -32,12 +32,13 @@ jobs:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
 
-      # Call the Playwright binary installed by `npm ci` directly rather than via `npx`. Under
-      # npm 11 (Node 24) the repo's `.npmrc` `min-release-age` makes `npx`/`npm exec` perform a
-      # registry resolution that can stall on a confirmation prompt in non-interactive CI; invoking
-      # the local binary avoids npm/registry involvement entirely (the browser binaries come from
-      # Playwright's own CDN, so the supply-chain control offers nothing here anyway).
+      # Call the Playwright binary installed by `npm ci` directly rather than via `npx`, so the
+      # repo's `.npmrc` `min-release-age` never triggers a registry resolution for this step.
+      # The timeout fails fast instead of hanging for hours if browser provisioning ever stalls
+      # (Node 24.16.0 + Playwright < 1.60 hung here during zip extraction — fixed by upgrading
+      # Playwright to >= 1.60; see microsoft/playwright#41000, nodejs/node#63487).
       - name: Install playwright browsers
+        timeout-minutes: 8
         run: ./node_modules/.bin/playwright install --with-deps
 
       - name: Build
