@@ -9,6 +9,7 @@ import {
   commands,
   HTMLBlockRule,
   Command,
+  LineCommand,
   GrammarRule,
   createMergedInlineGrammar,
 } from "./grammar";
@@ -2166,6 +2167,97 @@ export class Editor {
       );
       this.fireChange();
     }
+  }
+
+  /**
+   * Returns the list-item marker prefix (e.g. `- `, `* `, `1. `) of `line`, or null if the line
+   * isn't a bulleted or ordered list item.
+   */
+  private listItemMarker(line: string): string | null {
+    const ul = lineGrammar.TMUL.regexp.exec(line);
+    if (ul) return ul[1];
+    const ol = lineGrammar.TMOL.regexp.exec(line);
+    if (ol) return ol[1];
+    return null;
+  }
+
+  /** True when line `row` is a list item whose content begins with a task-list checkbox. */
+  public isTaskListItem(row: number): boolean {
+    if (row < 0 || row >= this.lines.length) return false;
+    const type = this.lineTypes[row];
+    if (type !== "TMUL" && type !== "TMOL") return false;
+    const marker = this.listItemMarker(this.lines[row]);
+    if (marker === null) return false;
+    return editorRegExp.taskListItem.test(this.lines[row].substr(marker.length));
+  }
+
+  /** Adds an unchecked `[ ]` checkbox to a line, making it a bulleted list item if it wasn't one. */
+  private addTaskCheckbox(line: string): string {
+    const marker = this.listItemMarker(line);
+    if (marker !== null) {
+      const content = line.substr(marker.length);
+      if (editorRegExp.taskListItem.test(content)) return line; // already a task item
+      return `${marker}[ ] ${content}`;
+    }
+    // Not a list item yet: strip any existing block marker and make it a bulleted task item,
+    // mirroring how the `ul` command normalizes a line.
+    return line.replace((commands.ul as LineCommand).set.pattern, "- [ ] $2");
+  }
+
+  /** Removes a task-list checkbox from a line, leaving the surrounding list item intact. */
+  private removeTaskCheckbox(line: string): string {
+    const marker = this.listItemMarker(line);
+    if (marker === null) return line;
+    const task = editorRegExp.taskListItem.exec(line.substr(marker.length));
+    if (!task) return line;
+    return `${marker}${task[5]}`;
+  }
+
+  /**
+   * Toggles GFM task-list checkboxes on the selected line(s). If every selected line is already a
+   * task item, their checkboxes are removed (leaving plain list items); otherwise each line gets an
+   * unchecked `[ ]` checkbox (becoming a bulleted list item if it wasn't a list item yet). Mirrors
+   * setCommandState's line-edit flow: pushes undo history, reformats, and fires a `change` event.
+   */
+  public toggleTaskList(): void {
+    let anchor = this.getSelection(true);
+    let focus = this.getSelection(false);
+    if (!anchor) anchor = focus;
+    if (!focus) return;
+
+    let start = anchor!.row > focus!.row ? focus! : anchor!;
+    let end = anchor!.row > focus!.row ? anchor! : focus!;
+    if (end.row > start.row && end.col === 0) {
+      end.row--;
+    }
+
+    let allTasks = true;
+    for (let line = start.row; line <= end.row; line++) {
+      if (!this.isTaskListItem(line)) {
+        allTasks = false;
+        break;
+      }
+    }
+
+    if (!this.isRestoringHistory) this.pushHistory();
+    this.clearDirtyFlag();
+
+    for (let line = start.row; line <= end.row; line++) {
+      const updated = allTasks
+        ? this.removeTaskCheckbox(this.lines[line])
+        : this.addTaskCheckbox(this.lines[line]);
+      if (updated !== this.lines[line]) {
+        this.lines[line] = updated;
+        this.lineDirty[line] = true;
+      }
+    }
+
+    this.updateFormatting();
+    this.setSelection(
+      { row: end.row, col: this.lines[end.row].length },
+      { row: start.row, col: 0 }
+    );
+    this.fireChange();
   }
 
   public isInlineFormattingAllowed(): boolean {

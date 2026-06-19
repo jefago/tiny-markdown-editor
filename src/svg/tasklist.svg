@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   height="18"
+   width="18"
+   version="1.1"
+   id="svg4"
+   sodipodi:docname="tasklist.svg"
+   inkscape:version="1.4 (e7c3feb1, 2024-10-09)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs4" />
+  <sodipodi:namedview
+     id="namedview4"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     showgrid="true"
+     inkscape:zoom="24.934044"
+     inkscape:cx="9.3847591"
+     inkscape:cy="7.8206326"
+     inkscape:window-width="1200"
+     inkscape:window-height="1027"
+     inkscape:window-x="661"
+     inkscape:window-y="44"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg4">
+    <inkscape:grid
+       id="grid4"
+       units="px"
+       originx="0"
+       originy="0"
+       spacingx="1"
+       spacingy="1"
+       empcolor="#0099e5"
+       empopacity="0.30196078"
+       color="#0099e5"
+       opacity="0.14901961"
+       empspacing="5"
+       enabled="true"
+       visible="true" />
+  </sodipodi:namedview>
+  <rect
+     x="1.25"
+     y="25.75"
+     width="6"
+     height="6"
+     rx="1"
+     fill="none"
+     stroke="currentColor"
+     stroke-width="1.5"
+     id="rect1" />
+  <path
+     d="m 2.75,28.75 1.3,1.5 2.7,-3.5"
+     fill="none"
+     stroke="currentColor"
+     stroke-width="1.5"
+     id="path1" />
+  <rect
+     x="1.25"
+     y="33.75"
+     width="6"
+     height="6"
+     rx="1"
+     fill="none"
+     stroke="currentColor"
+     stroke-width="1.5"
+     id="rect2" />
+  <rect
+     ry="1"
+     y="27.25"
+     x="9.25"
+     height="2"
+     width="8"
+     id="rect3" />
+  <rect
+     ry="1"
+     y="35.25"
+     x="9.25"
+     height="2"
+     width="8"
+     id="rect4" />
+  <path
+     style="stroke-linecap:round"
+     d="M 2.3339844,1 C 1.6039663,1 1,1.6039663 1,2.3339844 V 5.6660156 C 1,6.3960337 1.6039663,7 2.3339844,7 H 5.6660156 C 6.3960337,7 7,6.3960337 7,5.6660156 V 2.3339844 C 7,1.6039663 6.3960337,1 5.6660156,1 Z m 0,1 H 5.6660156 C 5.8593309,2 6,2.1406691 6,2.3339844 V 5.6660156 C 6,5.8593309 5.8593309,6 5.6660156,6 H 2.3339844 C 2.1406691,6 2,5.8593309 2,5.6660156 V 2.3339844 C 2,2.1406691 2.1406691,2 2.3339844,2 Z"
+     id="rect5" />
+  <path
+     style="stroke-linecap:round"
+     d="M 2.3339844,11 C 1.6039663,11 1,11.603966 1,12.333984 v 3.332032 C 1,16.396034 1.6039663,17 2.3339844,17 H 5.6660156 C 6.3960337,17 7,16.396034 7,15.666016 V 12.333984 C 7,11.603966 6.3960337,11 5.6660156,11 Z m 0,1 H 5.6660156 C 5.8593309,12 6,12.140669 6,12.333984 v 3.332032 C 6,15.859331 5.8593309,16 5.6660156,16 H 2.3339844 C 2.1406691,16 2,15.859331 2,15.666016 V 12.333984 C 2,12.140669 2.1406691,12 2.3339844,12 Z"
+     id="rect5-7" />
+  <rect
+     y="3"
+     x="9"
+     height="2"
+     width="9"
+     ry="1"
+     id="rect2-3"
+     style="stroke-width:1" />
+  <rect
+     y="13"
+     x="9"
+     height="2"
+     width="9"
+     ry="1"
+     id="rect2-3-7"
+     style="stroke-width:1" />
+  <path
+     style="stroke-linecap:round;stroke-linejoin:round"
+     d="M 4.8417969,2.5253906 A 0.5,0.5 0 0 0 4.5527344,2.7773438 L 3.8632813,4.15625 3.3535156,3.6464844 a 0.5,0.5 0 0 0 -0.7070312,0 0.5,0.5 0 0 0 0,0.7070312 l 1,1 A 0.50005,0.50005 0 0 0 4.4472656,5.2226562 l 1,-1.9999999 A 0.5,0.5 0 0 0 5.2226562,2.5527344 0.5,0.5 0 0 0 4.8417969,2.5253906 Z"
+     id="path6" />
+</svg>

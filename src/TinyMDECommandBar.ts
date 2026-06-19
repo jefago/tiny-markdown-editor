@@ -96,6 +96,15 @@ const DefaultCommands: Record<string, CommandDefinition> = {
     title: "Quote",
     hotkey: "Mod2-Shift-Q",
   },
+  tasklist: {
+    name: "tasklist",
+    action: (editor: Editor) => editor.toggleTaskList(),
+    enabled: (editor: Editor, focus?: Position) =>
+      focus ? editor.isTaskListItem(focus.row) : null,
+    innerHTML: svg.tasklist,
+    title: "Task list",
+    hotkey: "Mod2-Shift-T",
+  },
   insertLink: {
     name: "insertLink",
     action: (editor: Editor) => {
@@ -183,6 +192,7 @@ export class CommandBar {
         "|",
         "ul",
         "ol",
+        "tasklist",
         "|",
         "blockquote",
         "hr",
