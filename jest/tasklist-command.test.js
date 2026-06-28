@@ -3,6 +3,7 @@
 
 beforeEach(async () => {
   await page.goto(PATH, { waitUntil: "load" });
+  await global.waitForTinyMDE(page);
 });
 
 const initEditor = async (content) => {
