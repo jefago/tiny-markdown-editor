@@ -119,6 +119,16 @@ const watch = () => {
   gulp.watch("./src/**/*.html", html);
 };
 
+// Inkscape (and other editors) often leave inline `style="..."` attributes and
+// `<style>` blocks in exported SVGs. These trigger Content-Security-Policy
+// violations when the icons are injected into the DOM, so strip them out when
+// generating svg.ts. The svg-style.test.js test guards against regressions.
+const stripSvgStyles = (svg) =>
+  svg
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/\s+style\s*=\s*"[^"]*"/gi, "")
+    .replace(/\s+style\s*=\s*'[^']*'/gi, "");
+
 const svg = () => {
   const dirEntries = fs.readdirSync(path.join(".", "src", "svg"), {
     withFileTypes: true,
@@ -131,9 +141,9 @@ const svg = () => {
         readfile(path.join(".", "src", "svg", fn), { encoding: "utf8" }).then(
           (buffer) => {
             // console.log(entry.name + ': ' + buffer.toString().replace(/([`\$\\])/g, '\\$1'));
-            return `${fn.replace(/^(.*)\.svg$/i, "$1")}: \`${buffer
-              .toString()
-              .replace(/([`$\\])/g, "\\$1")}\``;
+            return `${fn.replace(/^(.*)\.svg$/i, "$1")}: \`${stripSvgStyles(
+              buffer.toString()
+            ).replace(/([`$\\])/g, "\\$1")}\``;
           }
         )
       );
