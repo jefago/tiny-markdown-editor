@@ -6,8 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `npm run dev` - Start development mode with file watching and live reload
 - `npm run build` - Build production assets (JS, CSS, HTML)
-- `npm run test` - Run Jest tests with Puppeteer (browser-based testing)
-- `npm run prepublishOnly` - Full build, test, and transpile pipeline for publishing
+- `npm run test` - Build, then run the Jest + Playwright tests in all three browsers
+- `npm run test:chromium` / `test:firefox` / `test:webkit` - Same, for a single browser
+- `npm run typecheck` - Type-check without emitting (`tsc --noEmit`)
+- `npm run release` / `npm run releasePatch` - Build, test and publish (`releasePatch` bumps the patch version first)
 
 ## Architecture Overview
 
@@ -47,11 +49,12 @@ TinyMDE is a lightweight, embeddable Markdown editor with two main components:
 
 ### Testing
 
-- **Jest + Puppeteer** for browser-based testing
+- **Jest + Playwright** for browser-based testing
 - Tests located in `jest/` directory
 - Tests cover block parsing, inline formatting, command bar functionality, and user interactions
-- Configuration in `jest.config.js`
-- Run all tests with `npm run test`
+- Configuration in `jest.config.js`, which defines one Jest project per browser (chromium, firefox, webkit). Every test file runs in all three, so a test count is 3x the number of cases.
+- Shared helpers (`PATH`, `select()`, `initTinyMDE()`, `classTagRegExp()`) are globals set up by `jest/util/test-helpers.js`; the Playwright `page` is a global from `jest/util/multi-browser-setup.js`
+- `npm run test` builds via gulp first, so tests always run against `dist/` — source changes (including CSS) are picked up automatically
 - Run an individual test with `npm run test ${file}`, eg. `npm run test jest/commandbar.test.js`
 
 ### Key Features

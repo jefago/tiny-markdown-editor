@@ -2,6 +2,7 @@
 test('sets up correctly when passed an ID', async () => {
   const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load'});
+  await global.waitForTinyMDE(newPage);
 
   await newPage.evaluate(() => {
     const tinyMDE = new TinyMDE.Editor({element: 'tinymde'});
@@ -13,6 +14,7 @@ test('sets up correctly when passed an ID', async () => {
 test('sets up correctly when passed an element', async () => {
   const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load'});
+  await global.waitForTinyMDE(newPage);
 
   await newPage.evaluate(() => {
     const tinyMDE = new TinyMDE.Editor({element: document.getElementById('tinymde')});
@@ -24,6 +26,7 @@ test('sets up correctly when passed an element', async () => {
 test('sets up correctly when passed a textarea ID as element', async () => {
   const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load'});
+  await global.waitForTinyMDE(newPage);
   await newPage.$eval('#tinymde', el => el.innerHTML = '<textarea id="txt"></textarea>');
   await newPage.evaluate(() => {
     const tinyMDE = new TinyMDE.Editor({element: document.getElementById('txt')});
@@ -37,6 +40,7 @@ test('sets up correctly when passed a textarea ID as element', async () => {
 test('sets up correctly when passed an element AND a textarea', async () => {
   const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load'});
+  await global.waitForTinyMDE(newPage);
   await newPage.$eval('#tinymde', el => el.innerHTML = '<textarea id="txt"></textarea>');
 
   await newPage.evaluate(() => {
@@ -52,6 +56,7 @@ test('sets up correctly when passed an element AND a textarea', async () => {
 test('Content can be passed to constructor', async () => {
   const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load'});
+  await global.waitForTinyMDE(newPage);
 
   const content = '# XXXA\nXXXB *XXXC*';
 
@@ -67,6 +72,7 @@ test('Content can be passed to constructor', async () => {
 test('Content can be passed from textarea', async () => {
   const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load'});
+  await global.waitForTinyMDE(newPage);
 
   const content = '# XXXA';
 
@@ -85,6 +91,7 @@ test('Content can be passed from textarea', async () => {
 test('Content passed in constructor has precedence over textarea content', async () => {
   const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load'});
+  await global.waitForTinyMDE(newPage);
 
   const textareaContent = '# XXXA';
   const constructorContent = '# XXXB';
@@ -106,6 +113,7 @@ test('Content passed in constructor has precedence over textarea content', async
 test('Content can be set using setContent()', async () => {
   const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load'});
+  await global.waitForTinyMDE(newPage);
 
   const content = '# XXXA\nXXXB *XXXC*';
 
@@ -123,6 +131,7 @@ test('Content can be set using setContent()', async () => {
 test('Linked textarea updated on setContent()', async () => {
   const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load'});
+  await global.waitForTinyMDE(newPage);
 
   const content = '# XXXA\nXXXB *XXXC*';
 
@@ -147,6 +156,7 @@ test('Linked textarea updated on setContent()', async () => {
 test('Change event listeners called on setContent()', async () => {
   const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load'});
+  await global.waitForTinyMDE(newPage);
 
   const content = '# XXXA\nXXXB *XXXC*';
 
@@ -167,6 +177,7 @@ test('Change event listeners called on setContent()', async () => {
 test('Placeholder is not shown for Empty content', async () => {
   const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load' });
+  await global.waitForTinyMDE(newPage);
 
   const content = '';
 
@@ -185,6 +196,7 @@ test('Placeholder is not shown for Empty content', async () => {
 test('Placeholder from props is set on editor element', async () => {
   const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load' });
+  await global.waitForTinyMDE(newPage);
 
   const result = await newPage.evaluate(() => {
     const tinyMDE = new TinyMDE.Editor({
@@ -207,6 +219,7 @@ test('Placeholder from props is set on editor element', async () => {
 test('Placeholder from textarea is picked up', async () => {
   const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load' });
+  await global.waitForTinyMDE(newPage);
 
   const result = await newPage.evaluate(() => {
     const textarea = document.createElement('textarea');
@@ -228,6 +241,7 @@ test('Placeholder from textarea is picked up', async () => {
 test('Placeholder prop takes precedence over textarea placeholder', async () => {
   const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load' });
+  await global.waitForTinyMDE(newPage);
 
   const result = await newPage.evaluate(() => {
     const textarea = document.createElement('textarea');
@@ -249,6 +263,7 @@ test('Placeholder prop takes precedence over textarea placeholder', async () => 
 test('Placeholder hidden when content exists', async () => {
   const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load' });
+  await global.waitForTinyMDE(newPage);
 
   const hasEmptyClass = await newPage.evaluate(() => {
     const tinyMDE = new TinyMDE.Editor({
@@ -267,6 +282,7 @@ test('Placeholder hidden when content exists', async () => {
 test('Placeholder reappears when content is cleared', async () => {
   const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load' });
+  await global.waitForTinyMDE(newPage);
 
   const result = await newPage.evaluate(() => {
     const tinyMDE = new TinyMDE.Editor({
@@ -289,6 +305,7 @@ test('Placeholder reappears when content is cleared', async () => {
 test('No placeholder attribute when placeholder not specified', async () => {
   const newPage = await global.context.newPage();
   await newPage.goto(PATH, { waitUntil: 'load' });
+  await global.waitForTinyMDE(newPage);
 
   const result = await newPage.evaluate(() => {
     const tinyMDE = new TinyMDE.Editor({

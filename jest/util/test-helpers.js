@@ -2,9 +2,14 @@ const { PORT } = require("./config");
 
 global.PATH = `http://localhost:${PORT}/blank.html`;
 
+global.waitForTinyMDE = async (page) => {
+  await page.waitForFunction(() => typeof TinyMDE !== 'undefined', { timeout: 10000 });
+};
+
 global.initTinyMDE = async (content) => {
   const newPage = await global.context.newPage();
   await newPage.goto(global.PATH, { waitUntil: "load" });
+  await global.waitForTinyMDE(newPage);
   content = content
     .replace(/(['"\\])/g, "\\$1")
     .replace(/\n/g, "\\n")

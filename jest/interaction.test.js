@@ -1,5 +1,6 @@
 beforeEach(async () => {
   await page.goto(PATH, { waitUntil: "load" });
+  await global.waitForTinyMDE(page);
 });
 
 test("Bulleted list is continued when pressing enter", async () => {

@@ -1,5 +1,6 @@
 beforeEach(async () => {
   await page.goto(PATH, { waitUntil: 'load'});
+  await global.waitForTinyMDE(page);
 });
 
 test('Basic command bar setup works', async () => {
@@ -46,6 +47,77 @@ test('Clicking command bar fires change event', async () => {
   await page.mouse.click(12, 12)
 
   expect(await page.evaluate(() => { return  window.listenerCalled; })).toBe(true);
+});
+
+test('Clicking insertLink fires change event and updates linked textarea', async () => {
+  await page.evaluate(() => {
+    const textarea = document.createElement('textarea');
+    textarea.id = 'tinymde_textarea';
+    document.body.appendChild(textarea);
+
+    window.changeCount = 0;
+    document.tinyMDE = new TinyMDE.Editor({element: 'tinymde', textarea: 'tinymde_textarea', content: 'Link me'});
+    document.tinyMDE.addEventListener('change', () => { window.changeCount++; });
+    document.commandBar = new TinyMDE.CommandBar({element: 'tinymde_commandbar', editor: document.tinyMDE, commands: ['insertLink']});
+    document.getElementById('tinymde').firstChild.focus();
+  });
+  await select(page, 0, 0, 0, 4); // Select "Link"
+  await page.evaluate(() => { window.changeCount = 0; }); // Disregard anything fired during setup
+  await page.mouse.click(12, 12); // Click the insertLink button
+
+  expect(await page.evaluate(() => document.tinyMDE.getContent())).toEqual('[Link]() me');
+  expect(await page.evaluate(() => document.getElementById('tinymde_textarea').value)).toEqual('[Link]() me');
+  expect(await page.evaluate(() => window.changeCount)).toBe(1);
+});
+
+test('wrapSelection fires change event', async () => {
+  await page.evaluate(() => {
+    window.changeCount = 0;
+    document.tinyMDE = new TinyMDE.Editor({element: 'tinymde', content: 'Link me'});
+    document.tinyMDE.addEventListener('change', () => { window.changeCount++; });
+    document.getElementById('tinymde').firstChild.focus();
+  });
+  await select(page, 0, 0, 0, 4); // Select "Link"
+  await page.evaluate(() => {
+    window.changeCount = 0;
+    document.tinyMDE.wrapSelection('[', '](https://www.github.com)');
+  });
+
+  expect(await page.evaluate(() => document.tinyMDE.getContent())).toEqual('[Link](https://www.github.com) me');
+  expect(await page.evaluate(() => window.changeCount)).toBe(1);
+});
+
+test('Inline command fires change event exactly once', async () => {
+  await page.evaluate(() => {
+    window.changeCount = 0;
+    document.tinyMDE = new TinyMDE.Editor({element: 'tinymde', content: 'This is a test'});
+    document.tinyMDE.addEventListener('change', () => { window.changeCount++; });
+    document.getElementById('tinymde').firstChild.focus();
+  });
+  await select(page, 0, 5, 0, 7); // Select "is"
+  await page.evaluate(() => {
+    window.changeCount = 0;
+    document.tinyMDE.setCommandState('bold', true);
+  });
+
+  expect(await page.evaluate(() => document.tinyMDE.getContent())).toEqual('This **is** a test');
+  expect(await page.evaluate(() => window.changeCount)).toBe(1);
+});
+
+test('wrapSelection across lines is a no-op and leaves the undo stack alone', async () => {
+  await page.evaluate(() => {
+    document.tinyMDE = new TinyMDE.Editor({element: 'tinymde', content: 'one\ntwo'});
+    document.getElementById('tinymde').firstChild.focus();
+  });
+  await select(page, 0, 1, 1, 1); // Selection spanning both lines
+  const result = await page.evaluate(() => {
+    const before = document.tinyMDE.canUndo;
+    document.tinyMDE.wrapSelection('**', '**');
+    return {before: before, after: document.tinyMDE.canUndo, content: document.tinyMDE.getContent()};
+  });
+
+  expect(result.content).toEqual('one\ntwo');
+  expect(result.after).toEqual(result.before);
 });
 
 test('Keyboard shortcuts work', async () => {
