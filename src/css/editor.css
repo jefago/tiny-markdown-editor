@@ -5,7 +5,11 @@
   line-height:24px;
   outline: none;
   padding:5px;
-  height: 100%;
+  /* min-height rather than height so the editor fills a fixed-height container
+     when it's near-empty, but still grows with the content when it overflows.
+     With height:100% the box stayed at the container's height and the
+     background stopped painting at the fold (#182). */
+  min-height: 100%;
 }
 
 .TinyMDE.TinyMDE_empty {
