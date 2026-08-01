@@ -5,6 +5,10 @@
   line-height:24px;
   outline: none;
   padding:5px;
+  /* Count the padding towards the height below, so a fixed-height container
+     doesn't end up 10px short of fitting its own editor. Also makes the box
+     behave the same whether or not the embedding page has a border-box reset. */
+  box-sizing: border-box;
   /* min-height rather than height so the editor fills a fixed-height container
      when it's near-empty, but still grows with the content when it overflows.
      With height:100% the box stayed at the container's height and the
