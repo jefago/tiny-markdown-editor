@@ -1,6 +1,6 @@
-const { PORT } = require("./config");
+const { PORT, HOST } = require("./config");
 
-global.PATH = `http://localhost:${PORT}/blank.html`;
+global.PATH = `http://${HOST}:${PORT}/blank.html`;
 
 global.waitForTinyMDE = async (page) => {
   await page.waitForFunction(() => typeof TinyMDE !== 'undefined', { timeout: 10000 });
