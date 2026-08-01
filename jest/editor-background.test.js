@@ -68,6 +68,35 @@ test('Editor element grows to cover content taller than its container', async ()
   expect(measured.editorHeight).toBeGreaterThanOrEqual(measured.scrollHeight);
 });
 
+test('Editor does not overflow a fixed-height container when the content fits', async () => {
+  await page.evaluate(() => {
+    document.tinyMDE = new TinyMDE.Editor({ element: 'tinymde', content: 'Line 1\nLine 2\nLine 3' });
+  });
+
+  const measured = await page.evaluate(() => {
+    const container = document.getElementById('tinymde');
+    const editor = container.querySelector('.TinyMDE');
+    const firstLine = editor.firstChild;
+    return {
+      scrollHeight: container.scrollHeight,
+      clientHeight: container.clientHeight,
+      // The editor's padding has to survive the box-sizing change, so check
+      // that the text is still inset rather than flush against the box.
+      textInsetTop: Math.round(
+        firstLine.getBoundingClientRect().top - editor.getBoundingClientRect().top
+      ),
+      textInsetLeft: Math.round(
+        firstLine.getBoundingClientRect().left - editor.getBoundingClientRect().left
+      ),
+    };
+  });
+
+  // The editor's own padding must not push it past the container height.
+  expect(measured.scrollHeight).toEqual(measured.clientHeight);
+  expect(measured.textInsetTop).toEqual(5);
+  expect(measured.textInsetLeft).toEqual(5);
+});
+
 test('Editor background is painted below the fold when scrolled to the bottom', async () => {
   await setupOverflowingEditor();
 
