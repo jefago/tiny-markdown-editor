@@ -11,7 +11,7 @@ const startServer = () => {
   }
   
   return new Promise((resolve, reject) => {
-    const app = express();
+    const app = express(); // nosemgrep: express-check-csurf-middleware-usage
     app.use('/', express.static(path.resolve(__dirname, '..', '..', 'dist')));
     server = app.listen(PORT, () => {
       console.log(`Serving TinyMDE files at http://localhost:${PORT}/`);
