@@ -860,10 +860,10 @@ export class Editor {
   }
 
   public wrapSelection(pre: string, post: string, focus: Position | null = null, anchor: Position | null = null): void {
-    if (!this.isRestoringHistory) this.pushHistory();
     if (!focus) focus = this.getSelection(false);
     if (!anchor) anchor = this.getSelection(true);
     if (!focus || !anchor || focus.row !== anchor.row) return;
+    if (!this.isRestoringHistory) this.pushHistory();
     this.lineDirty[focus.row] = true;
 
     const startCol = focus.col < anchor.col ? focus.col : anchor.col;
@@ -877,6 +877,7 @@ export class Editor {
 
     this.updateFormatting();
     this.setSelection(focus, anchor);
+    this.fireChange();
   }
 
   public addEventListener<T extends EventType>(
@@ -2129,8 +2130,8 @@ export class Editor {
         focus!.col = startCol;
         anchor.col = endCol;
 
+        // wrapSelection() fires the change event itself.
         this.wrapSelection(commands[command].set.pre, commands[command].set.post, focus, anchor);
-        this.fireChange();
       }
     } else if (commands[command].type === "line") {
       let anchor = this.getSelection(true);
