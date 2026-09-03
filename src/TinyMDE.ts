@@ -68,6 +68,9 @@ export class Editor {
   private hasFocus: boolean = true;
   private lastSelection: { focus: Position | null; anchor: Position | null } | null = null;
   private placeholder: string | undefined;
+  private cleanupFns: (() => void)[] = [];
+  private ownsElement: boolean = false;
+  private destroyed: boolean = false;
 
   public listeners: {
     change: EventHandler<ChangeEvent>[];
@@ -153,7 +156,7 @@ export class Editor {
         : "# Hello TinyMDE!\nEdit **here**"
     );
     
-    this.e!.addEventListener("keydown", (e) => this.handleUndoRedoKey(e));
+    this.addListener(this.e!, "keydown", (e: Event) => this.handleUndoRedoKey(e as KeyboardEvent));
   }
 
   get canUndo(): boolean {
@@ -229,6 +232,7 @@ export class Editor {
       }
     } else {
       this.e = document.createElement("div");
+      this.ownsElement = true;
     }
 
     this.e.classList.add("TinyMDE");
@@ -252,18 +256,17 @@ export class Editor {
       }
     }
 
-    this.e.addEventListener("input", (e) => this.handleInputEvent(e));
-    this.e.addEventListener("beforeinput", (e) => this.handleBeforeInputEvent(e));
-    this.e.addEventListener("compositionend", (e) => this.handleInputEvent(e));
-    document.addEventListener("selectionchange", (e) => {
+    this.addListener(this.e, "input", (e: Event) => this.handleInputEvent(e));
+    this.addListener(this.e, "beforeinput", (e: Event) => this.handleBeforeInputEvent(e));
+    this.addListener(this.e, "compositionend", (e: Event) => this.handleInputEvent(e));
+    this.addListener(document, "selectionchange", (e: Event) => {
       if (this.hasFocus) { this.handleSelectionChangeEvent(e); }
-      }
-    );
-    this.e.addEventListener("blur", () => this.hasFocus = false );
-    this.e.addEventListener("focus", () => this.hasFocus = true );
-    this.e.addEventListener("paste", (e) => this.handlePaste(e));
-    this.e.addEventListener("drop", (e) => this.handleDrop(e));
-    this.e.addEventListener("click", (e) => this.handleClick(e));
+    });
+    this.addListener(this.e, "blur", () => this.hasFocus = false );
+    this.addListener(this.e, "focus", () => this.hasFocus = true );
+    this.addListener(this.e, "paste", (e: Event) => this.handlePaste(e as ClipboardEvent));
+    this.addListener(this.e, "drop", (e: Event) => this.handleDrop(e as DragEvent));
+    this.addListener(this.e, "click", (e: Event) => this.handleClick(e as MouseEvent));
     this.lineElements = this.e.childNodes;
   }
 
@@ -895,6 +898,60 @@ export class Editor {
     if (type.match(editorRegExp.dropEvent)) {
       this.listeners.drop.push(listener as EventHandler<DropEvent>);
     }
+  }
+
+  public removeEventListener<T extends EventType>(
+    type: T,
+    listener: T extends 'change' ? EventHandler<ChangeEvent> :
+             T extends 'selection' ? EventHandler<SelectionEvent> :
+             T extends 'drop' ? EventHandler<DropEvent> : never
+  ): void {
+    if (type.match(editorRegExp.changeEvent)) {
+      this.listeners.change = this.listeners.change.filter((l) => l !== listener);
+    }
+    if (type.match(editorRegExp.selectionEvent)) {
+      this.listeners.selection = this.listeners.selection.filter((l) => l !== listener);
+    }
+    if (type.match(editorRegExp.dropEvent)) {
+      this.listeners.drop = this.listeners.drop.filter((l) => l !== listener);
+    }
+  }
+
+  private addListener(target: EventTarget, type: string, handler: EventListenerOrEventListenerObject): void {
+    target.addEventListener(type, handler);
+    this.cleanupFns.push(() => target.removeEventListener(type, handler));
+  }
+
+  /**
+   * Removes all DOM/document listeners registered by this instance (including the
+   * `document`-level selectionchange listener, which would otherwise keep the whole editor
+   * alive for as long as the page lives) and detaches the editor element it created itself.
+   * Safe to call multiple times.
+   */
+  public destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+
+    for (const cleanup of this.cleanupFns) cleanup();
+    this.cleanupFns = [];
+
+    if (this.e) {
+      if (this.ownsElement) {
+        if (this.e.parentNode) this.e.parentNode.removeChild(this.e);
+      } else {
+        this.e.classList.remove("TinyMDE", "TinyMDE_empty");
+        this.e.removeAttribute("contenteditable");
+        this.e.removeAttribute("data-placeholder");
+      }
+    }
+
+    if (this.textarea) {
+      this.textarea.style.display = "";
+    }
+
+    this.listeners = { change: [], selection: [], drop: [] };
+    this.e = null;
+    this.textarea = null;
   }
 
   private fireChange(): void {
