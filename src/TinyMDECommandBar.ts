@@ -158,6 +158,9 @@ export class CommandBar {
   public buttons: Record<string, HTMLDivElement> = {};
   public state: Record<string, boolean | null> = {};
   private hotkeys: Hotkey[] = [];
+  private cleanupFns: (() => void)[] = [];
+  private detachEditor: (() => void) | null = null;
+  private destroyed: boolean = false;
 
   constructor(props: CommandBarProps) {
     this.e = null;
@@ -204,7 +207,7 @@ export class CommandBar {
         "insertImage",
       ]
     );
-    document.addEventListener("keydown", (e) => this.handleKeydown(e));
+    this.addListener(document, "keydown", (e: Event) => this.handleKeydown(e as KeyboardEvent));
     if (props.editor) this.setEditor(props.editor);
   }
 
@@ -310,7 +313,7 @@ export class CommandBar {
         this.buttons[commandName].title = title;
         this.buttons[commandName].innerHTML = this.commands[commandName].innerHTML || "?";
 
-        this.buttons[commandName].addEventListener("mousedown", (e) =>
+        this.addListener(this.buttons[commandName], "mousedown", (e: Event) =>
           this.handleClick(commandName, e)
         );
         this.e.appendChild(this.buttons[commandName]);
@@ -343,8 +346,11 @@ export class CommandBar {
   }
 
   public setEditor(editor: Editor): void {
+    if (this.detachEditor) this.detachEditor();
     this.editor = editor;
-    editor.addEventListener("selection", (e) => this.handleSelection(e));
+    const handler = (e: SelectionEvent) => this.handleSelection(e);
+    editor.addEventListener("selection", handler);
+    this.detachEditor = () => editor.removeEventListener("selection", handler);
   }
 
   private handleSelection(event: SelectionEvent): void {
@@ -392,6 +398,37 @@ export class CommandBar {
         return;
       }
     }
+  }
+
+  private addListener(target: EventTarget, type: string, handler: EventListenerOrEventListenerObject): void {
+    target.addEventListener(type, handler);
+    this.cleanupFns.push(() => target.removeEventListener(type, handler));
+  }
+
+  /**
+   * Removes all listeners registered by this instance, including the document-level keydown
+   * listener and the selection listener on its editor, and detaches the command bar element.
+   * Safe to call multiple times.
+   */
+  public destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+
+    if (this.detachEditor) {
+      this.detachEditor();
+      this.detachEditor = null;
+    }
+
+    for (const cleanup of this.cleanupFns) cleanup();
+    this.cleanupFns = [];
+
+    if (this.e && this.e.parentNode) {
+      this.e.parentNode.removeChild(this.e);
+    }
+
+    this.editor = null;
+    this.e = null;
+    this.buttons = {};
   }
 }
 
