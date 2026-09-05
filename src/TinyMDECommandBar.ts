@@ -159,6 +159,7 @@ export class CommandBar {
   public state: Record<string, boolean | null> = {};
   private hotkeys: Hotkey[] = [];
   private cleanupFns: (() => void)[] = [];
+  private detachEditor: (() => void) | null = null;
   private destroyed: boolean = false;
 
   constructor(props: CommandBarProps) {
@@ -345,10 +346,11 @@ export class CommandBar {
   }
 
   public setEditor(editor: Editor): void {
+    if (this.detachEditor) this.detachEditor();
     this.editor = editor;
     const handler = (e: SelectionEvent) => this.handleSelection(e);
     editor.addEventListener("selection", handler);
-    this.cleanupFns.push(() => editor.removeEventListener("selection", handler));
+    this.detachEditor = () => editor.removeEventListener("selection", handler);
   }
 
   private handleSelection(event: SelectionEvent): void {
@@ -411,6 +413,11 @@ export class CommandBar {
   public destroy(): void {
     if (this.destroyed) return;
     this.destroyed = true;
+
+    if (this.detachEditor) {
+      this.detachEditor();
+      this.detachEditor = null;
+    }
 
     for (const cleanup of this.cleanupFns) cleanup();
     this.cleanupFns = [];

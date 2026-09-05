@@ -70,6 +70,8 @@ export class Editor {
   private placeholder: string | undefined;
   private cleanupFns: (() => void)[] = [];
   private ownsElement: boolean = false;
+  private elementOriginalStyle: string | null = null;
+  private textareaOriginalDisplay: string | null = null;
   private destroyed: boolean = false;
 
   public listeners: {
@@ -135,6 +137,7 @@ export class Editor {
     }
 
     if (this.textarea) {
+      this.textareaOriginalDisplay = this.textarea.style.display;
       this.textarea.style.display = "none";
     }
 
@@ -233,6 +236,10 @@ export class Editor {
     } else {
       this.e = document.createElement("div");
       this.ownsElement = true;
+    }
+
+    if (!this.ownsElement) {
+      this.elementOriginalStyle = this.e.getAttribute("style");
     }
 
     this.e.classList.add("TinyMDE");
@@ -925,7 +932,10 @@ export class Editor {
   /**
    * Removes all DOM/document listeners registered by this instance (including the
    * `document`-level selectionchange listener, which would otherwise keep the whole editor
-   * alive for as long as the page lives) and detaches the editor element it created itself.
+   * alive for as long as the page lives). An editor element TinyMDE created itself is removed
+   * from the DOM; one passed in by the caller is left in place, emptied and restored to the
+   * classes, attributes and inline styles it had before. A linked textarea is shown again.
+   * Does not destroy a CommandBar attached to this editor; destroy that separately.
    * Safe to call multiple times.
    */
   public destroy(): void {
@@ -942,11 +952,19 @@ export class Editor {
         this.e.classList.remove("TinyMDE", "TinyMDE_empty");
         this.e.removeAttribute("contenteditable");
         this.e.removeAttribute("data-placeholder");
+        while (this.e.firstChild) this.e.removeChild(this.e.firstChild);
+        // WebKit reflects an absent style attribute as "" rather than null, so treat
+        // both the same and drop the attribute instead of leaving an empty one behind.
+        if (this.elementOriginalStyle) {
+          this.e.setAttribute("style", this.elementOriginalStyle);
+        } else {
+          this.e.removeAttribute("style");
+        }
       }
     }
 
     if (this.textarea) {
-      this.textarea.style.display = "";
+      this.textarea.style.display = this.textareaOriginalDisplay ?? "";
     }
 
     this.listeners = { change: [], selection: [], drop: [] };
